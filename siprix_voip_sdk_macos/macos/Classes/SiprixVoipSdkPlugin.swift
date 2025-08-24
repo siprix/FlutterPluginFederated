@@ -131,131 +131,165 @@ class SiprixEventHandler : NSObject, SiprixEventDelegate {
     //Event handlers
     
     public func onTrialModeNotified() {
-        let argsMap = [String:Any]()
-        _channel.invokeMethod(kOnTrialModeNotif, arguments: argsMap)
+        DispatchQueue.main.async {
+            let argsMap = [String:Any]()
+            self._channel.invokeMethod(kOnTrialModeNotif, arguments: argsMap)
+        }
     }
 
     public func onDevicesAudioChanged() {
-        let argsMap = [String:Any]()
-        _channel.invokeMethod(kOnDevicesChanged, arguments: argsMap)
+        DispatchQueue.main.async {
+            let argsMap = [String:Any]()
+            self._channel.invokeMethod(kOnDevicesChanged, arguments: argsMap)
+        }
     }
     
     public func onAccountRegState(_ accId: Int, regState: RegState, response: String) {
-        var argsMap = [String:Any]()
-        argsMap[kArgAccId] = accId
-        argsMap[kRegState] = regState.rawValue
-        argsMap[kResponse] = response
-        _channel.invokeMethod(kOnAccountRegState, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgAccId] = accId
+            argsMap[kRegState] = regState.rawValue
+            argsMap[kResponse] = response
+            self._channel.invokeMethod(kOnAccountRegState, arguments: argsMap)
+        }
     }
     
     public func onSubscriptionState(_ subscrId: Int, subscrState: SubscrState, response: String) {
-        var argsMap = [String:Any]()
-        argsMap[kArgSubscrId] = subscrId
-        argsMap[kSubscrState] = subscrState.rawValue
-        argsMap[kResponse] = response
-        _channel.invokeMethod(kOnSubscriptionState, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgSubscrId] = subscrId
+            argsMap[kSubscrState] = subscrState.rawValue
+            argsMap[kResponse] = response
+            self._channel.invokeMethod(kOnSubscriptionState, arguments: argsMap)
+        }
     }
     
     public func onNetworkState(_ name: String, netState: NetworkState) {
-        var argsMap = [String:Any]()
-        argsMap[kArgName] = name
-        argsMap[kNetState] = netState.rawValue
-        _channel.invokeMethod(kOnNetworkState, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgName] = name
+            argsMap[kNetState] = netState.rawValue
+            self._channel.invokeMethod(kOnNetworkState, arguments: argsMap)
+        }
     }
 
     public func onPlayerState(_ playerId: Int, playerState: PlayerState) {
-        var argsMap = [String:Any]()
-        argsMap[kArgPlayerId] = playerId
-        argsMap[kPlayerState] = playerState.rawValue
-        _channel.invokeMethod(kOnPlayerState, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgPlayerId] = playerId
+            argsMap[kPlayerState] = playerState.rawValue
+            self._channel.invokeMethod(kOnPlayerState, arguments: argsMap)
+        }
     }
     
     public func onRingerState(_ started: Bool) {    
     }
 
     public func onCallProceeding(_ callId: Int, response:String){
-        var argsMap = [String:Any]()
-        argsMap[kArgCallId] = callId
-        argsMap[kResponse] = response
-        _channel.invokeMethod(kOnCallProceeding, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgCallId] = callId
+            argsMap[kResponse] = response
+            self._channel.invokeMethod(kOnCallProceeding, arguments: argsMap)
+        }
     }
 
     public func onCallTerminated(_ callId: Int, statusCode:Int) {
-        var argsMap = [String:Any]()
-        argsMap[kArgCallId] = callId
-        argsMap[kArgStatusCode] = statusCode
-        _channel.invokeMethod(kOnCallTerminated, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgCallId] = callId
+            argsMap[kArgStatusCode] = statusCode
+            self._channel.invokeMethod(kOnCallTerminated, arguments: argsMap)
+        }
     }
 
     public func onCallConnected(_ callId: Int, hdrFrom:String, hdrTo:String, withVideo:Bool) {
-        var argsMap = [String:Any]()
-        argsMap[kArgWithVideo] = withVideo
-        argsMap[kArgCallId] = callId
-        argsMap[kFrom] = hdrFrom
-        argsMap[kTo] = hdrTo
-        _channel.invokeMethod(kOnCallConnected, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgWithVideo] = withVideo
+            argsMap[kArgCallId] = callId
+            argsMap[kFrom] = hdrFrom
+            argsMap[kTo] = hdrTo
+            self._channel.invokeMethod(kOnCallConnected, arguments: argsMap)
+        }
     }
 
     public func onCallIncoming(_ callId:Int, accId:Int, withVideo:Bool, hdrFrom:String, hdrTo:String) {
-        var argsMap = [String:Any]()
-        argsMap[kArgWithVideo] = withVideo
-        argsMap[kArgCallId] = callId
-        argsMap[kArgAccId] = accId
-        argsMap[kFrom] = hdrFrom
-        argsMap[kTo] = hdrTo
-        _channel.invokeMethod(kOnCallIncoming, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgWithVideo] = withVideo
+            argsMap[kArgCallId] = callId
+            argsMap[kArgAccId] = accId
+            argsMap[kFrom] = hdrFrom
+            argsMap[kTo] = hdrTo
+            self._channel.invokeMethod(kOnCallIncoming, arguments: argsMap)
+        }
     }
 
     public func onCallDtmfReceived(_ callId:Int, tone:Int) {
-        var argsMap = [String:Any]()
-        argsMap[kArgCallId] = callId
-        argsMap[kArgTone] = tone
-        _channel.invokeMethod(kOnCallDtmfReceived, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgCallId] = callId
+            argsMap[kArgTone] = tone
+            self._channel.invokeMethod(kOnCallDtmfReceived, arguments: argsMap)
+        }
     }
 
     public func onCallSwitched(_ callId: Int) {
-        var argsMap = [String:Any]()
-        argsMap[kArgCallId] = callId
-        _channel.invokeMethod(kOnCallSwitched, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgCallId] = callId
+            self._channel.invokeMethod(kOnCallSwitched, arguments: argsMap)
+        }
     }
     
     public func onCallTransferred(_ callId: Int, statusCode: Int) {
-        var argsMap = [String:Any]()
-        argsMap[kArgCallId] = callId
-        argsMap[kArgStatusCode] = statusCode
-        _channel.invokeMethod(kOnCallTransferred, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgCallId] = callId
+            argsMap[kArgStatusCode] = statusCode
+            self._channel.invokeMethod(kOnCallTransferred, arguments: argsMap)
+        }
     }
     
     public func onCallRedirected(_ origCallId: Int, relatedCallId: Int, referTo: String) {
-        var argsMap = [String:Any]()
-        argsMap[kArgFromCallId] = origCallId
-        argsMap[kArgToCallId] = relatedCallId
-        argsMap[kArgToExt] = referTo
-        _channel.invokeMethod(kOnCallRedirected, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgFromCallId] = origCallId
+            argsMap[kArgToCallId] = relatedCallId
+            argsMap[kArgToExt] = referTo
+            self._channel.invokeMethod(kOnCallRedirected, arguments: argsMap)
+        }
     }
 
     public func onCallHeld(_ callId: Int, holdState: HoldState) {
-        var argsMap = [String:Any]()
-        argsMap[kArgCallId] = callId
-        argsMap[kHoldState] = holdState.rawValue
-        _channel.invokeMethod(kOnCallHeld, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgCallId] = callId
+            argsMap[kHoldState] = holdState.rawValue
+            self._channel.invokeMethod(kOnCallHeld, arguments: argsMap)
+        }
     }
 
     public func onMessageSentState(_ messageId:Int, success:Bool, response:String) {
-        var argsMap = [String:Any]()
-        argsMap[kArgMsgId] = messageId
-        argsMap[kSuccess] = success
-        argsMap[kResponse] = response
-        _channel.invokeMethod(kOnMessageSentState, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgMsgId] = messageId
+            argsMap[kSuccess] = success
+            argsMap[kResponse] = response
+            self._channel.invokeMethod(kOnMessageSentState, arguments: argsMap)
+        }
     }
 
     public func onMessageIncoming(_ messageId:Int, accId:Int, hdrFrom:String, body:String) {
-        var argsMap = [String:Any]()
-        argsMap[kArgMsgId] = messageId
-        argsMap[kArgAccId] = accId
-        argsMap[kFrom] = hdrFrom
-        argsMap[kBody] = body
-        _channel.invokeMethod(kOnMessageIncoming, arguments: argsMap)
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgMsgId] = messageId
+            argsMap[kArgAccId] = accId
+            argsMap[kFrom] = hdrFrom
+            argsMap[kBody] = body
+            self._channel.invokeMethod(kOnMessageIncoming, arguments: argsMap)
+        }
     }
 }
 
