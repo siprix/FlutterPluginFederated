@@ -185,7 +185,7 @@ class _MyAppState extends State<MyApp> {
     //iniData.tlsVerifyServer = false;
     //if(Platform.isIOS) {
     //  iniData.enableCallKit = true;
-    //  iniData.enablePushKit = true;
+    //  iniData.enablePushKit = true; //Enable only when added PushNotif support on server side
     //  iniData.unregOnDestroy = false;
     //}
     //if(Platform.isAndroid) {
