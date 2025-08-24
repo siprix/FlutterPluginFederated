@@ -1,3 +1,9 @@
+## 1.0.12
+- Improved detection of the avialability IPv4/IPv6 interfaces
+- Updated previous fix, which reduces delay on collecting candidates
+- Added fix for H264 profile-level-id negotiation
+  //2025.08.24
+
 ## 1.0.11
 - Fixed crash on ios/macos when license string is empty
 - Added fix which prevents long delay on collecting candidates when enabled STUN
