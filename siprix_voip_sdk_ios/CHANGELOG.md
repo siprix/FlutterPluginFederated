@@ -1,3 +1,7 @@
+## 1.0.22
+- iOS: Revert mistakenly published changes caused build error
+  //2025.08.26
+
 ## 1.0.21
 - Improved detection of the avialability IPv4/IPv6 interfaces
 - Updated previous fix, which reduces delay on collecting candidates

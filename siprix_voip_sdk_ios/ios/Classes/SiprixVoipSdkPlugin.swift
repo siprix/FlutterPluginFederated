@@ -53,7 +53,6 @@ private let kMethodSubscriptionDelete  = "Subscription_Delete"
 
 private let kMethodDvcGetPushKitToken  = "Dvc_GetPushKitToken"
 private let kMethodDvcUpdCallKitDetails = "Dvc_UpdCallKitDetails"
-private let kMethodDvcGetCallKitUUID   = "Dvc_GetCallKitUUID"
 
 private let kMethodDvcGetPlayoutNumber = "Dvc_GetPlayoutDevices"
 private let kMethodDvcGetRecordNumber  = "Dvc_GetRecordingDevices"
@@ -599,7 +598,6 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
         case kMethodDvcGetPushKitToken  : handleDvcGetPushkitToken(argsMap!, result:result)
         case kMethodDvcUpdCallKitDetails : handleDvcUpdCallKitDetails(argsMap!, result:result)
-        case kMethodDvcGetCallKitUUID  :   handleDvcGetCallKitUUID(argsMap!, result:result)
           
         case kMethodDvcGetPlayoutNumber:   handleDvcGetPlayoutNumber(argsMap!, result:result)
         case kMethodDvcGetRecordNumber :   handleDvcGetRecordNumber(argsMap!, result:result)
@@ -1269,16 +1267,6 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         }
     }
 
-    func handleDvcGetCallKitUUID(_ args : ArgsMap, result: @escaping FlutterResult) {
-        let callId   = args[kArgCallId] as? Int
-
-        if(callId != nil) {
-            result(_callKitProvider?.getCallKitUUID(callId!))
-        } else {
-            sendBadArguments(result:result)
-        }
-    }
-    
     ////////////////////////////////////////////////////////////////////////////////////////
     //Siprix Devices methods implementation
     
@@ -1704,11 +1692,6 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
             call.cxEndAction?.fail()
         }
         print("siprix: CxProvider: proceedCxEndAction err:\(err) sipCallId:\(call.id) uuid:\(call.uuid))")
-    }
-
-    public func getCallKitUUID(_ callId:Int) -> String? {
-        let call = _callsList.first(where: {$0.id == callId})
-        return call?.uuid;
     }
 
     public func sipAppUpdateCallDetails(_ callKit_callUUID:UUID, callId:Int?,
