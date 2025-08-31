@@ -575,7 +575,7 @@ Siprix::AccData* parseAccData(FlValue* args)
     }
 
     val = fl_value_lookup_string(args, "aCodecs");
-    if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_INT32_LIST) {
+    if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_LIST) {
         Siprix::Acc_ResetAudioCodecs(accData);
         for (size_t i = 0; i < fl_value_get_length(val); ++i) {
             FlValue* codec = fl_value_get_list_value(val, i);
@@ -585,7 +585,7 @@ Siprix::AccData* parseAccData(FlValue* args)
     }
 
     val = fl_value_lookup_string(args, "vCodecs");
-    if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_INT32_LIST) {
+    if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_LIST) {
         Siprix::Acc_ResetVideoCodecs(accData);
         for (size_t i = 0; i < fl_value_get_length(val); ++i) {
             FlValue* codec = fl_value_get_list_value(val, i);

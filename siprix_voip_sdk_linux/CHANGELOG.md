@@ -1,3 +1,9 @@
+## 1.0.13
+- Added G729 codec support
+- Fixed handling connection candidates of inactive media lines
+- Added fallback to first available H264 codec when baseline profile missed
+  //2025.08.31
+
 ## 1.0.12
 - Improved detection of the avialability IPv4/IPv6 interfaces
 - Updated previous fix, which reduces delay on collecting candidates
