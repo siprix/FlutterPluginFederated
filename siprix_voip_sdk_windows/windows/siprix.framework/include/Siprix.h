@@ -151,7 +151,8 @@ enum AudioCodec : uint8_t
     PCMU   = 70,
     PCMA   = 71,
     DTMF   = 72,
-    CN     = 73
+    CN     = 73,
+    G729   = 74,
 };
 
 enum VideoCodec : uint8_t
