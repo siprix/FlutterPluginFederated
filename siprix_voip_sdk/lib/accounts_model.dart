@@ -143,6 +143,7 @@ class Codec {
       case SiprixVoipSdk.kAudioCodecISAC16: return "ISAC/16000";
       case SiprixVoipSdk.kAudioCodecISAC32: return "ISAC/32000";
       case SiprixVoipSdk.kAudioCodecG722: return "G722/8000";
+      case SiprixVoipSdk.kAudioCodecG729: return "G729/8000";
       case SiprixVoipSdk.kAudioCodecILBC: return "ILBC/8000";
       case SiprixVoipSdk.kAudioCodecPCMU: return "PCMU/8000";
       case SiprixVoipSdk.kAudioCodecPCMA: return "PCMA/8000";
@@ -164,6 +165,7 @@ class Codec {
         SiprixVoipSdk.kAudioCodecISAC16,
         SiprixVoipSdk.kAudioCodecISAC32,
         SiprixVoipSdk.kAudioCodecG722,
+        SiprixVoipSdk.kAudioCodecG729,
         SiprixVoipSdk.kAudioCodecILBC,
         SiprixVoipSdk.kAudioCodecPCMU,
         SiprixVoipSdk.kAudioCodecPCMA,

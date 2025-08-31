@@ -461,6 +461,7 @@ class SiprixVoipSdk {
   static const int kAudioCodecPCMA  = 71;
   static const int kAudioCodecDTMF  = 72;
   static const int kAudioCodecCN    = 73;
+  static const int kAudioCodecG729  = 74;
 
   ///Video codec constants
   static const int kVideoCodecH264  = 80;
