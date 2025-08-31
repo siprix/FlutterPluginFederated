@@ -1,3 +1,9 @@
+## 1.0.23
+- Added G729 codec support
+- Fixed handling connection candidates of inactive media lines
+- Added fallback to first available H264 codec when baseline profile missed
+  //2025.08.31
+
 ## 1.0.22
 - iOS: Revert mistakenly published changes caused build error
   //2025.08.26

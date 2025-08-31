@@ -101,7 +101,8 @@ typedef NS_ENUM(NSInteger, AudioCodecs) {
     AudioCodecsPCMU   = 70,
     AudioCodecsPCMA   = 71,
     AudioCodecsDTMF   = 72,
-    AudioCodecsCN     = 73
+    AudioCodecsCN     = 73,
+    AudioCodecsG729   = 74,
 };
 
 typedef NS_ENUM(NSInteger, VideoCodecs) {
