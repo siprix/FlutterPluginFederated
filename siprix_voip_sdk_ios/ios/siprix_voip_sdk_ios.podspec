@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'siprix_voip_sdk_ios'
-  s.version          = '1.0.21'
+  s.version          = '1.0.23'
   s.summary          = 'Siprix VoIP SDK plugin for embedding voice and video communication.'
   s.description      = <<-DESC
 Siprix VoIP SDK plugin for embedding voice and video communication (based on SIP/RTP protocols) into Flutter applications.

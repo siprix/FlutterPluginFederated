@@ -257,7 +257,7 @@ EXPORT
 - (int) height;
 - (VideoFrameRotation) rotation;
 - (void)convertToARGB:(VideoFrameRGBType)type dstBuffer:(uint8_t* _Nonnull)dstBuffer
-                    dstWidth:(int)dstWidth dstHeight:(int)dstHeight;
+                    dstWidth:(int)dstWidth dstHeight:(int)dstHeight dstStride:(int)dstStride;
 @end
 
 

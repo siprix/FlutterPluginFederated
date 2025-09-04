@@ -261,7 +261,7 @@ public:
     virtual Rotation rotation()const =0;
 
     virtual void ConvertToARGB(RGBType type, uint8_t* dstBuffer,
-        int dstWidth, int dstHeight) const = 0;
+        int dstWidth, int dstHeight, int dstStride=0) const = 0;
 };
 
 class IVideoRenderer
