@@ -566,6 +566,9 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         
     func handleModuleUnInitialize(_ args : ArgsMap, result: @escaping FlutterResult) {
         let err = _siprixModule.unInitialize()
+        if(err == kErrorCodeEOK){
+            _initialized = false;
+        }
         sendResult(err, result:result)
     }
 
