@@ -349,6 +349,7 @@ class FlutterVideoRenderer : NSObject, SiprixVideoRendererDelegate, FlutterTextu
         if (_pixelBufferWidth != frame.width() || _pixelBufferHeight != frame.height()) {
             _pixelBufferWidth  = Int(frame.width())
             _pixelBufferHeight = Int(frame.height())
+            print("siprix: Got new video frame \(_pixelBufferWidth)x\(_pixelBufferHeight) \(frame.rotation()) textureId:\(_textureId)")
             
             let attrs = [kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
                          kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue,
@@ -359,9 +360,12 @@ class FlutterVideoRenderer : NSObject, SiprixVideoRendererDelegate, FlutterTextu
         }
         
         CVPixelBufferLockBaseAddress(_pixelBuffer!, CVPixelBufferLockFlags(rawValue: 0))
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(_pixelBuffer!)
         if let baseAddress = CVPixelBufferGetBaseAddress(_pixelBuffer!) {
             let buf = baseAddress.assumingMemoryBound(to: UInt8.self)
-            frame.convert(toARGB: .ARGB, dstBuffer: buf, dstWidth: frame.width(), dstHeight: frame.height())
+            frame.convert(toARGB: .ARGB, dstBuffer: buf, 
+                          dstWidth: frame.width(), dstHeight: frame.height(),
+                          dstStride: Int32(bytesPerRow))
         }
         CVPixelBufferUnlockBaseAddress(_pixelBuffer!, CVPixelBufferLockFlags(rawValue: 0))
     }
@@ -374,18 +378,27 @@ class FlutterVideoRenderer : NSObject, SiprixVideoRendererDelegate, FlutterTextu
         }
     }
     
+    func degrees(_ rotation : VideoFrameRotation) -> Int32 {
+        switch(rotation) {
+            case VideoFrameRotation.rotation_90: return 90
+            case VideoFrameRotation.rotation_180: return 180
+            case VideoFrameRotation.rotation_270: return 270
+            default: return 0
+        }
+    }
+
     func sendEvent(frame : SiprixVideoFrame) {
         if(_eventData.rotation != frame.rotation()) {
+            _eventData.rotation = frame.rotation()
             if(_eventSink != nil) {
                 var argsMap = [String:Any]()
                 argsMap["event"]  = "didTextureChangeRotation"
                 argsMap["id"]     = _textureId
-                argsMap["rotation"]  = _eventData.width
+                argsMap["rotation"]  = degrees(_eventData.rotation)
                 DispatchQueue.main.async {
                     self._eventSink!(argsMap)
                 }
             }
-            _eventData.rotation = frame.rotation()
         }
         
         if(_eventData.width != frame.width() || _eventData.height != frame.height()) {
@@ -505,15 +518,14 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
     }//handle
         
     deinit {
-        if (_initialized) {
-            _siprixModule.unInitialize()
-        }
+         _siprixModule.unInitialize()
     }
     
     func handleModuleInitialize(_ args : ArgsMap, result: @escaping FlutterResult) {
-        //Check alredy created
-        if (_initialized) {
-            result("Already created")
+        //Check already initialized
+        if (_siprixModule.isInitialized()) {
+            _initialized = true
+            result("Already initialized")
             return
         }
         
@@ -566,6 +578,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         
     func handleModuleUnInitialize(_ args : ArgsMap, result: @escaping FlutterResult) {
         let err = _siprixModule.unInitialize()
+        _initialized = false
         sendResult(err, result:result)
     }
 
