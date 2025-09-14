@@ -1,3 +1,11 @@
+## 1.0.14
+- Fixed remote hold detection (when all media lines are sendonly or inactive)
+- Modified handling 'sips' scheme (put 'sips' to Contact header)
+- Added new method 'WriteLog', and integrated it in the iOS/Android flutter plugins
+- Updated 'SiprixVideoRenderer::onResize' callback in Flutter wrapper;
+- Modifed 'unInitialize' implementation in the Flutter plugins
+  //2025.09.14
+
 ## 1.0.13
 - Added G729 codec support
 - Fixed handling connection candidates of inactive media lines
