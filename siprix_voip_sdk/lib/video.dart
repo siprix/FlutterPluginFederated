@@ -11,15 +11,14 @@ class RTCVideoValue {
     this.width = 0.0,
     this.height = 0.0,
     this.rotation = 0,
-    this.hasTexture = false,
   });
 
-  ///Width of the video frame
+  ///Width of the video frame (pixels)
   final double width;
-  ///Height of the video frame
+  ///Height of the video frame (pixels)
   final double height;
+  ///Rotation of the video frame (degrees: 0/90/180/270)
   final int rotation;
-  final bool hasTexture;
 
   static const RTCVideoValue empty = RTCVideoValue();
 
@@ -33,14 +32,12 @@ class RTCVideoValue {
   }
 
   RTCVideoValue copyWith({
-    double? width, double? height,
-    int? rotation, bool hasTexture = true,
+    double? width, double? height, int? rotation
   }) {
     return RTCVideoValue(
       width: width ?? this.width,
       height: height ?? this.height,
       rotation: rotation ?? this.rotation,
-      hasTexture: this.width != 0 && this.height != 0 && hasTexture,
     );
   }
 
@@ -48,7 +45,6 @@ class RTCVideoValue {
   String toString() =>
       '$runtimeType(width: $width, height: $height, rotation: $rotation)';
 }
-
 
 
 /// SiprixVideoRenderer - holds texture, created by native plugins, and listening video frame events raised by native plugins
@@ -60,6 +56,7 @@ class SiprixVideoRenderer extends ValueNotifier<RTCVideoValue> {
   /// Invalid call id constant
   static const int kInvalidCallId = -1;
   int _textureId = kInvalidTextureId;
+  int _srcCallId = kInvalidCallId;
   late final ILogsModel? _logs;
 
   /// Width of the received video frame
@@ -73,13 +70,16 @@ class SiprixVideoRenderer extends ValueNotifier<RTCVideoValue> {
   int  get textureId => _textureId;
   /// Is created texture
   bool get hasTexture=> _textureId != kInvalidTextureId;
+  /// Call id which displays video on this texture
+  int  get srcCallId => _srcCallId;
 
   /// Frame resize handler
-  Function? onResize;
+  Function(RTCVideoValue v, int callId)? onResize;
 
   /// Create texture id rendering video of the specifed call
   Future<void> init(int srcCallId, [ILogsModel? logs]) async {
     if (_textureId != kInvalidTextureId) return;
+    _srcCallId = srcCallId;
     _logs = logs;
 
     try{
@@ -89,7 +89,7 @@ class SiprixVideoRenderer extends ValueNotifier<RTCVideoValue> {
     }
 
     if(_textureId != kInvalidTextureId) {
-      _logs?.print('Created textureId: $textureId');
+      _logs?.print('Created textureId: $textureId for callId:$_srcCallId');
       _eventSubscription = EventChannel('Siprix/Texture$textureId')
         .receiveBroadcastStream()
         .listen(eventListener, onError: errorListener);
@@ -101,9 +101,11 @@ class SiprixVideoRenderer extends ValueNotifier<RTCVideoValue> {
   /// Use created texture for rendering video of specified call
   void setSourceCall(int callId) async {
     if(callId==kInvalidCallId) return;
+    _srcCallId = callId;
 
     try{
       await SiprixVoipSdk().videoRendererSetSourceCall(_textureId, callId);
+      _logs?.print('Assign textureId: $textureId with callId:$_srcCallId');
     } on PlatformException catch (err) {
       _logs?.print('Cant set src call for renderer Err: ${err.code} ${err.message}');
     }
@@ -126,17 +128,15 @@ class SiprixVideoRenderer extends ValueNotifier<RTCVideoValue> {
     final Map<dynamic, dynamic> map = event;
     switch (map['event']) {
       case 'didTextureChangeRotation':
-        value = value.copyWith(rotation: map['rotation'], hasTexture: hasTexture);
-        onResize?.call();
+        value = value.copyWith(rotation: map['rotation']);
         break;
       case 'didTextureChangeVideoSize':
         value = value.copyWith(
             width: 0.0 + map['width'],
-            height: 0.0 + map['height'],
-            hasTexture: hasTexture);
-        onResize?.call();
+            height: 0.0 + map['height']);
         break;
     }
+    onResize?.call(value, _srcCallId);
   }
 
   /// Handle video frame errors
@@ -166,4 +166,14 @@ class SiprixVideoView extends StatelessWidget {
                         child: Texture(textureId: _renderer.textureId, filterQuality: filterQuality))
                     : const Placeholder();
   }
+
+  //Widget buildWithText(BuildContext context) {
+  //  if(!_renderer.hasTexture) return const Placeholder();
+  //  else return Stack(children: [
+  //    AspectRatio(aspectRatio: _renderer.aspectRatio, child:
+  //      Texture(textureId: _renderer.textureId, filterQuality: filterQuality)
+  //    ),
+  //    Text("w:${_renderer.videoWidth} h:${_renderer.videoHeight}")//Display resolution on UI
+  //  ]);
+  //}
 }

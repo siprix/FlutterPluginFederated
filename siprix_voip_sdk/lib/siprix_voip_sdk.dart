@@ -798,7 +798,7 @@ class SiprixVoipSdk {
   //-//////////////////////////////////////////////////////////////////////////////////////
   //-iOS specific implementation
 
-  ///Get Pushkit token (iOs only)
+  ///Get PushKit token (iOS only)
   Future<String?>? getPushKitToken() {
     return _platform.getPushKitToken();
   }
@@ -810,6 +810,10 @@ class SiprixVoipSdk {
     return _platform.updateCallKitCallDetails(callkit_CallUUID, sip_callId, localizedCallerName, genericHandle, withVideo);
   }
 
+  ///Get CallKit call UUID assigned with SIP callId (iOS only)
+  Future<String?>? getCallKitCallUUID(int sip_callId) {
+    return _platform.getCallKitCallUUID(sip_callId);
+  }
 
   //-//////////////////////////////////////////////////////////////////////////////////////
   //-Android specific implementation

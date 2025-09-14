@@ -1,3 +1,16 @@
+## 1.0.26
+- Fixed remote hold detection (when all media lines are sendonly or inactive)
+- Modified handling 'sips' scheme (put 'sips' to Contact header)
+- iOS: Added ability to activate audio session manually (when push notification not received)
+- iOS: Modified internal video rendering implementation
+- iOS: Fixed ability to use jpeg image instead of camera
+- iOS: Added new method 'getCallKitCallUUID'
+- Android: added ability to skip permissions request
+- Added new method 'WriteLog', and integrated it in the iOS/Android flutter plugins
+- Updated 'SiprixVideoRenderer::onResize' callback in Flutter wrapper;
+- Modifed 'unInitialize' implementation in the Flutter plugins
+  //2025.09.14
+
 ## 1.0.25
 - Added G729 codec support
 - Fixed handling connection candidates of inactive media lines

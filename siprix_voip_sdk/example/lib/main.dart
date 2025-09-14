@@ -231,10 +231,10 @@ class _MyAppState extends State<MyApp> {
     cdrs.onSaveChanges = _saveCdrsChanges;
 
     //Load messages, than accounts, then other models
-    await msgs.loadFromJson(msgsJsonStr);
-    await accs.loadFromJson(accJsonStr);
-    await subs.loadFromJson(subsJsonStr);
-    await cdrs.loadFromJson(cdrsJsonStr);
+    msgs.loadFromJson(msgsJsonStr);
+    accs.loadFromJson(accJsonStr);
+    subs.loadFromJson(subsJsonStr);
+    cdrs.loadFromJson(cdrsJsonStr);
 
     //Assign contact name resolver
     context.read<AppCallsModel>().onResolveContactName = _resolveContactName;
