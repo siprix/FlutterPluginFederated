@@ -389,6 +389,7 @@ void SiprixVoipSdkPlugin::handleModuleInitialize(const flutter::EncodableMap& ar
 void SiprixVoipSdkPlugin::handleModuleUnInitialize(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
 {
     const Siprix::ErrorCode err = Siprix::Module_UnInitialize(module_);
+    module_ = nullptr;
     sendResult(err, result);
 }
 
@@ -1382,13 +1383,14 @@ void FlutterVideoRenderer::convertToRgb(Siprix::IVideoFrame* frame)
         const size_t w = frame->width();
         const size_t h = frame->height();
         if (second_.pixel_buffer_->width  != w || second_.pixel_buffer_->height != h) {
-            size_t buffer_size = (w * h * (32 >> 3));
+            size_t buffer_size = (w * h * 4);
             second_.rgb_buffer_.reset(new uint8_t[buffer_size]);
             second_.pixel_buffer_->width  = w;
             second_.pixel_buffer_->height = h;
         }
 
-        frame->ConvertToARGB(Siprix::IVideoFrame::RGBType::kABGR, second_.rgb_buffer_.get(), frame->width(), frame->height());
+        frame->ConvertToARGB(Siprix::IVideoFrame::RGBType::kABGR, second_.rgb_buffer_.get(), 
+                             frame->width(), frame->height(), 0);
 
         second_.pixel_buffer_->buffer = second_.rgb_buffer_.get();
         second_.fresh_ = true;

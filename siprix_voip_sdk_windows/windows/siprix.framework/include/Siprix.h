@@ -261,7 +261,7 @@ public:
     virtual Rotation rotation()const =0;
 
     virtual void ConvertToARGB(RGBType type, uint8_t* dstBuffer,
-        int dstWidth, int dstHeight) const = 0;
+        int dstWidth, int dstHeight, int dstStride=0) const = 0;
 };
 
 class IVideoRenderer
@@ -284,6 +284,7 @@ EXPORT bool        Module_IsInitialized(ISiprixModule* module);
 EXPORT const char* Module_HomeFolder(ISiprixModule* module);
 EXPORT const char* Module_Version(ISiprixModule* module);
 EXPORT uint32_t    Module_VersionCode(ISiprixModule* module);
+EXPORT void        Module_WriteLog(ISiprixModule* module, const char* text);
 
 ////////////////////////////////////////////////////////////////////////////
 //Manage Accounts
