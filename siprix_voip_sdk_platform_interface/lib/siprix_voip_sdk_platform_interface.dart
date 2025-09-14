@@ -56,6 +56,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
 
   static const String kMethodDvcGetPushKitToken  = 'Dvc_GetPushKitToken';
   static const String kMethodDvcUpdCallKitDetails= 'Dvc_UpdCallKitDetails';
+  static const String kMethodDvcGetCallKitUUID   = 'Dvc_GetCallKitUUID';
 
   static const String kMethodDvcSetForegroundMode= 'Dvc_SetForegroundMode';
   static const String kMethodDvcIsForegroundMode=  'Dvc_IsForegroundMode';
@@ -163,7 +164,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   }
 
   Future<void> unInitialize() {
-    return _methodChannel.invokeMethod<void>(kMethodModuleUnInitialize);
+    return _methodChannel.invokeMethod<void>(kMethodModuleUnInitialize, {});
   }
 
   Future<String?> homeFolder() async {
@@ -417,7 +418,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   }
 
   Future<void>? updateCallKitCallDetails(String callkit_CallUUID, int? sip_callId,
-                      [String? localizedCallerName=null, String? genericHandle=null, bool? withVideo=null]) {
+                      [String? localizedCallerName, String? genericHandle, bool? withVideo]) {
     if(Platform.isIOS) {
       return _methodChannel.invokeMethod<void>(kMethodDvcUpdCallKitDetails,
         {kArgCallKitUuid:callkit_CallUUID, kArgCallId:sip_callId,
@@ -425,6 +426,15 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
     }
     return null;
   }
+
+  Future<String?>? getCallKitCallUUID(int sip_callId) {
+    if(Platform.isIOS) {
+      return _methodChannel.invokeMethod<String>(kMethodDvcGetCallKitUUID, 
+         {kArgCallId:sip_callId});
+    }
+    return null;
+  }
+
 
   ////////////////////////////////////////////////////////////////////////////////////////
   //Android specific implementation

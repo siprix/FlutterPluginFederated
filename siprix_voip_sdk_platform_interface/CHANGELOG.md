@@ -1,3 +1,8 @@
+## 1.0.6
+- Added new method 'getCallKitCallUUID'
+- Fixed arguments in method 'unInitialize'
+  //2025.09.14
+
 ## 1.0.5
 * Added new method:
   - stopRingtone
