@@ -331,9 +331,11 @@ EXPORT
 - (int)initialize:(id<SiprixEventDelegate> _Nonnull)delegate
             iniData:(SiprixIniData* _Nonnull)iniData;
 - (int)unInitialize;
+- (BOOL)isInitialized;
 - (NSString* _Nonnull) version;
 - (NSString* _Nonnull) homeFolder;
 - (int) versionCode;
+- (void)writeLog:(NSString * _Nonnull)str;
 
 #if TARGET_OS_IPHONE
 - (void)enableCallKit:(BOOL)enable;

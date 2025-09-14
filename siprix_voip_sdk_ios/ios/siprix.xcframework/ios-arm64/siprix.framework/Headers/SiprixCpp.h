@@ -284,6 +284,7 @@ EXPORT bool        Module_IsInitialized(ISiprixModule* module);
 EXPORT const char* Module_HomeFolder(ISiprixModule* module);
 EXPORT const char* Module_Version(ISiprixModule* module);
 EXPORT uint32_t    Module_VersionCode(ISiprixModule* module);
+EXPORT void        Module_WriteLog(ISiprixModule* module, const char* text);
 
 ////////////////////////////////////////////////////////////////////////////
 //Manage Accounts
