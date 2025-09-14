@@ -585,7 +585,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     _core.setModelListener(_eventListener)
 
     setActivityFlags(_activity)
-    requestsPermissions()
+    requestPermissions()
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
@@ -1505,11 +1505,15 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
             ContextCompat.checkSelfPermission(_activity!!, permission) == PackageManager.PERMISSION_GRANTED)
   }
 
-  private fun requestsPermissions() {
-    val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
+  private fun requestPermissions() {
+    //Skip if manifest contains predefined tag
+    val applicationInfo = _activity!!.packageManager.getApplicationInfo(_activity!!.packageName, PackageManager.GET_META_DATA)
+    var skipPermissionRequest = applicationInfo.metaData?.getBoolean("com.siprix.SkipPermissionRequest")
+    if(skipPermissionRequest==true) return
 
     //Add 'CAMERA' if manifest contains it
-    var info =_activity!!.packageManager.getPackageInfo(_activity!!.getPackageName(), PackageManager.GET_PERMISSIONS)
+    val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
+    var info =_activity!!.packageManager.getPackageInfo(_activity!!.packageName, PackageManager.GET_PERMISSIONS)
     if((info.requestedPermissions!=null) &&
       info.requestedPermissions!!.contains(Manifest.permission.CAMERA))
       permissions.add(Manifest.permission.CAMERA)
