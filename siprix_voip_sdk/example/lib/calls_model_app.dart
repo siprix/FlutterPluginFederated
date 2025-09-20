@@ -8,6 +8,8 @@ import 'package:siprix_voip_sdk/siprix_voip_sdk.dart';
 
 /// Helper class used to keep different ids of the same call
 class CallMatcher {
+  static const String kStubPushHint = 'stubPushHint';
+
   ///Id assigned by CallKit when push notification received
   String callkit_CallUUID;
   ///Some data received in push payload (put by remote SIP server)
@@ -42,15 +44,24 @@ class AppCallsModel extends CallsModel {
       _logs?.print('onIncomingPush get payload err: $err');
     }
 
-    String pushHint = apsPayload?["pushHint"] ?? "pushHint";
+    String pushHint = apsPayload?["pushHint"] ?? CallMatcher.kStubPushHint;
     String genericHandle =  apsPayload?["callerNumber"] ?? "genericHandle";
     String localizedCallerName = apsPayload?["callerName"] ?? "callerName";
     bool withVideo = apsPayload?["withVideo"] ?? false;
+    int? sipCallId = null;
 
-    _callMatchers.add(CallMatcher(callkit_CallUUID, pushHint));
+    int index = _callMatchers.indexWhere((c) => c.push_Hint == pushHint);
+    if(index!=-1) {
+      //Case: SIP already received
+      sipCallId = _callMatchers[index].sip_CallId;
+    }
+    else {
+      //Case: SIP hasn't received yet
+      _callMatchers.add(CallMatcher(callkit_CallUUID, pushHint));
+    }
 
     //Update CallKit
-    SiprixVoipSdk().updateCallKitCallDetails(callkit_CallUUID, null, localizedCallerName, genericHandle, withVideo);
+    SiprixVoipSdk().updateCallKitCallDetails(callkit_CallUUID, sipCallId, localizedCallerName, genericHandle, withVideo);
   }
 
   @override
@@ -60,16 +71,21 @@ class AppCallsModel extends CallsModel {
     if(Platform.isIOS) {
       //TODO Match push and sip calls using just received SIP INVITE and data from push (put to '_callMatchers')
       //Get some hint from just received SIP INVITE (added by remote server) or math this SIP-call with CallKit-call
-      String? pushHintHeaderVal = await SiprixVoipSdk().getSipHeader(callId, "X-PushHint");
-      _logs?.print('onIncomingSip got pushHint:$pushHintHeaderVal');
+      String pushHint = await SiprixVoipSdk().getSipHeader(callId, "X-PushHint")?? CallMatcher.kStubPushHint;
+      _logs?.print('onIncomingSip callId:$callId pushHint:$pushHint');
 
-      int index = _callMatchers.indexWhere((c) => c.push_Hint == pushHintHeaderVal);
+      //Searchs is there CallKit call which matches this one
+      int index = _callMatchers.indexWhere((c) => c.push_Hint == pushHint);
       if(index != -1) {
         _logs?.print('onIncomingSip match call:${_callMatchers[index].callkit_CallUUID} <=> $callId');
 
         //Update CallKit with 'callId'
         _callMatchers[index].sip_CallId = callId;
         SiprixVoipSdk().updateCallKitCallDetails(_callMatchers[index].callkit_CallUUID, callId, null, null, null);
+      }
+      else {
+        //Case - there is no CallKit call (push notif hasn't received yet)
+        _callMatchers.add(CallMatcher("", pushHint, callId));
       }
     }
   }
