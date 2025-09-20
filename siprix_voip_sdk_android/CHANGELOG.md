@@ -1,3 +1,7 @@
+## 1.0.20
+- Fixes related to 16K page size support
+  //2025.09.20
+
 ## 1.0.19
 - Fixed remote hold detection (when all media lines are sendonly or inactive)
 - Modified handling 'sips' scheme (put 'sips' to Contact header)
