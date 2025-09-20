@@ -1,3 +1,8 @@
+## 1.0.27
+- Android: Fixes related to 16K page size support
+- iOS: Updated handling push notif and incoming calls
+  //2025.09.20
+
 ## 1.0.26
 - Fixed remote hold detection (when all media lines are sendonly or inactive)
 - Modified handling 'sips' scheme (put 'sips' to Contact header)
