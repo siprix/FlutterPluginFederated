@@ -9,7 +9,7 @@ import 'cdrs_model.dart';
 
 /// Call destination -  contains lists of parameters for making outgoing call
 class CallDestination implements ISiprixData {
-  CallDestination(this.toExt, this.fromAccId, this.withVideo);
+  CallDestination(this.toExt, this.fromAccId, this.withVideo, [this.displName]);
   /// Extension (phone number) to dial
   final String toExt;
   /// Id of the account which should send INVITE request
@@ -574,6 +574,7 @@ class CallsModel extends ChangeNotifier {
       bool hasSecureMedia = _accountsModel.hasSecureMedia(dest.fromAccId);
 
       CallModel newCall = CallModel(callId, accUri, dest.toExt, false, hasSecureMedia, dest.withVideo, _logs);
+      newCall.displName = dest.displName ?? "";
       _callItems.add(newCall);
       _cdrs?.add(newCall);
       _postResolveContactName(newCall);
