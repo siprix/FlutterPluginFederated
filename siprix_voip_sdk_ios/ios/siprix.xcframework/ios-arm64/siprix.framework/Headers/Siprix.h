@@ -371,6 +371,7 @@ EXPORT
 - (int)callStopRecordFile:(int)callId;
 - (int)callTransferBlind:(int)callId toExt:(NSString* _Nonnull)toExt;
 - (int)callTransferAttended:(int)fromCallId toCallId:(int)toCallId;
+- (int)callUpgradeToVideo:(int)callId;
 - (int)callBye:(int)callId;
 
 - (int)callSetVideoRenderer:(int)callId renderer:(id<SiprixVideoRendererDelegate> _Nullable) renderer;

@@ -40,6 +40,7 @@ private let kMethodCallRecordFile       = "Call_RecordFile"
 private let kMethodCallStopRecordFile   = "Call_StopRecordFile"
 private let kMethodCallTransferBlind    = "Call_TransferBlind"
 private let kMethodCallTransferAttended = "Call_TransferAttended"
+private let kMethodCallUpgradeToVideo   = "Call_UpgradeToVideo"
 private let kMethodCallStopRingtone     = "Call_StopRingtone"
 private let kMethodCallBye              = "Call_Bye"
 
@@ -65,6 +66,7 @@ private let kMethodDvcSetPlayout       = "Dvc_SetPlayoutDevice"
 private let kMethodDvcSetRecording     = "Dvc_SetRecordingDevice"
 private let kMethodDvcSetVideo         = "Dvc_SetVideoDevice"
 private let kMethodDvcSetVideoParams   = "Dvc_SetVideoParams"
+private let kMethodDvcSwitchCamera     = "Dvc_SwitchCamera"
 
 private let kMethodVideoRendererCreate = "Video_RendererCreate"
 private let kMethodVideoRendererSetSrc = "Video_RendererSetSrc"
@@ -599,6 +601,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         case kMethodCallStopRecordFile :  handleCallStopRecordFile(argsMap!, result:result)
         case kMethodCallTransferBlind  :  handleCallTransferBlind(argsMap!, result:result)
         case kMethodCallTransferAttended : handleCallTransferAttended(argsMap!, result:result)
+        case kMethodCallUpgradeToVideo:   handleCallUpgradeToVideo(argsMap!, result:result)
         case kMethodCallStopRingtone  :   handleCallStopRingtone(argsMap!, result:result)
         case kMethodCallBye :             handleCallBye(argsMap!, result:result)
 
@@ -623,6 +626,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         case kMethodDvcSetPlayout      :   handleDvcSetPlayout(argsMap!, result:result)
         case kMethodDvcSetRecording    :   handleDvcSetRecording(argsMap!, result:result)
         case kMethodDvcSetVideo        :   handleDvcSetVideo(argsMap!, result:result)
+        case kMethodDvcSwitchCamera    :   handleDvcSwitchCamera(argsMap!, result:result)
         case kMethodDvcSetVideoParams  :   handleDvcSetVideoParams(argsMap!, result:result)
           
         case kMethodVideoRendererCreate :  handleVideoRendererCreate(argsMap!, result:result)
@@ -1145,6 +1149,17 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         }
     }
 
+    func handleCallUpgradeToVideo(_ args : ArgsMap, result: @escaping FlutterResult) {
+        let callId = args[kArgCallId] as? Int
+        
+        if(callId != nil) {
+            let err = _siprixModule.callUpgrade(toVideo:Int32(callId!))
+            sendResult(err, result:result)
+        }else{
+            sendBadArguments(result:result)
+        }
+    }
+
     func handleCallBye(_ args : ArgsMap, result: @escaping FlutterResult) {
         let callId = args[kArgCallId] as? Int
 
@@ -1419,6 +1434,11 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         sendResult(err, result:result);
     }
 
+    func handleDvcSwitchCamera(_ args : ArgsMap, result: @escaping FlutterResult) {
+        let err = _siprixModule.switchCamera();
+        sendResult(err, result:result);
+    }
+
     func handleDvcSetVideoParams(_ args : ArgsMap, result: @escaping FlutterResult) {
         let vdoData = SiprixVideoData()
         
@@ -1575,7 +1595,7 @@ class SiprixPushRegistry : NSObject, PKPushRegistryDelegate {
            
     public func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload:
                                 PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
-        _siprixModule.writeLog("PushRegistry: didReceiveIncomingPushWith \(type)")
+        _siprixModule.writeLog("PushRegistry: didReceiveIncomingPushWith:\(type) \(payload.dictionaryPayload)")
         if(type == .voIP) {
             _eventHandler.didReceiveIncomingPush(payload.dictionaryPayload)
         }
