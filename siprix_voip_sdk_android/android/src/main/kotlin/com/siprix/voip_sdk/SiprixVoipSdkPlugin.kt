@@ -89,6 +89,7 @@ const val kMethodCallRecordFile       = "Call_RecordFile"
 const val kMethodCallStopRecordFile   = "Call_StopRecordFile"
 const val kMethodCallTransferBlind    = "Call_TransferBlind"
 const val kMethodCallTransferAttended = "Call_TransferAttended"
+const val kMethodCallUpgradeToVideo   = "Call_UpgradeToVideo"
 const val kMethodCallStopRingtone     = "Call_StopRingtone"
 const val kMethodCallBye              = "Call_Bye"
 
@@ -113,6 +114,7 @@ const val kMethodDvcSetPlayout       = "Dvc_SetPlayoutDevice"
 const val kMethodDvcSetRecording     = "Dvc_SetRecordingDevice"
 const val kMethodDvcSetVideo         = "Dvc_SetVideoDevice"
 const val kMethodDvcSetVideoParams   = "Dvc_SetVideoParams"
+const val kMethodDvcSwitchCamera     = "Dvc_SwitchCamera"
 
 const val kMethodVideoRendererCreate = "Video_RendererCreate"
 const val kMethodVideoRendererSetSrc = "Video_RendererSetSrc"
@@ -686,6 +688,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
       kMethodCallStopRecordFile->   handleCallStopRecordFile(args, result)
       kMethodCallTransferBlind ->   handleCallTransferBlind(args, result)
       kMethodCallTransferAttended -> handleCallTransferAttended(args, result)
+      kMethodCallUpgradeToVideo ->  handleCallUpgradeToVideo(args, result)
       kMethodCallStopRingtone  ->   handleCallStopRingtone(args, result)
       kMethodCallBye ->             handleCallBye(args, result)
 
@@ -709,6 +712,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
       kMethodDvcSetPlayout      ->   handleDvcSetPlayout(args, result)
       kMethodDvcSetRecording    ->   handleDvcSetRecording(args, result)
       kMethodDvcSetVideo        ->   handleDvcSetVideo(args, result)
+      kMethodDvcSwitchCamera    ->   handleDvcSwitchCamera(args, result)
       kMethodDvcSetVideoParams  ->   handleDvcSetVideoParams(args, result)
 
       kMethodVideoRendererCreate ->   handleVideoRendererCreate(args, result)
@@ -1224,6 +1228,17 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     }
   }
   
+  private fun handleCallUpgradeToVideo(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    val callId = args[kArgCallId] as? Int
+
+    if(callId != null) {
+      val err = _core.callUpgradeToVideo(callId)
+      sendResult(err, result)
+    }else{
+      sendBadArguments(result)
+    }
+  }
+  
   private fun handleCallBye(args : HashMap<String, Any?>, result: MethodChannel.Result) {
     val callId = args[kArgCallId] as? Int
 
@@ -1412,6 +1427,11 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   }
 
   private fun handleDvcSetVideo(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    _core.dvcSwitchCamera()
+    result.success("Success")
+  }
+
+  private fun handleDvcSwitchCamera(args : HashMap<String, Any?>, result: MethodChannel.Result) {
     _core.dvcSwitchCamera()
     result.success("Success")
   }

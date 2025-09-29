@@ -196,6 +196,8 @@ open class CallNotifService : Service() {
         return bundle
     }
 
+    open fun shouldShowNotificationWhenInForeground(): Boolean = false
+
     open fun displayIncomingCallNotification(
         callId: Int, accId: Int,
         withVideo: Boolean, hdrFrom: String?, hdrTo: String?
@@ -361,7 +363,7 @@ open class CallNotifService : Service() {
             hdrFrom: String, hdrTo: String
         ) {
             Log.i(TAG, "onCallIncoming $callId")
-            if (!_service.isAppInForeground()) {
+            if (_service.shouldShowNotificationWhenInForeground() || !_service.isAppInForeground()) {
                 _service.displayIncomingCallNotification(callId, accId, withVideo, hdrFrom, hdrTo)
             }
         }
@@ -371,7 +373,7 @@ open class CallNotifService : Service() {
             hdrFrom: String?, body: String?
         ) {
             Log.i(TAG, "onMessageIncoming $messageId")
-            if (!_service.isAppInForeground()) {
+            if (_service.shouldShowNotificationWhenInForeground() || !_service.isAppInForeground()) {
                 _service.displayIncomingMsgNotification(messageId, accId, hdrFrom, body)
             }
         }

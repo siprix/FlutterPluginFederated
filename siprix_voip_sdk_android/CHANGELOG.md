@@ -1,3 +1,10 @@
+## 1.0.21
+- Added new method 'UpgradeToVideo'
+- Fixed handling case when call started with video on hold
+- iOS/Android: Fixed handling device rotation on capturing video
+- iOS/Android: Added new method 'SwitchCamera' 
+  //2025.09.29
+
 ## 1.0.20
 - Fixes related to 16K page size support
   //2025.09.20
