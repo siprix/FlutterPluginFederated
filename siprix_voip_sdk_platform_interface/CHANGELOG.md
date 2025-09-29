@@ -1,3 +1,8 @@
+## 1.0.7
+- Added new method 'UpgradeToVideo'
+- Added new method 'SwitchCamera' 
+  //2025.09.29
+
 ## 1.0.6
 - Added new method 'getCallKitCallUUID'
 - Fixed arguments in method 'unInitialize'

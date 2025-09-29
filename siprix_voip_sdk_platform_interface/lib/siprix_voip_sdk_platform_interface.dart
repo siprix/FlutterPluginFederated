@@ -44,6 +44,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kMethodCallTransferBlind   = 'Call_TransferBlind';
   static const String kMethodCallTransferAttended= 'Call_TransferAttended';
   static const String kMethodCallStopRingtone    = 'Call_StopRingtone';
+  static const String kMethodCallUpgradeToVideo  = 'Call_UpgradeToVideo';
   static const String kMethodCallBye             = 'Call_Bye';
 
   static const String kMethodMixerSwitchToCall   = 'Mixer_SwitchToCall';
@@ -70,6 +71,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kMethodDvcSetRecording     = 'Dvc_SetRecordingDevice';
   static const String kMethodDvcSetVideo         = 'Dvc_SetVideoDevice';
   static const String kMethodDvcSetVideoParams   = 'Dvc_SetVideoParams';
+  static const String kMethodDvcSwitchCamera     = 'Dvc_SwitchCamera';
 
   static const String kMethodVideoRendererCreate  = 'Video_RendererCreate';
   static const String kMethodVideoRendererSetSrc  = 'Video_RendererSetSrc';
@@ -292,6 +294,11 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
       {kArgFromCallId:fromCallId, kArgToCallId:toCallId} );
   }
 
+  Future<void> upgradeToVideo(int callId) {
+    return _methodChannel.invokeMethod<void>(kMethodCallUpgradeToVideo, 
+      {kArgCallId:callId} );
+  }
+
   Future<void> stopRingtone() {
     return _methodChannel.invokeMethod<void>(kMethodCallStopRingtone, {});
   }
@@ -382,6 +389,13 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
 
   Future<void> setVideoParams(ISiprixData videoData) {
     return _methodChannel.invokeMethod<void>(kMethodDvcSetVideoParams, videoData.toJson() );
+  }
+
+  Future<void>? switchCamera() {
+    if(Platform.isIOS || Platform.isAndroid){
+      return _methodChannel.invokeMethod<void>(kMethodDvcSwitchCamera, {});
+    }
+    return null;
   }
 
   //Future<void> routeAudioTo(iOSAudioRoute route) {
