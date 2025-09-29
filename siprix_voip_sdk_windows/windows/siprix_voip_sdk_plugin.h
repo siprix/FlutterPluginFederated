@@ -64,6 +64,7 @@ class SiprixVoipSdkPlugin : public flutter::Plugin, public Siprix::ISiprixEventH
   void handleCallStopRecordFile(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallTransferBlind(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallTransferAttended(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
+  void handleCallUpgradeToVideo(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallStopRingtone(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallBye(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
 

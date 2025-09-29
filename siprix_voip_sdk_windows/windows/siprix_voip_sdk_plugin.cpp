@@ -52,6 +52,7 @@ const char kMethodCallRecordFile[]      = "Call_RecordFile";
 const char kMethodCallStopRecordFile[]  = "Call_StopRecordFile";
 const char kMethodCallTransferBlind[]   = "Call_TransferBlind";
 const char kMethodCallTransferAttended[]= "Call_TransferAttended";
+const char kMethodCallUpgradeToVideo[]  = "Call_UpgradeToVideo";
 const char kMethodCallStopRingtone[]    = "Call_StopRingtone";
 const char kMethodCallBye[]             = "Call_Bye";
 
@@ -204,6 +205,7 @@ void SiprixVoipSdkPlugin::buildHandlersTable()
      handlers_[kMethodCallStopRecordFile]   = std::bind(&SiprixVoipSdkPlugin::handleCallStopRecordFile, this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallTransferBlind]    = std::bind(&SiprixVoipSdkPlugin::handleCallTransferBlind,  this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallTransferAttended] = std::bind(&SiprixVoipSdkPlugin::handleCallTransferAttended, this, std::placeholders::_1, std::placeholders::_2);
+     handlers_[kMethodCallUpgradeToVideo]   = std::bind(&SiprixVoipSdkPlugin::handleCallUpgradeToVideo, this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallStopRingtone]     = std::bind(&SiprixVoipSdkPlugin::handleCallStopRingtone,   this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallBye]              = std::bind(&SiprixVoipSdkPlugin::handleCallBye,            this, std::placeholders::_1, std::placeholders::_2);
      
@@ -772,6 +774,16 @@ void SiprixVoipSdkPlugin::handleCallTransferBlind(const flutter::EncodableMap& a
     if (!bFound1 || !bFound2) { sendBadArgResult(result); return; }
 
     const Siprix::ErrorCode err = Siprix::Call_TransferBlind(module_, callId, toExt.c_str());
+    sendResult(err, result);
+}
+
+void SiprixVoipSdkPlugin::handleCallUpgradeToVideo(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
+{
+    bool bFound1;
+    Siprix::CallId callId = parseValue<int32_t>(kArgCallId, argsMap, bFound1);
+    if (!bFound1) { sendBadArgResult(result); return; }
+
+    const Siprix::ErrorCode err = Siprix::Call_UpgradeToVideo(module_, callId);
     sendResult(err, result);
 }
 
