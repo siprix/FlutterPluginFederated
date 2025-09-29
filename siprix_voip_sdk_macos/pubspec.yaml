@@ -3,7 +3,7 @@ description: MacOS implementation of the Siprix VoIP SDK plugin for embedding vo
 homepage: https://siprix-voip.com
 repository: https://github.com/siprix/FlutterPluginFederated/tree/main/siprix_voip_sdk_macos
 documentation: https://docs.siprix-voip.com
-version: 1.0.14
+version: 1.0.15
 
 environment:
   sdk: ^3.2.0
@@ -12,7 +12,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  siprix_voip_sdk_platform_interface: ^1.0.6
+  siprix_voip_sdk_platform_interface: ^1.0.7
 
 dev_dependencies:
   flutter_test:
