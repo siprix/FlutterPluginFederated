@@ -317,6 +317,7 @@ EXPORT ErrorCode Call_TransferAttended(ISiprixModule* module, CallId fromCallId,
 EXPORT ErrorCode Call_SetVideoWindow(ISiprixModule* module, CallId callId, void* wnd);
 EXPORT ErrorCode Call_SetVideoRenderer(ISiprixModule* module, CallId callId, IVideoRenderer* r);
 EXPORT ErrorCode Call_Renegotiate(ISiprixModule* module, CallId callId);
+EXPORT ErrorCode Call_UpgradeToVideo(ISiprixModule* module, CallId callId);
 EXPORT ErrorCode Call_Bye(ISiprixModule* module, CallId callId);
 
 EXPORT ErrorCode Call_GetSipHeader(ISiprixModule* module, CallId callId, 

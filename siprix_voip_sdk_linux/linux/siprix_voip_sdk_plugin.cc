@@ -56,6 +56,7 @@ const char kMethodCallRecordFile[]      = "Call_RecordFile";
 const char kMethodCallStopRecordFile[]  = "Call_StopRecordFile";
 const char kMethodCallTransferBlind[]   = "Call_TransferBlind";
 const char kMethodCallTransferAttended[]= "Call_TransferAttended";
+const char kMethodCallUpgradeToVideo[]  = "Call_UpgradeToVideo";
 const char kMethodCallStopRingtone[]    = "Call_StopRingtone";
 const char kMethodCallBye[]             = "Call_Bye";
 
@@ -940,6 +941,16 @@ FlMethodResponse* handleCallTransferAttended(FlValue* args, SiprixVoipSdkPlugin*
     return sendResult(err);
 }
 
+FlMethodResponse* handleCallUpgradeToVideo(FlValue* args, SiprixVoipSdkPlugin* self)
+{
+    FlValue* val = fl_value_lookup_string(args, kArgCallId);
+    if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_INT) return badArgsResponse();
+    const Siprix::CallId callId = fl_value_get_int(val);
+
+    const Siprix::ErrorCode err = Siprix::Call_UpgradeToVideo(self->module_, callId);
+    return sendResult(err);
+}
+
 FlMethodResponse* handleCallStopRingtone(FlValue* args, SiprixVoipSdkPlugin* self)
 {
     const Siprix::ErrorCode err = Siprix::Call_StopRingtone(self->module_);
@@ -1290,6 +1301,7 @@ static void siprix_voip_sdk_plugin_handle_method_call(
     if(strcmp(method, kMethodCallStopRecordFile) == 0)   response = handleCallStopRecordFile(args, self); else
     if(strcmp(method, kMethodCallTransferBlind) == 0)    response = handleCallTransferBlind(args, self); else
     if(strcmp(method, kMethodCallTransferAttended) == 0) response = handleCallTransferAttended(args, self); else
+    if(strcmp(method, kMethodCallUpgradeToVideo) == 0)   response = handleCallUpgradeToVideo(args, self); else
     if(strcmp(method, kMethodCallStopRingtone) == 0)     response = handleCallStopRingtone(args, self); else
     if(strcmp(method, kMethodCallBye) == 0)              response = handleCallBye(args, self);    else
 

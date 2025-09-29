@@ -1,3 +1,8 @@
+## 1.0.15
+- Added new method 'UpgradeToVideo'
+- Fixed handling case when call started with video on hold
+  //2025.09.29
+
 ## 1.0.14
 - Fixed remote hold detection (when all media lines are sendonly or inactive)
 - Modified handling 'sips' scheme (put 'sips' to Contact header)
