@@ -413,6 +413,19 @@ class CallModel extends ChangeNotifier {
     }
   }
 
+  /// Upgrade call from audio only to audio+video
+  Future<void> upgradeToVideo()async {
+    _logs?.print('Upgrade callId:$myCallId to audio+video');
+
+    try{
+      await SiprixVoipSdk().upgradeToVideo(myCallId);
+      notifyListeners();
+    } on PlatformException catch (err) {
+      _logs?.print('Can\'t upgrade callId:$myCallId Err: ${err.code} ${err.message}');
+      return Future.error((err.message==null) ? err.code : err.message!);
+    }
+  }
+
   /// Get value of the SIP header from last received response (when input param empty returns whole SIP response)
   Future<String?> getSipHeader(String headerName) async {
     try{

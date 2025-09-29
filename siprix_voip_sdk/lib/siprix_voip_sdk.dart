@@ -669,6 +669,11 @@ class SiprixVoipSdk {
     return _platform.transferAttended(fromCallId, toCallId);
   }
 
+  /// Upgrade audio only call to audio+video
+  Future<void> upgradeToVideo(int callId) async {
+    return _platform.upgradeToVideo(callId);
+  }
+
   /// Stop playing (mute) ringtone.
   Future<void> stopRingtone() async {
     return _platform.stopRingtone();
@@ -770,6 +775,11 @@ class SiprixVoipSdk {
   /// Set video capturer params (common for all calls)
   Future<void> setVideoParams(VideoData videoData) {
     return _platform.setVideoParams(videoData);
+  }
+
+  /// Toggle front/back camera (iOS/Android platfroms only)
+  Future<void>? switchCamera() {
+    return _platform.switchCamera();
   }
 
   //Future<void> routeAudioTo(iOSAudioRoute route) {

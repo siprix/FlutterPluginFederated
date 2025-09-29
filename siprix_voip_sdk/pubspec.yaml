@@ -3,7 +3,7 @@ description: Siprix VoIP SDK plugin for embedding voice-over-IP (VoIP) audio/vid
 homepage: https://siprix-voip.com
 repository: https://github.com/siprix/FlutterPluginFederated/tree/main/siprix_voip_sdk
 documentation: https://docs.siprix-voip.com
-version: 1.0.27
+version: 1.0.28
 
 environment:
   sdk: ^3.2.0
@@ -27,12 +27,12 @@ dependencies:
   flutter:
     sdk: flutter
   intl: ^0.20.1
-  siprix_voip_sdk_android: ^1.0.20
-  siprix_voip_sdk_ios: ^1.0.24
-  siprix_voip_sdk_linux: ^1.0.14
-  siprix_voip_sdk_macos: ^1.0.14
-  siprix_voip_sdk_windows: ^1.0.15
-  siprix_voip_sdk_platform_interface: ^1.0.6
+  siprix_voip_sdk_android: ^1.0.21
+  siprix_voip_sdk_ios: ^1.0.25
+  siprix_voip_sdk_linux: ^1.0.15
+  siprix_voip_sdk_macos: ^1.0.15
+  siprix_voip_sdk_windows: ^1.0.16
+  siprix_voip_sdk_platform_interface: ^1.0.7
 
 dev_dependencies:
   flutter_test:
