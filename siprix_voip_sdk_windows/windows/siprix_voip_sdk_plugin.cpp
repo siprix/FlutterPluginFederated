@@ -43,6 +43,7 @@ const char kMethodCallAccept[]          = "Call_Accept";
 const char kMethodCallHold[]            = "Call_Hold";
 const char kMethodCallGetHoldState[]    = "Call_GetHoldState";
 const char kMethodCallGetSipHeader[]    = "Call_GetSipHeader";
+const char kMethodCallGetStats[]        = "Call_GetStats";
 const char kMethodCallMuteMic[]         = "Call_MuteMic";
 const char kMethodCallMuteCam[]         = "Call_MuteCam";
 const char kMethodCallSendDtmf[]        = "Call_SendDtmf";
@@ -101,6 +102,9 @@ const char kOnCallHeld[]         = "OnCallHeld";
 const char kOnMessageSentState[] = "OnMessageSentState";
 const char kOnMessageIncoming[]  = "OnMessageIncoming";
 
+const char kOnSipNotify[]        = "OnSipNotify";
+const char kOnVuMeterLevel[]     = "OnVuMeterLevel";
+
 const char kArgVideoTextureId[]  = "videoTextureId";
 
 const char kArgStatusCode[] = "statusCode";
@@ -133,6 +137,9 @@ const char kArgTone[]  = "tone";
 const char kFrom[]     = "from";
 const char kTo[]       = "to";
 const char kBody[]     = "body";
+const char kEvent[]    = "event";
+const char kMicLevel[] = "mic";
+const char kSpkLevel[] = "spk";
 
 // static
 void SiprixVoipSdkPlugin::RegisterWithRegistrar(
@@ -195,7 +202,8 @@ void SiprixVoipSdkPlugin::buildHandlersTable()
      handlers_[kMethodCallAccept]           = std::bind(&SiprixVoipSdkPlugin::handleCallAccept,         this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallHold]             = std::bind(&SiprixVoipSdkPlugin::handleCallHold,           this, std::placeholders::_1, std::placeholders::_2);    
      handlers_[kMethodCallGetHoldState]     = std::bind(&SiprixVoipSdkPlugin::handleCallGetHoldState,   this, std::placeholders::_1, std::placeholders::_2);
-     handlers_[kMethodCallGetSipHeader]     = std::bind(&SiprixVoipSdkPlugin::handleCallGetSipHeader,   this, std::placeholders::_1, std::placeholders::_2);     
+     handlers_[kMethodCallGetSipHeader]     = std::bind(&SiprixVoipSdkPlugin::handleCallGetSipHeader,   this, std::placeholders::_1, std::placeholders::_2);
+     handlers_[kMethodCallGetStats]         = std::bind(&SiprixVoipSdkPlugin::handleCallGetStats,       this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallMuteMic]          = std::bind(&SiprixVoipSdkPlugin::handleCallMuteMic,        this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallMuteCam]          = std::bind(&SiprixVoipSdkPlugin::handleCallMuteCam,        this, std::placeholders::_1, std::placeholders::_2);     
      handlers_[kMethodCallSendDtmf]         = std::bind(&SiprixVoipSdkPlugin::handleCallSendDtmf,       this, std::placeholders::_1, std::placeholders::_2);
@@ -369,9 +377,11 @@ void SiprixVoipSdkPlugin::handleModuleInitialize(const flutter::EncodableMap& ar
           if(valName->compare("useDnsSrv") == 0)         Siprix::Ini_SetUseDnsSrv(iniData, *boolVal); else
           if(valName->compare("recordStereo") == 0)      Siprix::Ini_SetRecordStereo(iniData, *boolVal); else
           if(valName->compare("enableVideoCall") == 0)   Siprix::Ini_SetVideoCallEnabled(iniData, *boolVal); else
-          if(valName->compare("transpForceIPv4") == 0)   Siprix::Ini_SetTranspForceIPv4(iniData, *boolVal);
+          if(valName->compare("transpForceIPv4") == 0)   Siprix::Ini_SetTranspForceIPv4(iniData, *boolVal); else
+          if(valName->compare("enableAes128Sha32") == 0) Siprix::Ini_SetAes128Sha32Enabled(iniData, *boolVal); else
+          if(valName->compare("enableVUmeter") == 0)     Siprix::Ini_SetVUmeterEnabled(iniData, *boolVal);
           continue;
-        }  
+        }
     
     }//for
     
@@ -680,6 +690,29 @@ void SiprixVoipSdkPlugin::handleCallGetSipHeader(const flutter::EncodableMap& ar
     }
     result->Success(flutter::EncodableValue(headerVal));
 }
+
+void SiprixVoipSdkPlugin::handleCallGetStats(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
+{
+    bool bFound;
+    Siprix::CallId callId = parseValue<int32_t>(kArgCallId, argsMap, bFound);
+    if (!bFound) { sendBadArgResult(result); return; }
+
+    uint32_t statsValLen = 2000;
+    std::string statsVal(statsValLen, 0);
+    const Siprix::ErrorCode err = Siprix::Call_GetStats(module_, callId, &statsVal[0], &statsValLen);
+    if (err != Siprix::EOK) {
+        sendResult(err, result);
+        return;
+    }
+
+    bool longerStrRequired = (statsValLen > statsVal.size());
+    statsVal.resize(statsValLen);
+    if (longerStrRequired) {
+        Siprix::Call_GetStats(module_, callId, &statsVal[0], &statsValLen);
+    }
+    result->Success(flutter::EncodableValue(statsVal));
+}
+
 
 void SiprixVoipSdkPlugin::handleCallMuteMic(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
 {
@@ -1306,6 +1339,27 @@ void SiprixVoipSdkPlugin::OnMessageIncoming(Siprix::MessageId messageId, Siprix:
     argsMap[flutter::EncodableValue(kBody)] = flutter::EncodableValue(body);
 
     channel_->InvokeMethod(kOnMessageIncoming,
+        std::make_unique<flutter::EncodableValue>(std::move(argsMap)));
+}
+
+void SiprixVoipSdkPlugin::OnSipNotify(Siprix::AccountId accId, const char* hdrEvent, const char* body)
+{
+    flutter::EncodableMap argsMap;
+    argsMap[flutter::EncodableValue(kArgAccId)] = flutter::EncodableValue(static_cast<int32_t>(accId));  
+    argsMap[flutter::EncodableValue(kEvent)] = flutter::EncodableValue(hdrEvent);
+    argsMap[flutter::EncodableValue(kBody)] = flutter::EncodableValue(body);
+
+    channel_->InvokeMethod(kOnSipNotify,
+        std::make_unique<flutter::EncodableValue>(std::move(argsMap)));
+}
+
+void SiprixVoipSdkPlugin::OnVuMeterLevel(int micLevel, int spkLevel)
+{
+    flutter::EncodableMap argsMap;
+    argsMap[flutter::EncodableValue(kMicLevel)] = flutter::EncodableValue(static_cast<int32_t>(micLevel));
+    argsMap[flutter::EncodableValue(kSpkLevel)] = flutter::EncodableValue(static_cast<int32_t>(spkLevel));
+
+    channel_->InvokeMethod(kOnVuMeterLevel,
         std::make_unique<flutter::EncodableValue>(std::move(argsMap)));
 }
 

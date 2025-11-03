@@ -3,7 +3,7 @@ description: Windows implementation of the Siprix VoIP SDK plugin for embedding 
 homepage: https://siprix-voip.com
 repository: https://github.com/siprix/FlutterPluginFederated/tree/main/siprix_voip_sdk_windows
 documentation: https://docs.siprix-voip.com
-version: 1.0.16
+version: 1.0.17
 
 environment:
   sdk: ^3.2.0
@@ -12,12 +12,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  siprix_voip_sdk_platform_interface: ^1.0.7
+  siprix_voip_sdk_platform_interface: ^1.0.8
 
 flutter:
   plugin:
     implements: siprix_voip_sdk
-    platforms:    
+    platforms:
       windows:
         pluginClass: SiprixVoipSdkPluginCApi
         dartPluginClass: SiprixVoipSdkWindows

@@ -55,6 +55,7 @@ class SiprixVoipSdkPlugin : public flutter::Plugin, public Siprix::ISiprixEventH
   void handleCallHold(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallGetHoldState(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallGetSipHeader(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
+  void handleCallGetStats(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallMuteMic(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallMuteCam(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallSendDtmf(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
@@ -126,6 +127,9 @@ protected:
 
   void OnMessageSentState(Siprix::MessageId messageId, bool success, const char* response);
   void OnMessageIncoming(Siprix::MessageId messageId, Siprix::AccountId accId, const char* hdrFrom, const char* body);
+
+  void OnSipNotify(Siprix::AccountId accId, const char* hdrEvent, const char* body);
+  void OnVuMeterLevel(int micLevel, int spkLevel);
 
 protected:
    MethodChannelPtr channel_;
