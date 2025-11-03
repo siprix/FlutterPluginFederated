@@ -34,6 +34,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kMethodCallHold            = 'Call_Hold';
   static const String kMethodCallGetHoldState    = 'Call_GetHoldState';
   static const String kMethodCallGetSipHeader    = 'Call_GetSipHeader';
+  static const String kMethodCallGetStats        = 'Call_GetStats';
   static const String kMethodCallMuteMic         = 'Call_MuteMic';
   static const String kMethodCallMuteCam         = 'Call_MuteCam';
   static const String kMethodCallSendDtmf        = 'Call_SendDtmf';
@@ -100,6 +101,9 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kOnMessageSentState = 'OnMessageSentState';
   static const String kOnMessageIncoming  = 'OnMessageIncoming';
 
+  static const String kOnSipNotify        = 'OnSipNotify';
+  static const String kOnVuMeterLevel     = 'OnVuMeterLevel';
+
   static const String kArgVideoTextureId = 'videoTextureId';
   static const String kArgForeground = 'foreground';
   static const String kArgStatusCode = 'statusCode';
@@ -132,8 +136,11 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kArgName   = 'name';
   static const String kArgTone   = 'tone';
   static const String kFrom      = 'from';
+  static const String kEvent     = 'event';
   static const String kTo        = 'to';
   static const String kBody      = 'body';
+  static const String kMicLevel  = 'mic';
+  static const String kSpkLevel  = 'spk';
 
   static const String kChannelName = 'siprix_voip_sdk';
 
@@ -252,6 +259,11 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   Future<String?> getSipHeader(int callId, String headerName) {
     return _methodChannel.invokeMethod<String>(kMethodCallGetSipHeader,
         {kArgCallId:callId, 'hdrName':headerName} );
+  }
+
+  Future<String?> getStats(int callId) {
+    return _methodChannel.invokeMethod<String>(kMethodCallGetStats,
+        {kArgCallId:callId });
   }
 
   Future<void> muteMic(int callId, bool mute) {

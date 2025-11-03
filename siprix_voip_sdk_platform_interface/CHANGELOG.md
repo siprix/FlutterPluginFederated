@@ -1,3 +1,9 @@
+## 1.0.8
+- Added new event 'onVuMeterLevel'
+- Added new event 'onSipNotify'
+- Added new method 'getStats(callId)'
+  //2025.11.03
+
 ## 1.0.7
 - Added new method 'UpgradeToVideo'
 - Added new method 'SwitchCamera' 
