@@ -1,3 +1,15 @@
+## 1.0.16
+- Added new setting 'ini.enableVUmeter' and event 'onVuMeterLevel'
+  Allow display mic/spkr volume level indicator
+- Added new setting 'ini.enableAes128Sha32'
+  Enable using aes128_sha1_32 SRTP crypto cipher
+- Added new event 'onSipNotify'
+  Triggered when received SIP NOTIFY message. Allow handle voicemail (Message Waiting) notifications
+- Added new method 'getStats(callId)'
+  Returns call statistics details as string in json format
+- Fixed handling H264 packetization settings
+  //2025.11.03
+
 ## 1.0.15
 - Added new method 'UpgradeToVideo'
 - Fixed handling case when call started with video on hold
