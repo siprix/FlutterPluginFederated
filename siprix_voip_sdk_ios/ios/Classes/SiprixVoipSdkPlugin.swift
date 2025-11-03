@@ -31,6 +31,7 @@ private let kMethodCallAccept           = "Call_Accept"
 private let kMethodCallHold             = "Call_Hold"
 private let kMethodCallGetHoldState     = "Call_GetHoldState"
 private let kMethodCallGetSipHeader     = "Call_GetSipHeader";
+private let kMethodCallGetStats         = "Call_GetStats";
 private let kMethodCallMuteMic          = "Call_MuteMic"
 private let kMethodCallMuteCam          = "Call_MuteCam"
 private let kMethodCallSendDtmf         = "Call_SendDtmf"
@@ -93,6 +94,9 @@ private let kOnCallHeld         = "OnCallHeld"
 private let kOnMessageSentState = "OnMessageSentState"
 private let kOnMessageIncoming  = "OnMessageIncoming"
 
+private let kOnSipNotify        = "OnSipNotify";
+private let kOnVuMeterLevel     = "OnVuMeterLevel";
+
 private let kArgVideoTextureId  = "videoTextureId"
 
 private let kArgStatusCode = "statusCode"
@@ -130,6 +134,9 @@ private let kArgTone   = "tone"
 private let kFrom      = "from"
 private let kTo        = "to"
 private let kBody      = "body"
+private let kEvent    = "event";
+private let kMicLevel = "mic";
+private let kSpkLevel = "spk";
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -341,6 +348,25 @@ class SiprixEventHandler : NSObject, SiprixEventDelegate {
             argsMap[kFrom] = hdrFrom
             argsMap[kBody] = body
             self._channel.invokeMethod(kOnMessageIncoming, arguments: argsMap)
+        }
+    }
+
+    public func onSipNotify(_ accId:Int, hdrEvent:String, body:String) {
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgAccId] = accId
+            argsMap[kEvent] = hdrEvent
+            argsMap[kBody] = body
+            self._channel.invokeMethod(kOnSipNotify, arguments: argsMap)
+        }
+    }
+
+    public func onVuMeterLevel(_ micLevel:Int, spkLevel:Int) {
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kMicLevel] = micLevel
+            argsMap[kSpkLevel] = spkLevel
+            self._channel.invokeMethod(kOnVuMeterLevel, arguments: argsMap)
         }
     }
 }
@@ -592,6 +618,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         case kMethodCallHold          :   handleCallHold(argsMap!, result:result)
         case kMethodCallGetHoldState  :   handleCallGetHoldState(argsMap!, result:result)
         case kMethodCallGetSipHeader  :   handleCallGetSipHeader(argsMap!, result:result)
+        case kMethodCallGetStats      :   handleCallGetStats(argsMap!, result:result)
         case kMethodCallMuteMic       :   handleCallMuteMic(argsMap!, result:result)
         case kMethodCallMuteCam       :   handleCallMuteCam(argsMap!, result:result)
         case kMethodCallSendDtmf      :   handleCallSendDtmf(argsMap!, result:result)
@@ -646,7 +673,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
   }
 
   func handleModuleInitialize(_ args : ArgsMap, result: @escaping FlutterResult) {
-        //Check already created
+        //Check already initialized
         if (_siprixModule.isInitialized()) {
             _initialized = true
             result("Already initialized")
@@ -694,6 +721,12 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
         let transpForceIPv4 = args["transpForceIPv4"] as? Bool
         if(transpForceIPv4 != nil) { iniData.transpForceIPv4 = NSNumber(value: transpForceIPv4!) }
+
+        let enableAes128Sha32 = args["enableAes128Sha32"] as? Bool
+        if(enableAes128Sha32 != nil) { iniData.enableAes128Sha32 = NSNumber(value: enableAes128Sha32!) }
+
+        let enableVUmeter = args["enableVUmeter"] as? Bool
+        if(enableVUmeter != nil) { iniData.enableVUmeter = NSNumber(value: enableVUmeter!) }
       
         let enablePushKit = args["enablePushKit"] as? Bool
         let enableCallKit = args["enableCallKit"] as? Bool
@@ -1013,6 +1046,18 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         
         let hdrVal = _siprixModule.callGetSipHeader(Int32(callId!), hdrName:hdrName!)
         result(hdrVal)
+    }
+
+    func handleCallGetStats(_ args : ArgsMap, result: @escaping FlutterResult) {
+        let callId = args[kArgCallId] as? Int
+
+        if(callId == nil) {
+            sendBadArguments(result:result)
+            return
+        }
+        
+        let statsVal = _siprixModule.callGetStats(Int32(callId!))
+        result(statsVal)
     }
 
     func handleCallMuteMic(_ args : ArgsMap, result: @escaping FlutterResult) {
@@ -1885,8 +1930,9 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
 
     func cxActionGroupCall() -> Int32 {
-        if(_callsList.count >= 2) {
-            let action = CXSetGroupCallAction(call: _callsList[0].uuid, callUUIDToGroupWith: _callsList[1].uuid)
+        let callsWithSipId = _callsList.filter{ $0.id != 0}
+        if(callsWithSipId.count >= 2) {
+            let action = CXSetGroupCallAction(call: callsWithSipId[0].uuid, callUUIDToGroupWith: callsWithSipId[1].uuid)
             let transaction = CXTransaction(action: action)
         
             _cxCallCtrl.request(transaction) { error in self.printResult("CXSetGroupCallAction", err:error) }
@@ -1909,8 +1955,8 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
     
     func printResult(_ name: String, err: Error?) {
-        let strErr = (err != nil) ? ("Error requesting <\(name)> :\(err!)") : ("<\(name)> requested successfully")
-        _siprixModule.writeLog("CxProvider: completion: '\(strErr)'")
+        let strErr = (err != nil) ? ("<\(name)> \(err!)") : ("<\(name)> requested successfully")
+        _siprixModule.writeLog("CxProvider: completion: \(strErr)")
     }
 
     ///------------------------------------------------------------------------------
@@ -2001,7 +2047,7 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     func provider(_: CXProvider, perform action: CXSetMutedCallAction) {
         _siprixModule.writeLog("CxProvider: CXSetMuted uuid:\(action.callUUID) muted:\(action.isMuted)")
         //TODO fix case when callKit muted call, but flutter can't see that
-       
+
         let call = getCallByUUID(action.callUUID)
         if((call != nil) && (_siprixModule.callMuteMic(Int32(call!.id), mute:action.isMuted)) == kErrorCodeEOK) {
             action.fulfill()

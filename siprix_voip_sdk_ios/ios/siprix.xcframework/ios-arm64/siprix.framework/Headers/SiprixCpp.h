@@ -211,6 +211,9 @@ typedef void(*OnCallSwitched)(CallId callId);
 typedef void(*OnMessageSentState)(MessageId messageId, bool success, const char* response);
 typedef void(*OnMessageIncoming)(MessageId messageId, AccountId accId, const char* hdrFrom, const char* body);
 
+typedef void(*OnSipNotify)(AccountId accId, const char* hdrEvent, const char* body);
+typedef void(*OnVuMeterLevel)(int micLevel, int spkLevel);
+
 ////////////////////////////////////////////////////////////////////////////
 //Events handler interface
 
@@ -239,6 +242,9 @@ public:
 
     virtual void OnMessageSentState(MessageId messageId, bool success, const char* response) = 0;
     virtual void OnMessageIncoming(MessageId messageId, AccountId accId, const char* hdrFrom, const char* body) = 0;
+
+    virtual void OnSipNotify(AccountId accId, const char* hdrEvent, const char* body) = 0;
+    virtual void OnVuMeterLevel(int micLevel, int spkLevel) {}
 };
 
 
@@ -323,6 +329,7 @@ EXPORT ErrorCode Call_Bye(ISiprixModule* module, CallId callId);
 EXPORT ErrorCode Call_GetSipHeader(ISiprixModule* module, CallId callId, 
                                 const char* hdrName, char* hdrVal, uint32_t* hdrValLen);
 EXPORT ErrorCode Call_GetNonce(ISiprixModule* module, CallId callId, char* nonceVal, uint32_t* nonceValLen);
+EXPORT ErrorCode Call_GetStats(ISiprixModule* module, CallId callId, char* statsVal, uint32_t* statsValLen);
 EXPORT ErrorCode Call_StopRingtone(ISiprixModule* module);
 
 ////////////////////////////////////////////////////////////////////////////
@@ -382,6 +389,8 @@ EXPORT ErrorCode Callback_SetCallHeld(ISiprixModule* module, OnCallHeld callback
 
 EXPORT ErrorCode Callback_SetMessageSentState(ISiprixModule* module, OnMessageSentState callback);
 EXPORT ErrorCode Callback_SetMessageIncoming(ISiprixModule* module, OnMessageIncoming callback);
+EXPORT ErrorCode Callback_SetSipNotify(ISiprixModule* module, OnSipNotify callback);
+EXPORT ErrorCode Callback_SetVuMeterLevel(ISiprixModule* module, OnVuMeterLevel callback);
 
 EXPORT ErrorCode Callback_SetEventHandler(ISiprixModule* module, ISiprixEventHandler* handler);
 
@@ -450,6 +459,8 @@ EXPORT void     Ini_SetRecordStereo(IniData* ini, bool enabled);
 EXPORT void     Ini_SetUnregOnDestroy(IniData* ini, bool enabled);
 EXPORT void     Ini_SetVideoCallEnabled(IniData* ini, bool enabled);
 EXPORT void     Ini_SetTranspForceIPv4(IniData* ini, bool enabled);
+EXPORT void     Ini_SetAes128Sha32Enabled(IniData* ini, bool enabled);
+EXPORT void     Ini_SetVUmeterEnabled(IniData* ini, bool enabled);
 
 ////////////////////////////////////////////////////////////////////////////
 //Set fields of Dest's data

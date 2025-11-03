@@ -146,6 +146,8 @@ EXPORT
 @property(nonatomic, retain) NSNumber * _Nullable recordStereo;
 @property(nonatomic, retain) NSNumber * _Nullable enableVideoCall;
 @property(nonatomic, retain) NSNumber * _Nullable transpForceIPv4;
+@property(nonatomic, retain) NSNumber * _Nullable enableAes128Sha32;
+@property(nonatomic, retain) NSNumber * _Nullable enableVUmeter;
 @property(nonatomic, retain) NSString * _Nullable brandName;
 @end
 
@@ -322,6 +324,12 @@ EXPORT
 - (void)onMessageIncoming:(NSInteger)messageId accId:(NSInteger)accId
           hdrFrom:(NSString * _Nonnull)hdrFrom
           body:(NSString * _Nonnull)body;
+
+- (void)onSipNotify:(NSInteger)accId
+          hdrEvent:(NSString * _Nonnull)hdrFrom
+          body:(NSString * _Nonnull)body;
+- (void)onVuMeterLevel:(NSInteger)micLevel spkLevel:(NSInteger)spkLevel;
+
 @end
 
 
@@ -376,6 +384,7 @@ EXPORT
 
 - (int)callSetVideoRenderer:(int)callId renderer:(id<SiprixVideoRendererDelegate> _Nullable) renderer;
 - (NSString* _Nonnull)callGetSipHeader:(int)callId hdrName:(NSString * _Nonnull)hdrName;
+- (NSString* _Nonnull)callGetStats:(int)callId;
 - (void)callStopRingtone;
 
 #if TARGET_OS_IPHONE
