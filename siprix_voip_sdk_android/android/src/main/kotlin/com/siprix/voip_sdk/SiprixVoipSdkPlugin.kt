@@ -80,6 +80,7 @@ const val kMethodCallAccept           = "Call_Accept"
 const val kMethodCallHold             = "Call_Hold"
 const val kMethodCallGetHoldState     = "Call_GetHoldState"
 const val kMethodCallGetSipHeader     = "Call_GetSipHeader"
+const val kMethodCallGetStats         = "Call_GetStats"
 const val kMethodCallMuteMic          = "Call_MuteMic"
 const val kMethodCallMuteCam          = "Call_MuteCam"
 const val kMethodCallSendDtmf         = "Call_SendDtmf"
@@ -140,6 +141,9 @@ const val kOnCallHeld         = "OnCallHeld"
 const val kOnMessageSentState = "OnMessageSentState"
 const val kOnMessageIncoming  = "OnMessageIncoming"
 
+const val kOnSipNotify        = "OnSipNotify"
+const val kOnVuMeterLevel     = "OnVuMeterLevel"
+
 const val kArgVideoTextureId  = "videoTextureId"
 
 const val kArgForeground = "foreground"
@@ -171,6 +175,9 @@ const val kArgTone   = "tone"
 const val kFrom      = "from"
 const val kTo        = "to"
 const val kBody      = "body"
+const val kEvent     = "event"
+const val kMicLevel  = "mic"
+const val kSpkLevel  = "spk"
 
 const val kErrorCodeEOK = 0
 const val kErrorDuplicateAccount = -1021
@@ -319,6 +326,22 @@ class EventListener: ISiprixModelListener {
     argsMap[kBody] = body
     channel?.invokeMethod(kOnMessageIncoming, argsMap)
   }
+
+  override fun onSipNotify(accId: Int, hdrEvent: String?, body: String?) {
+    val argsMap = HashMap<String, Any?> ()
+    argsMap[kArgAccId] = accId
+    argsMap[kEvent] = hdrEvent
+    argsMap[kBody] = body
+    channel?.invokeMethod(kOnSipNotify, argsMap)
+  }
+
+  override fun onVuMeterLevel(micLevel: Int, spkLevel: Int) {
+    val argsMap = HashMap<String, Any?> ()
+    argsMap[kMicLevel] = micLevel
+    argsMap[kSpkLevel] = spkLevel
+    channel?.invokeMethod(kOnVuMeterLevel, argsMap)
+  }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -679,6 +702,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
       kMethodCallHold          ->   handleCallHold(args, result)
       kMethodCallGetHoldState  ->   handleCallGetHoldState(args, result)
       kMethodCallGetSipHeader  ->   handleCallGetSipHeader(args, result)
+      kMethodCallGetStats      ->   handleCallGetStats(args, result)
       kMethodCallMuteMic       ->   handleCallMuteMic(args, result)
       kMethodCallMuteCam       ->   handleCallMuteCam(args, result)
       kMethodCallSendDtmf      ->   handleCallSendDtmf(args, result)
@@ -774,6 +798,12 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
     val transpForceIPv4 : Boolean? = args["transpForceIPv4"] as? Boolean
     if(transpForceIPv4 != null) { iniData.setTranspForceIPv4(transpForceIPv4); }
+
+    val enableAes128Sha32 : Boolean? = args["enableAes128Sha32"] as? Boolean
+    if(enableAes128Sha32 != null) { iniData.setEnableAes128Sha32(enableAes128Sha32); }
+
+    val enableVUmeter : Boolean? = args["enableVUmeter"] as? Boolean
+    if(enableVUmeter != null) { iniData.setEnableVUmeter(enableVUmeter); }
 
     val listenTelState : Boolean? = args["listenTelState"] as? Boolean
     if(listenTelState != null) { iniData.setUseTelState(listenTelState); }
@@ -1108,6 +1138,17 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     }
 
     result.success(_core.callGetSipHeader(callId, hdrName))
+  }
+
+  private fun handleCallGetStats(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    val callId :Int? = args[kArgCallId] as? Int
+    
+    if(callId == null) {
+      sendBadArguments(result)
+      return
+    }
+
+    result.success(_core.callGetStats(callId))
   }
 
   private fun handleCallMuteMic(args : HashMap<String, Any?>, result: MethodChannel.Result) {
