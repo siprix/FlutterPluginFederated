@@ -47,6 +47,7 @@ const char kMethodCallAccept[]          = "Call_Accept";
 const char kMethodCallHold[]            = "Call_Hold";
 const char kMethodCallGetHoldState[]    = "Call_GetHoldState";
 const char kMethodCallGetSipHeader[]    = "Call_GetSipHeader";
+const char kMethodCallGetStats[]        = "Call_GetStats";
 const char kMethodCallMuteMic[]         = "Call_MuteMic";
 const char kMethodCallMuteCam[]         = "Call_MuteCam";
 const char kMethodCallSendDtmf[]        = "Call_SendDtmf";
@@ -105,6 +106,9 @@ const char kOnCallHeld[]         = "OnCallHeld";
 const char kOnMessageSentState[] = "OnMessageSentState";
 const char kOnMessageIncoming[]  = "OnMessageIncoming";
 
+const char kOnSipNotify[]        = "OnSipNotify";
+const char kOnVuMeterLevel[]     = "OnVuMeterLevel";
+
 const char kArgVideoTextureId[]  = "videoTextureId";
 
 const char kArgStarted[]    = "started";
@@ -138,6 +142,9 @@ const char kArgTone[]  = "tone";
 const char kFrom[]     = "from";
 const char kTo[]       = "to";
 const char kBody[]     = "body";
+const char kEvent[]    = "event";
+const char kMicLevel[] = "mic";
+const char kSpkLevel[] = "spk";
 
 
 class EventHandler : public Siprix::ISiprixEventHandler {
@@ -165,6 +172,9 @@ class EventHandler : public Siprix::ISiprixEventHandler {
   void OnMessageSentState(Siprix::MessageId messageId, bool success, const char* response) override;
   void OnMessageIncoming(Siprix::MessageId messageId, Siprix::AccountId accId, 
                          const char* hdrFrom, const char* body) override;
+
+  void OnSipNotify(Siprix::AccountId accId, const char* hdrEvent, const char* body) override;
+  void OnVuMeterLevel(int micLevel, int spkLevel) override;
 
   FlMethodChannel* channel_;
 };
@@ -401,6 +411,14 @@ static FlMethodResponse* handleModuleInitialize(FlValue* args, SiprixVoipSdkPlug
     val = fl_value_lookup_string(args, "transpForceIPv4");
     if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_BOOL)
       Siprix::Ini_SetTranspForceIPv4(iniData, fl_value_get_bool(val));
+
+    val = fl_value_lookup_string(args, "enableAes128Sha32");
+    if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_BOOL)
+      Siprix::Ini_SetAes128Sha32Enabled(iniData, fl_value_get_bool(val));
+
+    val = fl_value_lookup_string(args, "enableVUmeter");
+    if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_BOOL)
+      Siprix::Ini_SetVUmeterEnabled(iniData, fl_value_get_bool(val));
 
     //Initialize
     const Siprix::ErrorCode err = Siprix::Module_Initialize(self->module_, iniData);
@@ -778,6 +796,27 @@ FlMethodResponse* handleCallGetSipHeader(FlValue* args, SiprixVoipSdkPlugin* sel
     g_autoptr(FlValue) res = fl_value_new_string(headerVal.c_str());
     return FL_METHOD_RESPONSE(fl_method_success_response_new(res));
 }
+
+FlMethodResponse* handleCallGetStats(FlValue* args, SiprixVoipSdkPlugin* self)
+{
+    FlValue* val = fl_value_lookup_string(args, kArgCallId);
+    if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_INT) return badArgsResponse();
+    const Siprix::CallId callId = fl_value_get_int(val);
+
+    uint32_t statsValLen = 2000;
+    std::string statsVal(statsValLen, 0);
+    const Siprix::ErrorCode err = Siprix::Call_GetStats(self->module_, callId, &statsVal[0], &statsValLen);
+    if (err != Siprix::EOK) return sendResult(err);
+
+    bool longerStrRequired = (statsValLen > statsVal.size());
+    statsVal.resize(statsValLen);
+    if (longerStrRequired) {
+        Siprix::Call_GetStats(self->module_, callId, &statsVal[0], &statsValLen);
+    }
+    g_autoptr(FlValue) res = fl_value_new_string(statsVal.c_str());
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(res));
+}
+
 
 FlMethodResponse* handleCallGetHoldState(FlValue* args, SiprixVoipSdkPlugin* self)
 {
@@ -1292,6 +1331,7 @@ static void siprix_voip_sdk_plugin_handle_method_call(
     if(strcmp(method, kMethodCallHold)    == 0)          response = handleCallHold(args, self); else
     if(strcmp(method, kMethodCallGetHoldState)  == 0)    response = handleCallGetHoldState(args, self); else
     if(strcmp(method, kMethodCallGetSipHeader)  == 0)    response = handleCallGetSipHeader(args, self); else
+    if(strcmp(method, kMethodCallGetStats)  == 0)        response = handleCallGetStats(args, self); else
     if(strcmp(method, kMethodCallMuteMic) == 0)          response = handleCallMuteMic(args, self); else
     if(strcmp(method, kMethodCallMuteCam) == 0)          response = handleCallMuteCam(args, self); else
     if(strcmp(method, kMethodCallSendDtmf)== 0)          response = handleCallSendDtmf(args, self); else
@@ -1539,6 +1579,27 @@ void EventHandler::OnMessageIncoming(Siprix::MessageId messageId, Siprix::Accoun
     fl_value_set_string_take(args, kBody,     fl_value_new_string(body));
 
     fl_method_channel_invoke_method(channel_, kOnMessageIncoming, args,
+        nullptr, nullptr, nullptr);
+}
+
+void EventHandler::OnSipNotify(Siprix::AccountId accId, const char* hdrEvent, const char* body)
+{
+    g_autoptr(FlValue) args = fl_value_new_map();
+    fl_value_set_string_take(args, kArgAccId, fl_value_new_int(accId));
+    fl_value_set_string_take(args, kEvent,    fl_value_new_string(hdrEvent));
+    fl_value_set_string_take(args, kBody,     fl_value_new_string(body));
+
+    fl_method_channel_invoke_method(channel_, kOnSipNotify, args,
+        nullptr, nullptr, nullptr);
+}
+
+void EventHandler::OnVuMeterLevel(int micLevel, int spkLevel)
+{
+    g_autoptr(FlValue) args = fl_value_new_map();
+    fl_value_set_string_take(args, kMicLevel, fl_value_new_int(micLevel));
+    fl_value_set_string_take(args, kSpkLevel, fl_value_new_int(spkLevel));
+
+    fl_method_channel_invoke_method(channel_, kOnVuMeterLevel, args,
         nullptr, nullptr, nullptr);
 }
 
