@@ -70,6 +70,12 @@ class InitData implements ISiprixData {
   /// Expiremental option which forces using IPv4 interface even when NetMonitor doesn't detect it
   bool? transpForceIPv4;
 
+  /// Enable using aes128_sha1_32 SRTP crypto cipher
+  bool? enableAes128Sha32;
+
+  /// Enable VU volume meter (triggers event 'VuMeterLevel') when call exist
+  bool? enableVUmeter;
+
   @override
   Map<String, dynamic> toJson() {
     Map<String, dynamic> ret = {};
@@ -92,6 +98,8 @@ class InitData implements ISiprixData {
     if(recordStereo!=null)      ret['recordStereo'] = recordStereo;
     if(enableVideoCall!=null)   ret['enableVideoCall'] = enableVideoCall;
     if(transpForceIPv4!=null)   ret['transpForceIPv4'] = transpForceIPv4;
+    if(enableAes128Sha32!=null) ret['enableAes128Sha32'] = enableAes128Sha32;
+    if(enableVUmeter!=null)     ret['enableVUmeter'] = enableVUmeter;
     return ret;
   }
 }//InitData
@@ -705,3 +713,32 @@ class AccountsModel extends ChangeNotifier implements IAccountsModel {
   }
 
 }//AccountsModel
+
+
+/// VoiceMailModel
+class VoiceMailModel extends ChangeNotifier {
+  final ILogsModel? _logs;
+  String _messages="";
+
+  ///Is network connection lost (using for displaying some indicator on UI)
+  String get messages => _messages;
+
+  VoiceMailModel([this._logs]) {
+    SiprixVoipSdk().sipNotifyListener = SipNotifyListener(
+      notifyReceived : onSipNotifyReceived
+    );
+  }
+
+  /// Handle received NOTIFY message
+  void onSipNotifyReceived(int accId, String hdrEvent, String body) {
+    _logs?.print("onSipNotifyReceived accId:$accId event:'$hdrEvent' $body");
+    if(hdrEvent != "message-summary") return;
+
+    const String msgTag = "Voice-Message:";
+    int idx = body.indexOf(msgTag);
+    if(idx != -1) {
+      _messages = body.substring(idx+msgTag.length);
+      notifyListeners();
+    }
+  }
+}

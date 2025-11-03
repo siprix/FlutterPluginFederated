@@ -183,3 +183,26 @@ class DevicesModel extends ChangeNotifier {
   }
 
 }//DevicesModel
+
+
+
+/// VuMeterModel
+class VuMeterModel extends ChangeNotifier {
+  int _micLevel = 0;
+  int _spkLevel = 0;
+
+  int get micLevel => _micLevel;
+  int get spkLevel => _spkLevel;
+
+  /// Constructor (set event handler)
+  VuMeterModel() {
+    SiprixVoipSdk().vuMeterListener = VuMeterListener(vu : onVuMeterLevel);
+  }
+
+  /// Handle event, update UI
+  void onVuMeterLevel(int micLevel, int spkLevel) {
+    _micLevel = micLevel;
+    _spkLevel = spkLevel;
+    notifyListeners();
+  }
+}

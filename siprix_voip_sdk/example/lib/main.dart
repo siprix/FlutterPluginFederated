@@ -50,6 +50,8 @@ void main() async {
   MessagesModel messagesModel = MessagesModel(accountsModel, logsModel);
   AppCallsModel callsModel = AppCallsModel(accountsModel, logsModel, cdrsModel);//List of calls
   SubscriptionsModel subscrModel = SubscriptionsModel<AppBlfSubscrModel>(accountsModel, AppBlfSubscrModel.fromJson, logsModel);//List of subscriptions
+  //VuMeterModel vuModel = VuMeterModel();
+  //VoiceMailModel vmModel = VoiceMailModel(logsModel);
 
   //Run app
   runApp(
@@ -62,6 +64,8 @@ void main() async {
       ChangeNotifierProvider(create: (context) => callsModel),
       ChangeNotifierProvider(create: (context) => cdrsModel),
       ChangeNotifierProvider(create: (context) => logsModel),
+      //ChangeNotifierProvider(create: (context) => vuModel),
+      //ChangeNotifierProvider(create: (context) => vmModel),
     ],
     child: const MyApp(),
   ));
@@ -180,7 +184,9 @@ class _MyAppState extends State<MyApp> {
     iniData.license  = "...license-credentials...";
     iniData.logLevelFile = LogLevel.debug;
     iniData.logLevelIde = LogLevel.info;
+    
     //- uncomment if required -//
+    //iniData.enableVUmeter = true;
     //iniData.singleCallMode = false;
     //iniData.tlsVerifyServer = false;
     //if(Platform.isIOS) {
@@ -200,6 +206,10 @@ class _MyAppState extends State<MyApp> {
     //vdoData.noCameraImgPath = await MyApp.writeAssetAndGetFilePath("noCamera.jpg");
     //vdoData.bitrateKbps = 800;
     //SiprixVoipSdk().setVideoParams(vdoData);
+
+    //Detect version
+    //String? version = await SiprixVoipSdk().version();
+    //debugPrint("Siprix version: $version");
   }
 
   void _readSavedState() {

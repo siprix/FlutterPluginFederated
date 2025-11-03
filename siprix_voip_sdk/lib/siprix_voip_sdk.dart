@@ -1,7 +1,6 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'package:siprix_voip_sdk_platform_interface/siprix_voip_sdk_platform_interface.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'subscriptions_model.dart';
@@ -301,6 +300,36 @@ class MessageIncomingArg {
   }
 }
 
+/// Helper class for handling 'onSipNotify' event raised by library
+class SipNotifyArg {
+  int accId = 0;
+  String hdrEvent="";
+  String body="";
+  bool fromMap(Map<dynamic, dynamic> argsMap) {
+    int argsCounter=0;
+    argsMap.forEach((key, value) {
+      if((key == SiprixVoipSdkPlatform.kArgAccId)&&(value is int)) { accId = value; argsCounter+=1; } else
+      if((key == SiprixVoipSdkPlatform.kEvent)&&(value is String)) { hdrEvent = value;  argsCounter+=1; } else
+      if((key == SiprixVoipSdkPlatform.kBody)&&(value is String))  { body = value;  argsCounter+=1; }
+    });
+    return (argsCounter==3);
+  }
+}
+
+/// Helper class for handling 'onVuMeterLevel' event raised by library
+class VuMeterArg {
+  int micLevel=0, spkLevel=0;
+  bool fromMap(Map<dynamic, dynamic> argsMap) {
+    int argsCounter=0;
+    argsMap.forEach((key, value) {
+      if((key == SiprixVoipSdkPlatform.kMicLevel)&&(value is int)) { micLevel = value; argsCounter+=1; } else
+      if((key == SiprixVoipSdkPlatform.kSpkLevel)&&(value is int)) { spkLevel = value; argsCounter+=1; }
+    });
+    return (argsCounter==2);
+  }
+}
+
+
 /// Helper class for managing audio/video devices
 class MediaDevice {
   MediaDevice(this.index);
@@ -324,20 +353,20 @@ class MediaDevice {
 
 /// Account state listener, usign by 'AccountsModel'
 class AccStateListener {
-  AccStateListener({this.regStateChanged});
-  void Function(int accId, RegState state, String response)? regStateChanged;
+  AccStateListener({required this.regStateChanged});
+  void Function(int accId, RegState state, String response) regStateChanged;
 }
 
 /// Subscription state listener, usign by 'SubscriptionsModel'
 class SubscrStateListener {
-  SubscrStateListener({this.subscrStateChanged});
-  void Function(int subscrId, SubscriptionState state, String response)? subscrStateChanged;
+  SubscrStateListener({required this.subscrStateChanged});
+  void Function(int subscrId, SubscriptionState state, String response) subscrStateChanged;
 }
 
 /// Network state listener, usign by 'NetworkModel'
 class NetStateListener {
-  NetStateListener({this.networkStateChanged});
-  void Function(String name, NetState state)? networkStateChanged;
+  NetStateListener({required this.networkStateChanged});
+  void Function(String name, NetState state) networkStateChanged;
 }
 
 /// Call state listener, usign by 'CallsModel'
@@ -375,23 +404,37 @@ class CallStateListener {
 
 /// Messages state listener, usign by 'MessagesModel'
 class MessagesStateListener {
-  MessagesStateListener({this.incoming, this.sentState});
+  MessagesStateListener({required this.incoming, required this.sentState});
   ///Triggered by library when received confirmation on sent message or expired timeout
-  void Function(int messageId, bool success, String response)? sentState;
+  void Function(int messageId, bool success, String response) sentState;
   ///Triggered by library when new text message received
-  void Function(int messageId, int accountId, String from, String body)?  incoming;
+  void Function(int messageId, int accountId, String from, String body) incoming;
+}
+
+/// Sip notify listener, allows detect SIP NOTIFY events
+class SipNotifyListener {
+  SipNotifyListener({required this.notifyReceived});
+  ///Triggered by library when SIP NOTIFY received
+  void Function(int accId, String hdrEvent, String body)  notifyReceived;
+}
+
+/// Vu meter listener, allows detect mic/spk levels
+class VuMeterListener {
+  VuMeterListener({required this.vu});
+  ///Triggered by library 10 times per sec, provided mic/spk volume level in range [0..9]
+  void Function(int micLevel, int spkLevel) vu;
 }
 
 /// Devices state listener, usign by 'DevicesModel'
 class DevicesStateListener {
-  DevicesStateListener({this.devicesChanged});
-  void Function()?  devicesChanged;
+  DevicesStateListener({required this.devicesChanged});
+  void Function() devicesChanged;
 }
 
 /// Trial mode listener, usign by 'LogsModel'
 class TrialModeListener {
-  TrialModeListener({this.notified});
-  void Function()?  notified;
+  TrialModeListener({required this.notified});
+  void Function() notified;
 }
 
 /// Inteface of the log model, allows others models to display debug output
@@ -512,7 +555,10 @@ class SiprixVoipSdk {
   TrialModeListener? trialListener;
   ///Messages listenerer
   MessagesStateListener? messagesListener;
-
+  ///SipNotify listenerer
+  SipNotifyListener? sipNotifyListener;
+  ///VuMeter listenerer
+  VuMeterListener? vuMeterListener;
 
   /// Initialize siprix module
   Future<void> initialize(InitData iniData, [ILogsModel? logsModel]) async {
@@ -627,6 +673,11 @@ class SiprixVoipSdk {
   /// Get value of the SIP header from last received response
   Future<String?> getSipHeader(int callId, String headerName) {
     return _platform.getSipHeader(callId, headerName);
+  }
+
+  /// Get call stats as json encoded string
+  Future<String?> getStats(int callId) {
+    return _platform.getStats(callId);
   }
 
   /// Mute microphone for the specified call
@@ -844,7 +895,7 @@ class SiprixVoipSdk {
 
   ///Handles signals received from event channel
   Future<void> _eventsHandler(MethodCall methodCall) async {
-    debugPrint('event ${methodCall.method.toString()} ${methodCall.arguments.toString()}');
+    //debugPrint('event ${methodCall.method.toString()} ${methodCall.arguments.toString()}');
     if(methodCall.arguments is! Map<dynamic, dynamic>) {
       return;
     }
@@ -873,27 +924,30 @@ class SiprixVoipSdk {
 
       case SiprixVoipSdkPlatform.kOnMessageSentState : _onMessageSentState(argsMap); break;
       case SiprixVoipSdkPlatform.kOnMessageIncoming  : _onMessageIncoming(argsMap);  break;
+
+      case SiprixVoipSdkPlatform.kOnSipNotify        : _onSipNotify(argsMap);        break;
+      case SiprixVoipSdkPlatform.kOnVuMeterLevel     : _onVuMeterLevel(argsMap);     break;
     }
   }
 
   void _onAccountRegState(Map<dynamic, dynamic> argsMap) {
     AccRegStateArg arg = AccRegStateArg();
     if(arg.fromMap(argsMap)) {
-      accListener?.regStateChanged?.call(arg.accId, arg.regState, arg.response);
+      accListener?.regStateChanged.call(arg.accId, arg.regState, arg.response);
     }
   }
 
   void _onSubscriptionState(Map<dynamic, dynamic> argsMap) {
     SubscriptionStateArg arg = SubscriptionStateArg();
     if(arg.fromMap(argsMap)) {
-      subscrListener?.subscrStateChanged?.call(arg.subscrId, arg.state, arg.response);
+      subscrListener?.subscrStateChanged.call(arg.subscrId, arg.state, arg.response);
     }
   }
 
   void _onNetworkState(Map<dynamic, dynamic> argsMap) {
     NetworkStateArg arg = NetworkStateArg();
     if(arg.fromMap(argsMap)) {
-      netListener?.networkStateChanged?.call(arg.name, arg.state);
+      netListener?.networkStateChanged.call(arg.name, arg.state);
     }
   }
 
@@ -984,23 +1038,37 @@ class SiprixVoipSdk {
   void _onMessageSentState(Map<dynamic, dynamic> argsMap) {
     MessageSentStateArg arg = MessageSentStateArg();
     if(arg.fromMap(argsMap)) {
-      messagesListener?.sentState?.call(arg.messageId, arg.success, arg.response);
+      messagesListener?.sentState.call(arg.messageId, arg.success, arg.response);
     }
   }
 
   void _onMessageIncoming(Map<dynamic, dynamic> argsMap) {
     MessageIncomingArg arg = MessageIncomingArg();
     if(arg.fromMap(argsMap)) {
-      messagesListener?.incoming?.call(arg.messageId, arg.accId, arg.from, arg.body);
+      messagesListener?.incoming.call(arg.messageId, arg.accId, arg.from, arg.body);
     }
   }
 
   void _onDevicesChanged(Map<dynamic, dynamic> argsMap) {
-    dvcListener?.devicesChanged?.call();
+    dvcListener?.devicesChanged.call();
   }
 
   void _onTrialModeNotif(Map<dynamic, dynamic> argsMap) {
-    trialListener?.notified?.call();
+    trialListener?.notified.call();
+  }
+
+  void _onSipNotify(Map<dynamic, dynamic> argsMap) {
+    SipNotifyArg arg = SipNotifyArg();
+    if(arg.fromMap(argsMap)) {
+      sipNotifyListener?.notifyReceived.call(arg.accId, arg.hdrEvent, arg.body);
+    }
+  }
+
+  void _onVuMeterLevel(Map<dynamic, dynamic> argsMap) {
+    VuMeterArg arg = VuMeterArg();
+    if(arg.fromMap(argsMap)) {
+      vuMeterListener?.vu.call(arg.micLevel, arg.spkLevel);
+    }
   }
 
 }//SiprixVoipSdk
