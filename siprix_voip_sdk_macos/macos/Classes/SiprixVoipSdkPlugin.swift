@@ -80,6 +80,7 @@ private let kOnCallIncoming     = "OnCallIncoming"
 private let kOnCallDtmfReceived = "OnCallDtmfReceived"
 private let kOnCallTransferred  = "OnCallTransferred"
 private let kOnCallRedirected   = "OnCallRedirected"
+private let kOnCallVideoUpgraded = "OnCallVideoUpgraded";
 private let kOnCallSwitched     = "OnCallSwitched"
 private let kOnCallHeld         = "OnCallHeld"
 
@@ -267,6 +268,15 @@ class SiprixEventHandler : NSObject, SiprixEventDelegate {
             argsMap[kArgToCallId] = relatedCallId
             argsMap[kArgToExt] = referTo
             self._channel.invokeMethod(kOnCallRedirected, arguments: argsMap)
+        }
+    }
+
+    public func onCallVideoUpgraded(_ callId: Int, withVideo:Bool) {
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgCallId] = callId
+            argsMap[kArgWithVideo] = withVideo
+            self._channel.invokeMethod(kOnCallVideoUpgraded, arguments: argsMap)
         }
     }
 
@@ -701,6 +711,9 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         
         let secureMedia = args["secureMedia"] as? Int
         if(secureMedia != nil) { accData.secureMedia = NSNumber(value:secureMedia!) }
+
+        let upgradeToVideo = args["upgradeToVideo"] as? Int
+        if(upgradeToVideo != nil) { accData.upgradeToVideo = NSNumber(value:upgradeToVideo!) }
          
         let xheaders = args["xheaders"] as? Dictionary<AnyHashable,Any>
         if(xheaders != nil) { accData.xheaders = xheaders }
