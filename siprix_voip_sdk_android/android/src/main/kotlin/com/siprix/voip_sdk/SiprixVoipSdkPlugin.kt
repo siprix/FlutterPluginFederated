@@ -135,6 +135,7 @@ const val kOnCallAcceptNotif  = "OnCallAcceptNotif"
 const val kOnCallDtmfReceived = "OnCallDtmfReceived"
 const val kOnCallTransferred  = "OnCallTransferred"
 const val kOnCallRedirected   = "OnCallRedirected"
+const val kOnCallVideoUpgraded= "OnCallVideoUpgraded"
 const val kOnCallSwitched     = "OnCallSwitched"
 const val kOnCallHeld         = "OnCallHeld"
 
@@ -295,6 +296,13 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgToCallId] = relatedCallId
     argsMap[kArgToExt] = referTo
     channel?.invokeMethod(kOnCallRedirected, argsMap)
+  }
+
+  override fun onCallVideoUpgraded(callId: Int, withVideo: Boolean) {
+    val argsMap = HashMap<String, Any?> ()
+    argsMap[kArgWithVideo] = withVideo
+    argsMap[kArgCallId] = callId
+    channel?.invokeMethod(kOnCallVideoUpgraded, argsMap)
   }
 
   override fun onCallHeld(callId: Int, state: SiprixCore.HoldState?) {
@@ -910,6 +918,9 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
     val secureMedia : Int? = args["secureMedia"] as? Int
     if(secureMedia != null) { accData.setSecureMediaMode(AccData.SecureMediaMode.fromInt(secureMedia)); }
+
+    val upgradeToVideo : Int? = args["upgradeToVideo"] as? Int
+    if(upgradeToVideo != null) { accData.setUpgradeToVideoMode(AccData.UpgradeToVideoMode.fromInt(upgradeToVideo)); }
 
     val stunServer : String? = args["stunServer"] as? String
     if(stunServer != null) { accData.setStunServer(stunServer); }
