@@ -100,6 +100,7 @@ const char kOnCallIncoming[]     = "OnCallIncoming";
 const char kOnCallDtmfReceived[] = "OnCallDtmfReceived";
 const char kOnCallTransferred[]  = "OnCallTransferred";
 const char kOnCallRedirected[]   = "OnCallRedirected";
+const char kOnCallVideoUpgraded[]= "OnCallVideoUpgraded";
 const char kOnCallSwitched[]     = "OnCallSwitched";
 const char kOnCallHeld[]         = "OnCallHeld";
 
@@ -166,6 +167,7 @@ class EventHandler : public Siprix::ISiprixEventHandler {
   void OnCallDtmfReceived(Siprix::CallId callId, uint16_t tone) override;
   void OnCallTransferred(Siprix::CallId callId, uint32_t statusCode) override;
   void OnCallRedirected(Siprix::CallId origCallId, Siprix::CallId relatedCallId, const char* referTo)override;
+  void OnCallVideoUpgraded(Siprix::CallId callId, bool withVideo) override;
   void OnCallHeld(Siprix::CallId callId, Siprix::HoldState state) override;
   void OnCallSwitched(Siprix::CallId callId) override;
 
@@ -551,6 +553,10 @@ Siprix::AccData* parseAccData(FlValue* args)
     val = fl_value_lookup_string(args, "secureMedia");
     if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_INT)
         Acc_SetSecureMediaMode(accData, static_cast<Siprix::SecureMedia>(fl_value_get_int(val)));
+
+    val = fl_value_lookup_string(args, "upgradeToVideo");
+    if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_INT)
+        Acc_SetUpgradeToVideoMode(accData, static_cast<Siprix::UpgradeToVideoMode>(fl_value_get_int(val)));
 
     val = fl_value_lookup_string(args, "stunServer");
     if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_STRING)
@@ -1524,6 +1530,16 @@ void EventHandler::OnCallTransferred(Siprix::CallId callId, uint32_t statusCode)
     fl_value_set_string_take(args, kArgStatusCode, fl_value_new_int(statusCode));
 
     fl_method_channel_invoke_method(channel_, kOnCallTransferred, args,
+        nullptr, nullptr, nullptr);
+}
+
+void EventHandler::OnCallVideoUpgraded(Siprix::CallId callId, bool withVideo)
+{
+    g_autoptr(FlValue) args = fl_value_new_map();
+    fl_value_set_string_take(args, kArgCallId, fl_value_new_int(callId));
+    fl_value_set_string_take(args, kArgWithVideo, fl_value_new_bool(withVideo));
+
+    fl_method_channel_invoke_method(channel_, kOnCallVideoUpgraded, args,
         nullptr, nullptr, nullptr);
 }
 

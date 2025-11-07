@@ -186,6 +186,12 @@ enum NetworkState : uint8_t
     NetworkSwitched = 2
 };
 
+enum UpgradeToVideoMode : uint8_t
+{
+    SendRecv = 0,
+    RecvOnly = 1,
+    Inactive = 2
+};
 
 ////////////////////////////////////////////////////////////////////////////
 //Callbacks
@@ -205,6 +211,7 @@ typedef void(*OnCallProceeding)(CallId callId, const char* response);
 typedef void(*OnCallTransferred)(CallId callId, uint32_t statusCode);
 typedef void(*OnCallRedirected)(CallId origCallId, CallId relatedCallId, const char* referTo);
 typedef void(*OnCallDtmfReceived)(CallId callId, uint16_t tone);
+typedef void(*OnCallVideoUpgraded)(CallId callId, bool withVideo);
 typedef void(*OnCallHeld)(CallId callId, HoldState state);
 typedef void(*OnCallSwitched)(CallId callId);
 
@@ -237,6 +244,7 @@ public:
     virtual void OnCallTransferred(CallId callId, uint32_t statusCode) = 0;
     virtual void OnCallRedirected(CallId origCallId, CallId relatedCallId, const char* referTo) = 0;
     virtual void OnCallDtmfReceived(CallId callId, uint16_t tone) = 0;
+    virtual void OnCallVideoUpgraded(CallId callId, bool withVideo) = 0;
     virtual void OnCallHeld(CallId callId, HoldState state) = 0;
     virtual void OnCallSwitched(CallId callId) = 0;
 
@@ -384,11 +392,13 @@ EXPORT ErrorCode Callback_SetCallIncoming(ISiprixModule* module, OnCallIncoming 
 EXPORT ErrorCode Callback_SetCallDtmfReceived(ISiprixModule* module, OnCallDtmfReceived callback);
 EXPORT ErrorCode Callback_SetCallTransferred(ISiprixModule* module, OnCallTransferred callback);
 EXPORT ErrorCode Callback_SetCallRedirected(ISiprixModule* module, OnCallRedirected callback);
+EXPORT ErrorCode Callback_SetCallVideoUpgraded(ISiprixModule* module, OnCallVideoUpgraded callback);
 EXPORT ErrorCode Callback_SetCallSwitched(ISiprixModule* module, OnCallSwitched callback);
 EXPORT ErrorCode Callback_SetCallHeld(ISiprixModule* module, OnCallHeld callback);
 
 EXPORT ErrorCode Callback_SetMessageSentState(ISiprixModule* module, OnMessageSentState callback);
 EXPORT ErrorCode Callback_SetMessageIncoming(ISiprixModule* module, OnMessageIncoming callback);
+
 EXPORT ErrorCode Callback_SetSipNotify(ISiprixModule* module, OnSipNotify callback);
 EXPORT ErrorCode Callback_SetVuMeterLevel(ISiprixModule* module, OnVuMeterLevel callback);
 
@@ -431,6 +441,7 @@ EXPORT void     Acc_AddXHeader(AccData* acc, const char* header, const char* val
 EXPORT void     Acc_AddXContactUriParam(AccData* acc, const char* param, const char* value);
 EXPORT void     Acc_SetRewriteContactIp(AccData* acc, bool enabled);
 EXPORT void     Acc_SetVerifyIncomingCall(AccData* acc, bool enabled);
+EXPORT void     Acc_SetUpgradeToVideoMode(AccData* acc, UpgradeToVideoMode mode);
 
 EXPORT void     Acc_AddAudioCodec(AccData* acc, AudioCodec codec);
 EXPORT void     Acc_AddVideoCodec(AccData* acc, VideoCodec codec);
