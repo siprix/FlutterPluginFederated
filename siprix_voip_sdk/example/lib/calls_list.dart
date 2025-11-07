@@ -190,7 +190,7 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
       //Button 'Mute camera'
       children.add(
           IconButton(onPressed: _muteCam, iconSize: eIconSize,
-            icon: Icon(widget.myCall.isCamMuted ? Icons.videocam_off_outlined : Icons.videocam_outlined))
+            icon: Icon(widget.myCall.isCamMuted ? Icons.videocam_off_outlined : Icons.videocam_outlined, color: Colors.red))
       );
     }
     return children;
@@ -417,7 +417,6 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
   void _toggleTransferAttendedMode() {
     setState(() => _transferAttendedMode = !_transferAttendedMode );
   }
-
 
   Widget _buildSendDtmf() {
     const double spacing=8;

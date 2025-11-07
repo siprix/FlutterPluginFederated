@@ -207,6 +207,21 @@ class CallTransferredArg {
   }
 }
 
+/// Helper class for handling 'onCallVideoUpgraded' event raised by library
+class CallVideoUpgradedArg {
+  int callId=0;
+  bool withVideo=false;
+  bool fromMap(Map<dynamic, dynamic> argsMap) {
+    int argsCounter=0;
+    argsMap.forEach((key, value) {
+      if((key == SiprixVoipSdkPlatform.kArgCallId)&&(value is int))     { callId = value; argsCounter+=1; } else
+      if((key == SiprixVoipSdkPlatform.kArgWithVideo)&&(value is bool)) { withVideo = value; argsCounter+=1; }
+    });
+    return (argsCounter==2);
+  }
+}
+
+
 /// Helper class for handling 'onCallRedirected' event raised by library
 class CallRedirectedArg {
   int origCallId=0;
@@ -373,7 +388,7 @@ class NetStateListener {
 class CallStateListener {
   CallStateListener({this.proceeding, this.incoming, this.incomingPush, this.acceptNotif,
     this.connected, this.terminated, this.dtmfReceived,
-    this.transferred, this.redirected, this.held, this.switched,
+    this.transferred, this.redirected, this.videoUpgraded, this.held, this.switched,
     this.playerStateChanged});
 
   ///Triggered by library when changed player state in specific call
@@ -394,6 +409,8 @@ class CallStateListener {
   void Function(int callId, int statusCode)? transferred;
   ///Triggered by library when received redirect request from remote side (remote side transfers call to new destination).
   void Function(int origCallId, int relatedCallId, String referTo)? redirected;
+  ///Triggered by library when remote side requested to start send/receive video and request accepted.
+  void Function(int callId, bool withVideo)? videoUpgraded;
   ///Triggered by library when received DTMF tone from remote side.
   void Function(int callId, int tone)? dtmfReceived;
   ///Triggered by library when local or remote side has put call on hold
@@ -448,8 +465,10 @@ abstract interface class IAccountsModel {
   String getUri(int accId);
   ///Get accountId by its uri
   int getAccId(String uri);
-  ///Returns true when account with specified id enabled secure media
+  ///Returns true if account with specified id enabled secure media
   bool hasSecureMedia(int accId);
+  ///Returns true if account with specified id has 'upgradeToVideo' set to 'RecvOnly'
+  bool isUpgradeToVideoModeRecvOnly(String uri);
 }
 
 
@@ -521,6 +540,11 @@ class SiprixVoipSdk {
   static const int kHoldStateLocal  = 1;
   static const int kHoldStateRemote = 2;
   static const int kHoldStateLocalAndRemote = 3;
+
+  ///Upgrade to video mode  constants
+  static const int kUpgradeToVideoSendRecv = 0;
+  static const int kUpgradeToVideoRecvOnly = 1;
+  static const int kUpgradeToVideoInactive = 2;
 
   ///Error codes constants
   static const int eOK = 0;
@@ -919,6 +943,7 @@ class SiprixVoipSdk {
       case SiprixVoipSdkPlatform.kOnCallDtmfReceived : _onCallDtmfReceived(argsMap); break;
       case SiprixVoipSdkPlatform.kOnCallTransferred  : _onCallTransferred(argsMap);  break;
       case SiprixVoipSdkPlatform.kOnCallRedirected   : _onCallRedirected(argsMap);   break;
+      case SiprixVoipSdkPlatform.kOnCallVideoUpgraded: _onCallVideoUpgraded(argsMap); break;
       case SiprixVoipSdkPlatform.kOnCallSwitched     : _onCallSwitched(argsMap);     break;
       case SiprixVoipSdkPlatform.kOnCallHeld         : _onCallHeld(argsMap);         break;
 
@@ -1004,6 +1029,13 @@ class SiprixVoipSdk {
     CallTransferredArg arg = CallTransferredArg();
     if(arg.fromMap(argsMap)) {
       callListener?.transferred?.call(arg.callId, arg.statusCode);
+    }
+  }
+
+  void _onCallVideoUpgraded(Map<dynamic, dynamic> argsMap) {
+    CallVideoUpgradedArg arg = CallVideoUpgradedArg();
+    if(arg.fromMap(argsMap)) {
+      callListener?.videoUpgraded?.call(arg.callId, arg.withVideo);
     }
   }
 

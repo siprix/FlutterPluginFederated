@@ -419,6 +419,7 @@ class CallModel extends ChangeNotifier {
 
     try{
       await SiprixVoipSdk().upgradeToVideo(myCallId);
+      _hasVideo = true;
       notifyListeners();
     } on PlatformException catch (err) {
       _logs?.print('Can\'t upgrade callId:$myCallId Err: ${err.code} ${err.message}');
@@ -438,6 +439,17 @@ class CallModel extends ChangeNotifier {
     }
   }
 
+  /// Get statistics of this call
+  Future<String?> getStats() async {
+    try{
+      String? statsVal = await SiprixVoipSdk().getStats(myCallId);
+      return statsVal;
+    } on PlatformException catch (err) {
+      _logs?.print('Can\'t getStats callId:$myCallId Err: ${err.code} ${err.message}');
+      return "";
+    }
+  }
+
   /// Event handlers-------------
 
   /// Handles 1xx responses received from remote side
@@ -453,6 +465,13 @@ class CallModel extends ChangeNotifier {
     _startTime = DateTime.now();
     _hasVideo = withVideo;
     _duration = const Duration(seconds: 0);
+    notifyListeners();
+  }
+
+  /// Handle upgrade to video
+  void onVideoUpgraded(bool withVideo, bool isUpgradeModeRecvOnly) {
+    _hasVideo = withVideo;
+    if(isUpgradeModeRecvOnly) _isCamMuted = true;
     notifyListeners();
   }
 
@@ -523,6 +542,7 @@ class CallsModel extends ChangeNotifier {
       terminated : onTerminated,
       transferred : onTransferred,
       redirected : onRedirected,
+      videoUpgraded: onVideoUpgraded,
       dtmfReceived : onDtmfReceived,
       switched : onSwitched,
       held : onHeld
@@ -689,7 +709,7 @@ class CallsModel extends ChangeNotifier {
     if(index != -1) _callItems[index].accept(withVideo);
   }
 
-   /// Handles 2xx responses raised by library and route it to matched call instance
+  /// Handles 2xx responses raised by library and route it to matched call instance
   void onConnected(int callId, String from, String to, bool withVideo) {
     _logs?.print('onConnected callId:$callId from:$from to:$to withVideo:$withVideo');
     _cdrs?.setConnected(callId, from, to, withVideo);
@@ -740,6 +760,17 @@ class CallsModel extends ChangeNotifier {
     CallModel relatedCall = CallModel(relatedCallId, origCall.accUri, parseExt(referTo), false, origCall.hasSecureMedia, origCall.hasVideo, _logs);
     _callItems.add(relatedCall);
     notifyListeners();
+  }
+
+  ///Handle case when remote side requested to start send/receive video and request accepted.
+  void onVideoUpgraded(int callId, bool withVideo) {
+    _logs?.print('onVideoUpgraded callId:$callId withVideo:$withVideo');
+
+    int index = _callItems.indexWhere((c) => c.myCallId==callId);
+    if(index == -1) return;
+
+    bool isUpgradeModeRecvOnly = _accountsModel.isUpgradeToVideoModeRecvOnly(_callItems[index].accUri);
+    _callItems[index].onVideoUpgraded(withVideo, isUpgradeModeRecvOnly);
   }
 
   /// Handle receive DTMF event raised by library and route it to matched call instance

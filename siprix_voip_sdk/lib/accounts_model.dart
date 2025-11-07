@@ -262,6 +262,31 @@ enum SecureMedia {
 }
 
 
+/// UpgradeToVideo modes (behavior when rceived INVITE with video SDP)
+enum UpgradeToVideoMode {
+  /// Accept video from remote side and start sending local
+  SendRecv(SiprixVoipSdk.kUpgradeToVideoSendRecv, "SendRecv"),
+  /// Accept video from remote side, don't send (mute) local
+  RecvOnly(SiprixVoipSdk.kUpgradeToVideoRecvOnly, "RecvOnly"),
+  /// Don't accept video from remote side (continue audio only call)
+  Inactive(SiprixVoipSdk.kUpgradeToVideoInactive, "Inactive");
+
+  const UpgradeToVideoMode(this.id, this.name);
+  /// Value
+  final int id;
+  /// User friendly name of the selected option
+  final String name;
+
+  /// Returns enum item which matches int constant
+  static UpgradeToVideoMode from(int val) {
+    switch(val) {
+      case SiprixVoipSdk.kUpgradeToVideoSendRecv: return UpgradeToVideoMode.SendRecv;
+      case SiprixVoipSdk.kUpgradeToVideoInactive: return UpgradeToVideoMode.Inactive;
+      default:                                    return UpgradeToVideoMode.RecvOnly;
+    }
+  }
+}
+
 /// Account's registration state
 enum RegState {
   /// Registration success
@@ -273,7 +298,6 @@ enum RegState {
   /// Registration in progress (request sent, waiting on response)
   inProgress
 }
-
 
 
 /// Holds properties of SIP Account model
@@ -349,6 +373,9 @@ class AccountModel implements ISiprixData {
   /// Selected video codecs (use Codec.getCodecsList/Codec.getSelectedCodecsIds to retrive and set values)
   List<int>? vCodecs;
 
+  /// Specify how to handle received INVITE with video SDP. (By default 'RecvOnly', accept remote video, don't send local)
+  UpgradeToVideoMode? upgradeToVideo;
+
   ///URI of this account
   String get uri => '$sipExtension@$sipServer';
 
@@ -386,6 +413,7 @@ class AccountModel implements ISiprixData {
     if(turnUser        !=null) ret['turnUser']        = turnUser;
     if(turnPassword    !=null) ret['turnPassword']    = turnPassword;
     if(xContactUriParams !=null) ret['xContactUriParams'] = xContactUriParams;
+    if(upgradeToVideo  !=null) ret['upgradeToVideo']  = upgradeToVideo?.id;
     if(xheaders        !=null) ret['xheaders']        = xheaders;
     if(aCodecs         !=null) ret['aCodecs']         = aCodecs;
     if(vCodecs         !=null) ret['vCodecs']         = vCodecs;
@@ -422,6 +450,7 @@ class AccountModel implements ISiprixData {
       if((key == 'turnUser')&&(value is String))      { acc.turnUser = value;     } else
       if((key == 'turnPassword')&&(value is String))  { acc.turnPassword = value; } else
       if((key == 'xContactUriParams')&&(value is Map)) { acc.xContactUriParams = Map<String, String>.from(value); } else
+      if((key == 'upgradeToVideo')&&(value is int))   { acc.upgradeToVideo = UpgradeToVideoMode.from(value);  } else
       if((key == 'xheaders')&&(value is Map))         { acc.xheaders = Map<String, String>.from(value); } else
       if((key == 'aCodecs')&&(value is List))         { acc.aCodecs = List<int>.from(value); } else
       if((key == 'vCodecs')&&(value is List))         { acc.vCodecs = List<int>.from(value); }
@@ -498,6 +527,13 @@ class AccountsModel extends ChangeNotifier implements IAccountsModel {
   bool hasSecureMedia(int accId) {
     int index = _accounts.indexWhere((a) => a.myAccId==accId);
     return (index == -1) ? false : _accounts[index].hasSecureMedia;
+  }
+
+  @override
+  bool isUpgradeToVideoModeRecvOnly(String uri) {
+    int index = _accounts.indexWhere((a) => a.uri==uri);
+    return (index == -1) || (_accounts[index].upgradeToVideo==null)||
+           (_accounts[index].upgradeToVideo==UpgradeToVideoMode.RecvOnly);
   }
 
   ///Add new account
