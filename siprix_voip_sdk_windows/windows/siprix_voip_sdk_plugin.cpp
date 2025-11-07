@@ -96,6 +96,7 @@ const char kOnCallIncoming[]     = "OnCallIncoming";
 const char kOnCallDtmfReceived[] = "OnCallDtmfReceived";
 const char kOnCallTransferred[]  = "OnCallTransferred";
 const char kOnCallRedirected[]   = "OnCallRedirected";
+const char kOnCallVideoUpgraded[]= "OnCallVideoUpgraded";
 const char kOnCallSwitched[]     = "OnCallSwitched";
 const char kOnCallHeld[]         = "OnCallHeld";
 
@@ -459,7 +460,8 @@ Siprix::AccData* SiprixVoipSdkPlugin::parseAccountData(const flutter::EncodableM
       if(valName->compare("secureMedia") == 0)   Siprix::Acc_SetSecureMediaMode(accData,static_cast<Siprix::SecureMedia>(*intVal)); else
       if(valName->compare("transport") == 0)     Siprix::Acc_SetTranspProtocol(accData, static_cast<Siprix::SipTransport>(*intVal)); else
       if(valName->compare("port")      == 0)     Siprix::Acc_SetTranspPort(accData,     static_cast<uint16_t>(*intVal));else
-      if(valName->compare("keepAliveTime") == 0) Siprix::Acc_SetKeepAliveTime(accData,  static_cast<uint32_t>(*intVal));
+      if(valName->compare("keepAliveTime") == 0) Siprix::Acc_SetKeepAliveTime(accData,  static_cast<uint32_t>(*intVal));else
+      if(valName->compare("upgradeToVideo") == 0) Siprix::Acc_SetUpgradeToVideoMode(accData, static_cast<Siprix::UpgradeToVideoMode>(*intVal));
       continue;
     }
 
@@ -1297,6 +1299,16 @@ void SiprixVoipSdkPlugin::OnCallRedirected(Siprix::CallId fromCallId, Siprix::Ca
     argsMap[flutter::EncodableValue(kArgToExt)] = flutter::EncodableValue(referTo);  
 
     channel_->InvokeMethod(kOnCallRedirected,
+        std::make_unique<flutter::EncodableValue>(std::move(argsMap)));
+}
+
+void SiprixVoipSdkPlugin::OnCallVideoUpgraded(Siprix::CallId callId, bool withVideo)
+{
+    flutter::EncodableMap argsMap;
+    argsMap[flutter::EncodableValue(kArgCallId)] = flutter::EncodableValue(static_cast<int32_t>(callId));  
+    argsMap[flutter::EncodableValue(kArgWithVideo)] = flutter::EncodableValue(withVideo);
+
+    channel_->InvokeMethod(kOnCallVideoUpgraded,
         std::make_unique<flutter::EncodableValue>(std::move(argsMap)));
 }
 

@@ -122,6 +122,7 @@ protected:
   void OnCallDtmfReceived(Siprix::CallId callId, uint16_t tone) override;
   void OnCallTransferred(Siprix::CallId callId, uint32_t statusCode) override;
   void OnCallRedirected(Siprix::CallId origCallId, Siprix::CallId relatedCallId, const char* referTo)override;
+  void OnCallVideoUpgraded(Siprix::CallId callId, bool withVideo) override;
   void OnCallHeld(Siprix::CallId callId, Siprix::HoldState state) override;
   void OnCallSwitched(Siprix::CallId callId) override;
 
