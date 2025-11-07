@@ -95,6 +95,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kOnCallDtmfReceived = 'OnCallDtmfReceived';
   static const String kOnCallTransferred  = 'OnCallTransferred';
   static const String kOnCallRedirected   = 'OnCallRedirected';
+  static const String kOnCallVideoUpgraded= 'OnCallVideoUpgraded';
   static const String kOnCallSwitched     = 'OnCallSwitched';
   static const String kOnCallHeld         = 'OnCallHeld';
 

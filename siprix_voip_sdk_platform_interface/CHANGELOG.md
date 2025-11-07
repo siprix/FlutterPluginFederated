@@ -1,3 +1,7 @@
+## 1.0.9
+- Added new event 'onCallVideoUpgraded'
+  //2025.11.07
+
 ## 1.0.8
 - Added new event 'onVuMeterLevel'
 - Added new event 'onSipNotify'
