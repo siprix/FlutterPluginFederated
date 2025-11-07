@@ -126,6 +126,11 @@ typedef NS_ENUM(NSInteger, VideoFrameRGBType) {
     VideoFrameRGBTypeRGBA
 };
 
+typedef NS_ENUM(NSInteger, UpgradeToVideoMode) {
+    UpgradeToVideoModeSendRecv = 0,
+    UpgradeToVideoModeRecvOnly = 1,
+    UpgradeToVideoModeInactive = 2
+};
 
 static const int kErrorCodeEOK = 0;
 static const NSInteger kInvalidId = 0;
@@ -180,6 +185,7 @@ EXPORT
 @property(nonatomic, retain) NSString * _Nullable turnServer;
 @property(nonatomic, retain) NSString * _Nullable turnUser;
 @property(nonatomic, retain) NSString * _Nullable turnPassword;
+@property(nonatomic, retain) NSNumber * _Nullable upgradeToVideo;
 @property(nonatomic, retain) NSDictionary * _Nullable xheaders;
 @property(nonatomic, retain) NSDictionary * _Nullable xContactUriParams;
 @property(nonatomic, retain) NSArray  * _Nullable aCodecs;
@@ -315,6 +321,9 @@ EXPORT
 - (void)onCallRedirected:(NSInteger)origCallId
             relatedCallId:(NSInteger)relatedCallId
             referTo:(NSString * _Nonnull)referTo;
+
+- (void)onCallVideoUpgraded:(NSInteger) callId
+          withVideo:(BOOL)withVideo;
 
 - (void)onCallHeld:(NSInteger)callId
           holdState:(HoldState)holdState;

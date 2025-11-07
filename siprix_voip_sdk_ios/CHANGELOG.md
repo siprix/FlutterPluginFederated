@@ -1,3 +1,7 @@
+## 1.0.27
+- Added new setting 'acc.upgradeToVideo' and event 'onCallVideoUpgraded'
+  //2025.11.07
+
 ## 1.0.26
 - Added new setting 'ini.enableVUmeter' and event 'onVuMeterLevel'
   Allow display mic/spkr volume level indicator
