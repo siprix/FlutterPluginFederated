@@ -178,6 +178,7 @@ class CallModel extends ChangeNotifier {
   bool _isMicMuted=false;
   bool _isCamMuted=false;
   bool _isRecStarted=false;
+  bool _isUpgradingToVideo=false;
   final ILogsModel? _logs;
 
   /// State of this call
@@ -205,6 +206,7 @@ class CallModel extends ChangeNotifier {
   bool get isMicMuted => _isMicMuted;
   bool get isCamMuted => _isCamMuted;
   bool get isRecStarted => _isRecStarted;
+  bool get isUpgradingToVideo => _isUpgradingToVideo;
   bool get isFilePlaying => _playerId!=0;
   bool get hasVideo   => _hasVideo;
   int  get playerId   => _playerId;
@@ -419,7 +421,7 @@ class CallModel extends ChangeNotifier {
 
     try{
       await SiprixVoipSdk().upgradeToVideo(myCallId);
-      _hasVideo = true;
+      _isUpgradingToVideo = true;
       notifyListeners();
     } on PlatformException catch (err) {
       _logs?.print('Can\'t upgrade callId:$myCallId Err: ${err.code} ${err.message}');
@@ -470,8 +472,11 @@ class CallModel extends ChangeNotifier {
 
   /// Handle upgrade to video
   void onVideoUpgraded(bool withVideo, bool isUpgradeModeRecvOnly) {
+    //Siprix mutes camera when upgrade video request received from remote side AND mode set as recvOnly
+    if(withVideo && isUpgradeModeRecvOnly && !_isUpgradingToVideo) _isCamMuted = true;
+
     _hasVideo = withVideo;
-    if(isUpgradeModeRecvOnly) _isCamMuted = true;
+    _isUpgradingToVideo = false;
     notifyListeners();
   }
 
@@ -514,7 +519,9 @@ class CallModel extends ChangeNotifier {
 typedef ResolveContactNameCallback = String Function(String phoneNumber);
 /// Callback function which is raised by model when call switched
 typedef CallSwitchedCallCallback = void Function(int callId);
-/// Callback function which is raised by model when new incomning call
+/// Callback function which is raised by model when upgrade to video requeste received
+typedef CallVideoUpgradeRequestedCallback = void Function(int callId);
+/// Callback function which is raised by model when new incoming call received
 typedef NewIncomingCallCallback = void Function();
 
 //--------------------------------------------------------------------------
@@ -542,7 +549,8 @@ class CallsModel extends ChangeNotifier {
       terminated : onTerminated,
       transferred : onTransferred,
       redirected : onRedirected,
-      videoUpgraded: onVideoUpgraded,
+      videoUpgraded : onVideoUpgraded,
+      videoUpgradeRequested : onVideoUpgradeRequested,
       dtmfReceived : onDtmfReceived,
       switched : onSwitched,
       held : onHeld
@@ -553,8 +561,10 @@ class CallsModel extends ChangeNotifier {
   ResolveContactNameCallback? onResolveContactName;
   /// Callback function which is raised by model when call switched
   CallSwitchedCallCallback? onSwitchedCall;
-  /// Callback function which is raised by model when new incomning call received
+  /// Callback function which is raised by model when new incoming call received
   NewIncomingCallCallback? onNewIncomingCall;
+  /// Callback function which is raised by model when video upgrade request received
+  CallVideoUpgradeRequestedCallback? onVideoUpgradeRequestReceived;
 
   /// Returns true when list of calls is empty
   bool get isEmpty => _callItems.isEmpty;
@@ -773,6 +783,12 @@ class CallsModel extends ChangeNotifier {
     _callItems[index].onVideoUpgraded(withVideo, isUpgradeModeRecvOnly);
   }
 
+  /// Handle upgrade to video request
+  void onVideoUpgradeRequested(int callId) {
+    _logs?.print('onVideoUpgradeRequested callId:$callId');
+    onVideoUpgradeRequestReceived?.call(callId);
+  }
+
   /// Handle receive DTMF event raised by library and route it to matched call instance
   void onDtmfReceived(int callId, int tone) {
     _logs?.print('onDtmfReceived callId:$callId tone:$tone');
@@ -804,7 +820,7 @@ class CallsModel extends ChangeNotifier {
   /// Handle call switched event raised by library
   void onPlayerStateChanged(int playerId, PlayerState state) {
     _logs?.print('onPlayerStateChanged playerId:$playerId $state');
-    for(final call in _callItems) 
+    for(final call in _callItems)
       if(call.onPlayerStateChanged(playerId, state)) break;
   }
 

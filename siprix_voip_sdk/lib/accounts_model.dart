@@ -269,7 +269,9 @@ enum UpgradeToVideoMode {
   /// Accept video from remote side, don't send (mute) local
   RecvOnly(SiprixVoipSdk.kUpgradeToVideoRecvOnly, "RecvOnly"),
   /// Don't accept video from remote side (continue audio only call)
-  Inactive(SiprixVoipSdk.kUpgradeToVideoInactive, "Inactive");
+  Inactive(SiprixVoipSdk.kUpgradeToVideoInactive, "Inactive"),
+  /// Trigger event 'OnCallVideoUpgradeRequested', ask user confirmation and invoke 'AcceptVideoUpgrade(true/false)'
+  Manual(SiprixVoipSdk.kUpgradeToVideoManual, "Manual");
 
   const UpgradeToVideoMode(this.id, this.name);
   /// Value
@@ -282,6 +284,7 @@ enum UpgradeToVideoMode {
     switch(val) {
       case SiprixVoipSdk.kUpgradeToVideoSendRecv: return UpgradeToVideoMode.SendRecv;
       case SiprixVoipSdk.kUpgradeToVideoInactive: return UpgradeToVideoMode.Inactive;
+      case SiprixVoipSdk.kUpgradeToVideoManual  : return UpgradeToVideoMode.Manual;
       default:                                    return UpgradeToVideoMode.RecvOnly;
     }
   }

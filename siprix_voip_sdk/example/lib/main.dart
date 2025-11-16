@@ -207,7 +207,7 @@ class _MyAppState extends State<MyApp> {
     //vdoData.bitrateKbps = 800;
     //SiprixVoipSdk().setVideoParams(vdoData);
 
-    //Detect version
+    //Check the version
     //String? version = await SiprixVoipSdk().version();
     //debugPrint("Siprix version: $version");
   }

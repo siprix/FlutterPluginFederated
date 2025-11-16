@@ -309,6 +309,7 @@ class AccountPageState extends State<AccountPage> {
         onChanged: (String? value) { setState(() { _account.userAgent = value; }); },
         initialValue: _account.userAgent,
       ),
+      _buildUpgradeToVideModeDropDown()
     ];
   }
 
@@ -351,6 +352,26 @@ class AccountPageState extends State<AccountPage> {
       onChanged: (bool? val) {  setState(() { _account.rewriteContactIp = val;  }); },
       value: _account.rewriteContactIp,
       tristate:true,
+    );
+  }
+
+  Widget _buildUpgradeToVideModeDropDown() {
+    return ButtonTheme(alignedDropdown: true, child:
+      DropdownButtonFormField<UpgradeToVideoMode>(
+        decoration: InputDecoration(
+          border: const UnderlineInputBorder(),
+          labelText: 'Upgrade to video mode:',
+          labelStyle: TextStyle(color: isAddMode() ? null : Theme.of(context).disabledColor),
+        ),
+        value: _account.upgradeToVideo,
+        onChanged: (UpgradeToVideoMode? value) { setState(() { _account.upgradeToVideo = value!; }); },
+        items: UpgradeToVideoMode.values.map((t) => _upgradeTovideoModeItem(t)).toList()
+    ));
+  }
+
+  DropdownMenuItem<UpgradeToVideoMode> _upgradeTovideoModeItem(UpgradeToVideoMode mode) {
+    return DropdownMenuItem<UpgradeToVideoMode>(value: mode, child:
+      Text(mode.name, style:Theme.of(context).textTheme.bodyMedium,)
     );
   }
 

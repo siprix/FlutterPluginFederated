@@ -1,5 +1,6 @@
 // ignore_for_file: non_constant_identifier_names
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:siprix_voip_sdk/calls_model.dart';
@@ -18,6 +19,8 @@ class CallMatcher {
   String push_Hint;
   ///Id assigned by library when SIP INVITE received
   int    sip_CallId;
+  ///Timestamp when this item has been created
+  DateTime timestamp = DateTime.now();
 
   CallMatcher(this.callkit_CallUUID, this.push_Hint, [this.sip_CallId=0]);
 }
@@ -31,6 +34,7 @@ class AppCallsModel extends CallsModel {
 
   final ILogsModel? _logs;
   final List<CallMatcher> _callMatchers=[];//iOS PushKit specific impl
+  Timer? _pushNotifTimer;
 
    /// Handle iOS Pushkit notification received by library (parse payload, update CallKit window, store data from push payload)
   @override
@@ -62,6 +66,9 @@ class AppCallsModel extends CallsModel {
 
     //Update CallKit
     SiprixVoipSdk().updateCallKitCallDetails(callkit_CallUUID, sipCallId, localizedCallerName, genericHandle, withVideo);
+
+    //Start timer which cleanups CallKit calls when SIP not received
+    _startPushNotifTimer();
   }
 
   @override
@@ -101,6 +108,30 @@ class AppCallsModel extends CallsModel {
         _callMatchers.removeAt(index);
       }
     }
+  }
+
+  void _startPushNotifTimer() {
+    if(_pushNotifTimer != null) return;
+
+    const Duration kTimerDelay = Duration(seconds: 1);
+    const Duration kEndCallDelay = Duration(seconds: 15);
+
+    _pushNotifTimer = Timer.periodic(kTimerDelay, (Timer timer) {
+      DateTime now = DateTime.now();
+      for(int i = _callMatchers.length-1; i>=0; --i) {
+        //End CallKit call when SIP INVITE hasn't received during kEndCallDelay
+        CallMatcher cm = _callMatchers[i];
+        if((cm.sip_CallId==0) && now.difference(cm.timestamp) > kEndCallDelay) {
+          SiprixVoipSdk().endCallKitCall(cm.callkit_CallUUID);
+          _callMatchers.removeAt(i);
+        }
+      }
+
+      if(_callMatchers.isEmpty) {
+        _pushNotifTimer?.cancel();
+        _pushNotifTimer = null;
+      }
+    });
   }
 }
 
