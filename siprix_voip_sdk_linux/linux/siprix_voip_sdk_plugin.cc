@@ -58,6 +58,7 @@ const char kMethodCallStopRecordFile[]  = "Call_StopRecordFile";
 const char kMethodCallTransferBlind[]   = "Call_TransferBlind";
 const char kMethodCallTransferAttended[]= "Call_TransferAttended";
 const char kMethodCallUpgradeToVideo[]  = "Call_UpgradeToVideo";
+const char kMethodCallAcceptVideoUpgrade[] = "Call_AcceptVideoUpgrade";
 const char kMethodCallStopRingtone[]    = "Call_StopRingtone";
 const char kMethodCallBye[]             = "Call_Bye";
 
@@ -101,6 +102,7 @@ const char kOnCallDtmfReceived[] = "OnCallDtmfReceived";
 const char kOnCallTransferred[]  = "OnCallTransferred";
 const char kOnCallRedirected[]   = "OnCallRedirected";
 const char kOnCallVideoUpgraded[]= "OnCallVideoUpgraded";
+const char kOnCallVideoUpgradeRequested[]= "OnCallVideoUpgradeRequested";
 const char kOnCallSwitched[]     = "OnCallSwitched";
 const char kOnCallHeld[]         = "OnCallHeld";
 
@@ -168,6 +170,7 @@ class EventHandler : public Siprix::ISiprixEventHandler {
   void OnCallTransferred(Siprix::CallId callId, uint32_t statusCode) override;
   void OnCallRedirected(Siprix::CallId origCallId, Siprix::CallId relatedCallId, const char* referTo)override;
   void OnCallVideoUpgraded(Siprix::CallId callId, bool withVideo) override;
+  void OnCallVideoUpgradeRequested(Siprix::CallId callId) override;
   void OnCallHeld(Siprix::CallId callId, Siprix::HoldState state) override;
   void OnCallSwitched(Siprix::CallId callId) override;
 
@@ -996,6 +999,20 @@ FlMethodResponse* handleCallUpgradeToVideo(FlValue* args, SiprixVoipSdkPlugin* s
     return sendResult(err);
 }
 
+FlMethodResponse* handleCallAcceptVideoUpgrade(FlValue* args, SiprixVoipSdkPlugin* self)
+{
+    FlValue* val = fl_value_lookup_string(args, kArgCallId);
+    if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_INT) return badArgsResponse();
+    const Siprix::CallId callId = fl_value_get_int(val);
+
+    val = fl_value_lookup_string(args, kArgWithVideo);
+    if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_BOOL) return badArgsResponse();
+    bool withVideo = fl_value_get_bool(val);
+
+    const Siprix::ErrorCode err = Siprix::Call_AcceptVideoUpgrade(self->module_, callId, withVideo);
+    return sendResult(err);
+}
+
 FlMethodResponse* handleCallStopRingtone(FlValue* args, SiprixVoipSdkPlugin* self)
 {
     const Siprix::ErrorCode err = Siprix::Call_StopRingtone(self->module_);
@@ -1348,6 +1365,7 @@ static void siprix_voip_sdk_plugin_handle_method_call(
     if(strcmp(method, kMethodCallTransferBlind) == 0)    response = handleCallTransferBlind(args, self); else
     if(strcmp(method, kMethodCallTransferAttended) == 0) response = handleCallTransferAttended(args, self); else
     if(strcmp(method, kMethodCallUpgradeToVideo) == 0)   response = handleCallUpgradeToVideo(args, self); else
+    if(strcmp(method, kMethodCallAcceptVideoUpgrade) == 0)   response = handleCallAcceptVideoUpgrade(args, self); else
     if(strcmp(method, kMethodCallStopRingtone) == 0)     response = handleCallStopRingtone(args, self); else
     if(strcmp(method, kMethodCallBye) == 0)              response = handleCallBye(args, self);    else
 
@@ -1540,6 +1558,15 @@ void EventHandler::OnCallVideoUpgraded(Siprix::CallId callId, bool withVideo)
     fl_value_set_string_take(args, kArgWithVideo, fl_value_new_bool(withVideo));
 
     fl_method_channel_invoke_method(channel_, kOnCallVideoUpgraded, args,
+        nullptr, nullptr, nullptr);
+}
+
+void EventHandler::OnCallVideoUpgradeRequested(Siprix::CallId callId)
+{
+    g_autoptr(FlValue) args = fl_value_new_map();
+    fl_value_set_string_take(args, kArgCallId, fl_value_new_int(callId));
+
+    fl_method_channel_invoke_method(channel_, kOnCallVideoUpgradeRequested, args,
         nullptr, nullptr, nullptr);
 }
 
