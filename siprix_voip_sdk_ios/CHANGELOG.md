@@ -1,3 +1,13 @@
+## 1.0.28
+- Updated upgradeToVideo implementation. Added new mode 'manual'
+- Added new event 'onCallVideoUpgradeRequested'
+  Triggered when specified 'acc.upgradeToVideo=manual' and remote side requests to add video
+- Added new method 'acceptVideoUpgrade'
+  App has invoke it from 'onCallVideoUpgradeRequested' event handler
+- iOS: Added new method 'endCallKitCall'
+  Example app uses it to end CallKit calls when SIP INVITE hasn't received
+  //2025.11.16
+
 ## 1.0.27
 - Added new setting 'acc.upgradeToVideo' and event 'onCallVideoUpgraded'
   //2025.11.07

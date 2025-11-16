@@ -129,7 +129,8 @@ typedef NS_ENUM(NSInteger, VideoFrameRGBType) {
 typedef NS_ENUM(NSInteger, UpgradeToVideoMode) {
     UpgradeToVideoModeSendRecv = 0,
     UpgradeToVideoModeRecvOnly = 1,
-    UpgradeToVideoModeInactive = 2
+    UpgradeToVideoModeInactive = 2,
+    UpgradeToVideoModeManual = 3
 };
 
 static const int kErrorCodeEOK = 0;
@@ -324,6 +325,7 @@ EXPORT
 
 - (void)onCallVideoUpgraded:(NSInteger) callId
           withVideo:(BOOL)withVideo;
+- (void)onCallVideoUpgradeRequested:(NSInteger) callId;
 
 - (void)onCallHeld:(NSInteger)callId
           holdState:(HoldState)holdState;
@@ -388,6 +390,7 @@ EXPORT
 - (int)callStopRecordFile:(int)callId;
 - (int)callTransferBlind:(int)callId toExt:(NSString* _Nonnull)toExt;
 - (int)callTransferAttended:(int)fromCallId toCallId:(int)toCallId;
+- (int)callAcceptVideoUpgrade:(int)callId withVideo:(BOOL)withVideo;
 - (int)callUpgradeToVideo:(int)callId;
 - (int)callBye:(int)callId;
 
