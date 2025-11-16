@@ -1,3 +1,13 @@
+## 1.0.24
+- Updated upgradeToVideo implementation. Added new mode 'manual'
+- Added new event 'onCallVideoUpgradeRequested'
+  Triggered when specified 'acc.upgradeToVideo=manual' and remote side requests to add video
+- Added new method 'acceptVideoUpgrade'
+  App has invoke it from 'onCallVideoUpgradeRequested' event handler
+- Android: Added ability to disable displaying activity on lock screen by adding to manifest
+  `<meta-data android:name="com.siprix.DontShowWhenLocked" android:value="true" />`
+  //2025.11.16
+
 ## 1.0.23
 - Added new setting 'acc.upgradeToVideo' and event 'onCallVideoUpgraded'
   //2025.11.07

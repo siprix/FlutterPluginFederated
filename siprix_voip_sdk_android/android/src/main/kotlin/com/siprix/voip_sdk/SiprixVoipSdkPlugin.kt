@@ -91,6 +91,7 @@ const val kMethodCallStopRecordFile   = "Call_StopRecordFile"
 const val kMethodCallTransferBlind    = "Call_TransferBlind"
 const val kMethodCallTransferAttended = "Call_TransferAttended"
 const val kMethodCallUpgradeToVideo   = "Call_UpgradeToVideo"
+const val kMethodCallAcceptVideoUpgrade = "Call_AcceptVideoUpgrade"
 const val kMethodCallStopRingtone     = "Call_StopRingtone"
 const val kMethodCallBye              = "Call_Bye"
 
@@ -136,6 +137,7 @@ const val kOnCallDtmfReceived = "OnCallDtmfReceived"
 const val kOnCallTransferred  = "OnCallTransferred"
 const val kOnCallRedirected   = "OnCallRedirected"
 const val kOnCallVideoUpgraded= "OnCallVideoUpgraded"
+const val kOnCallVideoUpgradeRequested= "OnCallVideoUpgradeRequested"
 const val kOnCallSwitched     = "OnCallSwitched"
 const val kOnCallHeld         = "OnCallHeld"
 
@@ -303,6 +305,12 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgWithVideo] = withVideo
     argsMap[kArgCallId] = callId
     channel?.invokeMethod(kOnCallVideoUpgraded, argsMap)
+  }
+
+  override fun onCallVideoUpgradeRequested(callId: Int) {
+    val argsMap = HashMap<String, Any?> ()
+    argsMap[kArgCallId] = callId
+    channel?.invokeMethod(kOnCallVideoUpgradeRequested, argsMap)
   }
 
   override fun onCallHeld(callId: Int, state: SiprixCore.HoldState?) {
@@ -611,14 +619,23 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     Log.i(TAG, "onDetachedFromEngine this:${this.hashCode()} binding:${binding.hashCode()}")
   }
+
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
     Log.i(TAG, "onAttachedToActivity this:${this.hashCode()}")
     binding.addOnNewIntentListener(this)
     _activity = binding.activity
     _core.setModelListener(_eventListener)
 
-    setActivityFlags(_activity)
-    requestPermissions()
+    //Get metadata
+    val appInfo = _activity!!.packageManager.getApplicationInfo(_activity!!.packageName, PackageManager.GET_META_DATA)
+
+    //Request permission (if required)
+    var skipPermissionRequest = appInfo.metaData?.getBoolean("com.siprix.SkipPermissionRequest")
+    if(skipPermissionRequest != true) requestPermissions()
+
+    //Set activity attributes
+    var dontShowWhenLocked = appInfo.metaData?.getBoolean("com.siprix.DontShowWhenLocked")
+    setActivityFlags(_activity, dontShowWhenLocked)
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
@@ -721,6 +738,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
       kMethodCallTransferBlind ->   handleCallTransferBlind(args, result)
       kMethodCallTransferAttended -> handleCallTransferAttended(args, result)
       kMethodCallUpgradeToVideo ->  handleCallUpgradeToVideo(args, result)
+      kMethodCallAcceptVideoUpgrade ->  handleCallAcceptVideoUpgrade(args, result)
       kMethodCallStopRingtone  ->   handleCallStopRingtone(args, result)
       kMethodCallBye ->             handleCallBye(args, result)
 
@@ -1291,6 +1309,18 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     }
   }
   
+  private fun handleCallAcceptVideoUpgrade(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    val callId : Int?= args[kArgCallId] as? Int
+    val withVideo :Boolean? = args[kArgWithVideo] as? Boolean
+
+    if((callId != null)&&(withVideo != null)) {
+      val err = _core.callAcceptVideoUpgrade(callId, withVideo)
+      sendResult(err, result)
+    }else{
+      sendBadArguments(result)
+    }
+  }
+  
   private fun handleCallBye(args : HashMap<String, Any?>, result: MethodChannel.Result) {
     val callId = args[kArgCallId] as? Int
 
@@ -1578,11 +1608,6 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   }
 
   private fun requestPermissions() {
-    //Skip if manifest contains predefined tag
-    val applicationInfo = _activity!!.packageManager.getApplicationInfo(_activity!!.packageName, PackageManager.GET_META_DATA)
-    var skipPermissionRequest = applicationInfo.metaData?.getBoolean("com.siprix.SkipPermissionRequest")
-    if(skipPermissionRequest==true) return
-
     //Add 'CAMERA' if manifest contains it
     val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
     var info =_activity!!.packageManager.getPackageInfo(_activity!!.packageName, PackageManager.GET_PERMISSIONS)
@@ -1758,16 +1783,15 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     }
   }
 
-  private fun setActivityFlags(activity: Activity?) {
+  private fun setActivityFlags(activity: Activity?, dontShowWhenLocked: Boolean?) {
     if(activity != null) {
       if (Build.VERSION.SDK_INT < 27) {
-        activity.window.addFlags(
-          WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-        )
+        var flags = WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
+        if(dontShowWhenLocked != true) flags += WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;
+        activity.window.addFlags(flags)
       } else {
         activity.setTurnScreenOn(true)
-        activity.setShowWhenLocked(true)
+        if(dontShowWhenLocked != true) activity.setShowWhenLocked(true)
       }
     }
   }
