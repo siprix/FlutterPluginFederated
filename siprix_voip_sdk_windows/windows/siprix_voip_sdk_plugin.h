@@ -66,6 +66,7 @@ class SiprixVoipSdkPlugin : public flutter::Plugin, public Siprix::ISiprixEventH
   void handleCallTransferBlind(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallTransferAttended(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallUpgradeToVideo(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
+  void handleCallAcceptVideoUpgrade(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallStopRingtone(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallBye(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
 
@@ -123,6 +124,7 @@ protected:
   void OnCallTransferred(Siprix::CallId callId, uint32_t statusCode) override;
   void OnCallRedirected(Siprix::CallId origCallId, Siprix::CallId relatedCallId, const char* referTo)override;
   void OnCallVideoUpgraded(Siprix::CallId callId, bool withVideo) override;
+  void OnCallVideoUpgradeRequested(Siprix::CallId callId)override;
   void OnCallHeld(Siprix::CallId callId, Siprix::HoldState state) override;
   void OnCallSwitched(Siprix::CallId callId) override;
 

@@ -190,7 +190,8 @@ enum UpgradeToVideoMode : uint8_t
 {
     SendRecv = 0,
     RecvOnly = 1,
-    Inactive = 2
+    Inactive = 2,
+    Manual   = 3
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -212,6 +213,7 @@ typedef void(*OnCallTransferred)(CallId callId, uint32_t statusCode);
 typedef void(*OnCallRedirected)(CallId origCallId, CallId relatedCallId, const char* referTo);
 typedef void(*OnCallDtmfReceived)(CallId callId, uint16_t tone);
 typedef void(*OnCallVideoUpgraded)(CallId callId, bool withVideo);
+typedef void(*OnCallVideoUpgradeRequested)(CallId callId);
 typedef void(*OnCallHeld)(CallId callId, HoldState state);
 typedef void(*OnCallSwitched)(CallId callId);
 
@@ -245,6 +247,7 @@ public:
     virtual void OnCallRedirected(CallId origCallId, CallId relatedCallId, const char* referTo) = 0;
     virtual void OnCallDtmfReceived(CallId callId, uint16_t tone) = 0;
     virtual void OnCallVideoUpgraded(CallId callId, bool withVideo) = 0;
+    virtual void OnCallVideoUpgradeRequested(CallId callId) = 0;
     virtual void OnCallHeld(CallId callId, HoldState state) = 0;
     virtual void OnCallSwitched(CallId callId) = 0;
 
@@ -330,10 +333,10 @@ EXPORT ErrorCode Call_TransferBlind(ISiprixModule* module, CallId callId, const 
 EXPORT ErrorCode Call_TransferAttended(ISiprixModule* module, CallId fromCallId, CallId toCallId);
 EXPORT ErrorCode Call_SetVideoWindow(ISiprixModule* module, CallId callId, void* wnd);
 EXPORT ErrorCode Call_SetVideoRenderer(ISiprixModule* module, CallId callId, IVideoRenderer* r);
-EXPORT ErrorCode Call_Renegotiate(ISiprixModule* module, CallId callId);
+EXPORT ErrorCode Call_AcceptVideoUpgrade(ISiprixModule* module, CallId callId, bool withVideo);
 EXPORT ErrorCode Call_UpgradeToVideo(ISiprixModule* module, CallId callId);
+EXPORT ErrorCode Call_Renegotiate(ISiprixModule* module, CallId callId);
 EXPORT ErrorCode Call_Bye(ISiprixModule* module, CallId callId);
-
 EXPORT ErrorCode Call_GetSipHeader(ISiprixModule* module, CallId callId, 
                                 const char* hdrName, char* hdrVal, uint32_t* hdrValLen);
 EXPORT ErrorCode Call_GetNonce(ISiprixModule* module, CallId callId, char* nonceVal, uint32_t* nonceValLen);
@@ -393,6 +396,8 @@ EXPORT ErrorCode Callback_SetCallDtmfReceived(ISiprixModule* module, OnCallDtmfR
 EXPORT ErrorCode Callback_SetCallTransferred(ISiprixModule* module, OnCallTransferred callback);
 EXPORT ErrorCode Callback_SetCallRedirected(ISiprixModule* module, OnCallRedirected callback);
 EXPORT ErrorCode Callback_SetCallVideoUpgraded(ISiprixModule* module, OnCallVideoUpgraded callback);
+EXPORT ErrorCode Callback_SetCallVideoUpgradeRequested(ISiprixModule* module, OnCallVideoUpgradeRequested callback);
+
 EXPORT ErrorCode Callback_SetCallSwitched(ISiprixModule* module, OnCallSwitched callback);
 EXPORT ErrorCode Callback_SetCallHeld(ISiprixModule* module, OnCallHeld callback);
 
