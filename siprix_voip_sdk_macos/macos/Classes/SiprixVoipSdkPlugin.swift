@@ -40,6 +40,7 @@ private let kMethodCallStopRecordFile   = "Call_StopRecordFile"
 private let kMethodCallTransferBlind    = "Call_TransferBlind"
 private let kMethodCallTransferAttended = "Call_TransferAttended"
 private let kMethodCallUpgradeToVideo   = "Call_UpgradeToVideo"
+private let kMethodCallAcceptVideoUpgrade = "Call_AcceptVideoUpgrade"
 private let kMethodCallStopRingtone     = "Call_StopRingtone"
 private let kMethodCallBye              = "Call_Bye"
 
@@ -80,7 +81,8 @@ private let kOnCallIncoming     = "OnCallIncoming"
 private let kOnCallDtmfReceived = "OnCallDtmfReceived"
 private let kOnCallTransferred  = "OnCallTransferred"
 private let kOnCallRedirected   = "OnCallRedirected"
-private let kOnCallVideoUpgraded = "OnCallVideoUpgraded";
+private let kOnCallVideoUpgraded = "OnCallVideoUpgraded"
+private let kOnCallVideoUpgradeRequested = "OnCallVideoUpgradeRequested"
 private let kOnCallSwitched     = "OnCallSwitched"
 private let kOnCallHeld         = "OnCallHeld"
 
@@ -277,6 +279,14 @@ class SiprixEventHandler : NSObject, SiprixEventDelegate {
             argsMap[kArgCallId] = callId
             argsMap[kArgWithVideo] = withVideo
             self._channel.invokeMethod(kOnCallVideoUpgraded, arguments: argsMap)
+        }
+    }
+
+    public func onCallVideoUpgradeRequested(_ callId: Int) {
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgCallId] = callId
+            self._channel.invokeMethod(kOnCallVideoUpgradeRequested, arguments: argsMap)
         }
     }
 
@@ -522,6 +532,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
                 case kMethodCallTransferBlind :   handleCallTransferBlind(argsMap!, result:result)
                 case kMethodCallTransferAttended : handleCallTransferAttended(argsMap!, result:result)
                 case kMethodCallUpgradeToVideo:   handleCallUpgradeToVideo(argsMap!, result:result)
+                case kMethodCallAcceptVideoUpgrade: handleCallAcceptVideoUpgrade(argsMap!, result:result)
                 case kMethodCallStopRingtone  :   handleCallStopRingtone(argsMap!, result:result)
                 case kMethodCallBye           :   handleCallBye(argsMap!, result:result)
 
@@ -1040,6 +1051,18 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         
         if(callId != nil) {
             let err = _siprixModule.callUpgrade(toVideo:Int32(callId!))
+            sendResult(err, result:result)
+        }else{
+            sendBadArguments(result:result)
+        }
+    }
+
+    func handleCallAcceptVideoUpgrade(_ args : ArgsMap, result: @escaping FlutterResult) {
+        let callId = args[kArgCallId] as? Int
+        let withVideo = args[kArgWithVideo] as? Bool
+
+        if((callId != nil)&&(withVideo != nil)) {
+            let err = _siprixModule.callAcceptVideoUpgrade(Int32(callId!), withVideo:withVideo!)
             sendResult(err, result:result)
         }else{
             sendBadArguments(result:result)

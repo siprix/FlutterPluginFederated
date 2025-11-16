@@ -1,3 +1,11 @@
+## 1.0.31
+- Updated upgradeToVideo implementation. Added new mode 'manual'
+- Added new event 'onCallVideoUpgradeRequested'
+  Triggered when specified 'acc.upgradeToVideo=manual' and remote side requests to add video
+- Added new method 'acceptVideoUpgrade'
+  App has invoke it from 'onCallVideoUpgradeRequested' event handler
+  //2025.11.16
+
 ## 1.0.17
 - Added new setting 'acc.upgradeToVideo' and event 'onCallVideoUpgraded'
   //2025.11.07
