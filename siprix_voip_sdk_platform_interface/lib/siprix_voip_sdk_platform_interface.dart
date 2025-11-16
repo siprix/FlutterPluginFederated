@@ -46,6 +46,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kMethodCallTransferAttended= 'Call_TransferAttended';
   static const String kMethodCallStopRingtone    = 'Call_StopRingtone';
   static const String kMethodCallUpgradeToVideo  = 'Call_UpgradeToVideo';
+  static const String kMethodCallAcceptVideoUpgrade = 'Call_AcceptVideoUpgrade';
   static const String kMethodCallBye             = 'Call_Bye';
 
   static const String kMethodMixerSwitchToCall   = 'Mixer_SwitchToCall';
@@ -59,6 +60,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kMethodDvcGetPushKitToken  = 'Dvc_GetPushKitToken';
   static const String kMethodDvcUpdCallKitDetails= 'Dvc_UpdCallKitDetails';
   static const String kMethodDvcGetCallKitUUID   = 'Dvc_GetCallKitUUID';
+  static const String kMethodDvcEndCallKitCall   = 'Dvc_EndCallKitCall';
 
   static const String kMethodDvcSetForegroundMode= 'Dvc_SetForegroundMode';
   static const String kMethodDvcIsForegroundMode=  'Dvc_IsForegroundMode';
@@ -96,6 +98,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kOnCallTransferred  = 'OnCallTransferred';
   static const String kOnCallRedirected   = 'OnCallRedirected';
   static const String kOnCallVideoUpgraded= 'OnCallVideoUpgraded';
+  static const String kOnCallVideoUpgradeRequested= 'OnCallVideoUpgradeRequested';
   static const String kOnCallSwitched     = 'OnCallSwitched';
   static const String kOnCallHeld         = 'OnCallHeld';
 
@@ -312,6 +315,11 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
       {kArgCallId:callId} );
   }
 
+  Future<void> acceptVideoUpgrade(int callId, bool withVideo) {
+    return _methodChannel.invokeMethod<void>(kMethodCallAcceptVideoUpgrade, 
+      {kArgCallId:callId, kArgWithVideo:withVideo} );
+  }
+
   Future<void> stopRingtone() {
     return _methodChannel.invokeMethod<void>(kMethodCallStopRingtone, {});
   }
@@ -462,6 +470,13 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
     return null;
   }
 
+  Future<void>? endCallKitCall(String callkit_CallUUID) {
+    if(Platform.isIOS) {
+      return _methodChannel.invokeMethod<String>(kMethodDvcEndCallKitCall, 
+         {kArgCallKitUuid:callkit_CallUUID});
+    }
+    return null;
+  }
 
   ////////////////////////////////////////////////////////////////////////////////////////
   //Android specific implementation

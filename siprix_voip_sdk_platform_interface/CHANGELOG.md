@@ -1,3 +1,9 @@
+## 1.0.10
+- Added new event 'onCallVideoUpgradeRequested'
+- Added new method 'acceptVideoUpgrade'
+- Added new method 'endCallKitCall'
+  //2025.11.16
+
 ## 1.0.9
 - Added new event 'onCallVideoUpgraded'
   //2025.11.07
