@@ -1,4 +1,4 @@
-# siprix_voip_sdk
+# Siprix VoIP SDK for Flutter
 
 Siprix VoIP SDK plugin for embedding voice-over-IP (VoIP) audio/video calls based on SIP/RTP protocols into Flutter applications.
 It contains native SIP client implementations for 5 platforms: Android, iOS, MacOS, Windows, Linux and unified API for all them. 
@@ -23,7 +23,7 @@ Plugin implements ready to use SIP VoIP Client with ability to:
 ### Add dependency in pubspec.yaml
 ```
 dependencies:
-  siprix_voip_sdk: ^1.0.29
+  siprix_voip_sdk: ^1.0.31
   provider: ^6.1.1
 ```
 
