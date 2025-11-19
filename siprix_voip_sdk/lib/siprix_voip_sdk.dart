@@ -482,6 +482,8 @@ abstract interface class IAccountsModel {
   bool hasSecureMedia(int accId);
   ///Returns true if account with specified id has 'upgradeToVideo' set to 'RecvOnly'
   bool isUpgradeToVideoModeRecvOnly(String uri);
+  ///Refresh registration of the all accounts
+  void refreshRegistration();
 }
 
 

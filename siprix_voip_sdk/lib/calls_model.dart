@@ -600,6 +600,7 @@ class CallsModel extends ChangeNotifier {
   CallModel operator [](int i) => _callItems[i]; // get
 
   @protected List<CallModel> get callItems => _callItems;
+  @protected IAccountsModel  get accountsModel => _accountsModel;
 
   /// Returns id of the switched call (or kEmptyCallId when there are no calls)
   int get switchedCallId => _switchedCallId;

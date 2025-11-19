@@ -594,6 +594,7 @@ class AccountsModel extends ChangeNotifier implements IAccountsModel {
   }
 
   /// Refresh registration of the all existing accounts (with default or specified regExpire>0)
+  @override
   Future<void> refreshRegistration() async {
     try {
       for(AccountModel acc in _accounts) {
