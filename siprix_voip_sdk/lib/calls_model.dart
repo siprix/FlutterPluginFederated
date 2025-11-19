@@ -179,6 +179,7 @@ class CallModel extends ChangeNotifier {
   bool _isCamMuted=false;
   bool _isRecStarted=false;
   bool _isUpgradingToVideo=false;
+  bool _hasVideoUpgradeRequest=false;
   final ILogsModel? _logs;
 
   /// State of this call
@@ -206,10 +207,15 @@ class CallModel extends ChangeNotifier {
   bool get isMicMuted => _isMicMuted;
   bool get isCamMuted => _isCamMuted;
   bool get isRecStarted => _isRecStarted;
-  bool get isUpgradingToVideo => _isUpgradingToVideo;
   bool get isFilePlaying => _playerId!=0;
   bool get hasVideo   => _hasVideo;
   int  get playerId   => _playerId;
+
+
+  /// Returns true if app has invoked 'upgradeToVideo' (requested upgrade to video) and is waiting on response
+  bool get isUpgradingToVideo => _isUpgradingToVideo;
+  /// Returns true if app received request 'upgrade to video' from remote side (happens only if acc.upgradeToVideo=UpgradeToVideoMode.Manual)
+  bool get hasVideoUpgradeRequest => _hasVideoUpgradeRequest;
 
   /// Returns true if call put on hold by local side
   bool get isLocalHold => (_holdState==HoldState.local)||(_holdState==HoldState.localAndRemote);
@@ -415,7 +421,7 @@ class CallModel extends ChangeNotifier {
     }
   }
 
-  /// Upgrade call from audio only to audio+video
+  /// Send to remote side request 'Upgrade call from audio only to audio+video'
   Future<void> upgradeToVideo()async {
     _logs?.print('Upgrade callId:$myCallId to audio+video');
 
@@ -452,6 +458,19 @@ class CallModel extends ChangeNotifier {
     }
   }
 
+  /// Accept request 'upgrade to video' received from remote side. 'withVideo=false' - means [don't allow to start video]
+  Future<void> acceptVideoUpgrade([bool withVideo=true]) async{
+    _logs?.print('AcceptVideoUpgrade callId:$myCallId withVideo:$withVideo');
+    try{
+      await SiprixVoipSdk().acceptVideoUpgrade(myCallId, withVideo);
+      _hasVideoUpgradeRequest = false;
+      notifyListeners();
+    } on PlatformException catch (err) {
+      _logs?.print('Can\'t accept video upgrade callId:$myCallId Err: ${err.code} ${err.message}');
+      return Future.error((err.message==null) ? err.code : err.message!);
+    }
+  }
+
   /// Event handlers-------------
 
   /// Handles 1xx responses received from remote side
@@ -470,13 +489,20 @@ class CallModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Handle upgrade to video
+  /// Handle response of the upgrade to video request
   void onVideoUpgraded(bool withVideo, bool isUpgradeModeRecvOnly) {
     //Siprix mutes camera when upgrade video request received from remote side AND mode set as recvOnly
     if(withVideo && isUpgradeModeRecvOnly && !_isUpgradingToVideo) _isCamMuted = true;
 
     _hasVideo = withVideo;
     _isUpgradingToVideo = false;
+    notifyListeners();
+  }
+
+  /// Handle request 'upgrade to video' received from remote side
+  /// [!] In the event handler app HAS invoke 'acceptVideoUpgrade(true/false)'
+  void onVideoUpgradeRequested() {
+    _hasVideoUpgradeRequest = true;
     notifyListeners();
   }
 
@@ -783,9 +809,13 @@ class CallsModel extends ChangeNotifier {
     _callItems[index].onVideoUpgraded(withVideo, isUpgradeModeRecvOnly);
   }
 
-  /// Handle upgrade to video request
+  /// Handle request 'upgrade to video' received from remote side
   void onVideoUpgradeRequested(int callId) {
     _logs?.print('onVideoUpgradeRequested callId:$callId');
+
+    int index = _callItems.indexWhere((c) => c.myCallId==callId);
+    if(index != -1) _callItems[index].onVideoUpgradeRequested();
+
     onVideoUpgradeRequestReceived?.call(callId);
   }
 
