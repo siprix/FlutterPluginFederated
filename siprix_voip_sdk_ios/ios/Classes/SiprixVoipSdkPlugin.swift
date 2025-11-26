@@ -782,6 +782,10 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
     func handleModuleUnInitialize(_ args : ArgsMap, result: @escaping FlutterResult) {
         let err = _siprixModule.unInitialize()
         _initialized = false
+
+        _pushKitProvider = nil
+        _callKitProvider = nil
+
         sendResult(err, result:result)
     }
 
@@ -1708,7 +1712,9 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     private var _cxProvider: CXProvider!
     private var _cxCallCtrl: CXCallController
     private var _callsList: [CallModel] = []
-      
+    private var _audioSessionConfigured = false
+    private var _callPendingAnswer: CallModel? = nil
+
     static let kECallNotFound: Int32       = -1040
     static let kEConfRequires2Calls: Int32 = -1055
     
@@ -1719,7 +1725,31 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         createCxProvider(singleCallMode, includeInRecents:includeInRecents)
         _siprixModule.writeLog("CxProvider: created")
     }
-        
+
+    //--------------------------------------------------------
+    //Audio Session Management
+
+    private func ensureAudioSessionConfigured() {
+        #if os(iOS)
+        guard !_audioSessionConfigured else { return }
+
+        let audioSession = AVAudioSession.sharedInstance()
+
+        do {
+            try audioSession.setCategory(.playAndRecord, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try audioSession.setMode(.voiceChat)
+            try audioSession.setActive(true)
+
+            _audioSessionConfigured = true
+            _siprixModule.writeLog("CxProvider: Manual audio session activation successful")
+
+        } catch {
+            _siprixModule.writeLog("CxProvider: Manual audio config warning (might be ok): \(error)")
+            _audioSessionConfigured = true
+        }
+        #endif
+    }
+
     //--------------------------------------------------------
     //Event handlers
     
@@ -1754,14 +1784,17 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
             
             self._cxProvider.reportCall(with:call.uuid, endedAt: nil, reason: reason)
         }
-        //Remove call item from collection
+
+        if _callPendingAnswer?.id == call.id {
+            _callPendingAnswer = nil
+            _siprixModule.writeLog("CxProvider: cleared pending answer for terminated call \(call.id)")
+        }
+
         _callsList.remove(at:callIdx!)
         _siprixModule.writeLog("CxProvider: onSipTerminated remove callId:\(call.id) <=> \(call.uuid)")
     }
     
     func onSipConnected(_ callId: Int, withVideo:Bool) {
-        _siprixModule.activate( AVAudioSession.sharedInstance())
-
         let call = self._callsList.first(where: {$0.id == callId})
         if(call == nil) { return }
 
@@ -1788,20 +1821,24 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
     
     func onSipIncoming(_ callId:Int, withVideo:Bool, hdrFrom:String, hdrTo:String) {
+        _siprixModule.writeLog("CxProvider: onSipIncoming CALLED - callId:\(callId) from:\(hdrFrom)")
         let call = CallModel(callId:callId, withVideo:withVideo, from:hdrFrom)
         _callsList.append(call)
-        
+        _siprixModule.writeLog("CxProvider: onSipIncoming - call added to list, uuid:\(call.uuid)")
+
         reportNewIncomingCall(call)
-        _siprixModule.writeLog("CxProvider: onSipIncoming - added new call with uuid:\(call.uuid)")
+        _siprixModule.writeLog("CxProvider: onSipIncoming - reportNewIncomingCall completed for uuid:\(call.uuid)")
     }
-    
+
     public func onPushIncoming() -> String {
+        _siprixModule.writeLog("CxProvider: onPushIncoming CALLED")
         let call = CallModel(callId:kInvalidId, withVideo:true, from:"SiprixPushKit")
         _callsList.append(call)
-        
+        _siprixModule.writeLog("CxProvider: onPushIncoming - call added with uuid:\(call.uuid), id:kInvalidId")
+
         reportNewIncomingCall(call)
-        
-        _siprixModule.writeLog("CxProvider: onPushIncoming - added new call with uuid:\(call.uuid)")
+
+        _siprixModule.writeLog("CxProvider: onPushIncoming - returning uuid:\(call.uuid)")
         return call.uuid.uuidString
     }
         
@@ -1821,8 +1858,9 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     
     func proceedCxAnswerAction(_ call: CallModel) {
         let err = _siprixModule.callAccept(Int32(call.id), withVideo:call.withVideo)
-        if (err == kErrorCodeEOK) { call.cxAnswerAction?.fulfill() }
-        else                      { call.cxAnswerAction?.fail()    }
+        if (err != kErrorCodeEOK) {
+            call.cxAnswerAction?.fail()
+        }
         _siprixModule.writeLog("CxProvider: proceedCxAnswerAction err:\(err) sipCallId:\(call.id) uuid:\(call.uuid))")
     }
     
@@ -1848,22 +1886,35 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
 
     public func sipAppUpdateCallDetails(_ callKit_callUUID:UUID, callId:Int?,
                                        localizedName:String?, genericHandle:String?, withVideo:Bool?) {
+        self._siprixModule.writeLog("CxProvider: sipAppUpdateCallDetails CALLED - uuid:\(callKit_callUUID) callId:\(String(describing: callId))")
         let call = self.getCallByUUID(callKit_callUUID)
         if(call == nil) {
-            self._siprixModule.writeLog("CxProvider: sipAppUpdateCallDetails uuid:\(callKit_callUUID) call not found")
+            self._siprixModule.writeLog("CxProvider: sipAppUpdateCallDetails - call NOT FOUND for uuid:\(callKit_callUUID)")
             return
         }
-        
+
+        self._siprixModule.writeLog("CxProvider: sipAppUpdateCallDetails - found call, state: id=\(call!.id), answered=\(call!.answeredByCallKit), rejected=\(call!.rejectedByCallKit)")
+
         if(callId != nil) {
             //INVITE received - match SIP callId and UUID
-            self._siprixModule.writeLog("CxProvider: sipAppUpdateCallDetails uuid:\(callKit_callUUID) set sipCallId:\(callId!)")
+            self._siprixModule.writeLog("CxProvider: sipAppUpdateCallDetails - matching SIP callId:\(callId!) with CallKit uuid:\(callKit_callUUID)")
             call!.setSipCallId(callId: callId!, withVideo: withVideo)
-            
+
             if(call!.rejectedByCallKit) {
+                self._siprixModule.writeLog("CxProvider: sipAppUpdateCallDetails - call was rejected, proceeding with end action")
                 self.proceedCxEndAction(call!)
             }
             else if(call!.answeredByCallKit) {
-                self.proceedCxAnswerAction(call!)
+                self._siprixModule.writeLog("CxProvider: sipAppUpdateCallDetails - call was answered! _audioSessionConfigured=\(_audioSessionConfigured)")
+                if _audioSessionConfigured {
+                    self._siprixModule.writeLog("CxProvider: sipAppUpdateCallDetails - audio ready, accepting IMMEDIATELY")
+                    self.proceedCxAnswerAction(call!)
+                } else {
+                    self._siprixModule.writeLog("CxProvider: sipAppUpdateCallDetails - audio not ready, deferring until didActivate")
+                    _callPendingAnswer = call
+                }
+            } else {
+                self._siprixModule.writeLog("CxProvider: sipAppUpdateCallDetails - call not answered yet (waiting for user)")
             }
         }
 
@@ -2065,22 +2116,38 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
     
     func provider(_: CXProvider, perform action: CXAnswerCallAction) {
+        _siprixModule.writeLog("CxProvider: CXAnswerCallAction CALLED - uuid:\(action.callUUID)")
         let call = getCallByUUID(action.callUUID)
         if(call == nil) {
-            _siprixModule.writeLog("CxProvider: CXAnswer uuid:\(action.callUUID) not found")
+            _siprixModule.writeLog("CxProvider: Call NOT FOUND for uuid:\(action.callUUID)")
             action.fail()
             return
         }
-       
+
+        _siprixModule.writeLog("CxProvider: Found call - sipCallId:\(call!.id) uuid:\(call!.uuid) fromTo:\(call!.fromTo)")
         call!.cxAnswerAction = action
-        
+
         if (call!.id == kInvalidId) {
+            _siprixModule.writeLog("CxProvider: KILLED APP SCENARIO - SIP INVITE not received yet, setting answeredByCallKit=true")
             call!.answeredByCallKit = true
-            _siprixModule.writeLog("CxProvider: CXAnswer uuid:\(action.callUUID) SIP hasn't received yet")
         }else{
-            _siprixModule.writeLog("CxProvider: CXAnswer uuid:\(action.callUUID) callId:\(call!.id)")
-            proceedCxAnswerAction(call!)
+            _siprixModule.writeLog("CxProvider: FOREGROUND SCENARIO - SIP callId:\(call!.id) known, setting _callPendingAnswer")
+            _callPendingAnswer = call
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self = self else { return }
+                if let pendingCall = self._callPendingAnswer, pendingCall.id == call!.id,
+                   self._callsList.contains(where: { $0.id == pendingCall.id }) {
+                    self._siprixModule.writeLog("CxProvider: FALLBACK TIMER FIRED - didActivate didn't fire, proceeding with answer anyway")
+                    self.ensureAudioSessionConfigured()
+                    self.proceedCxAnswerAction(pendingCall)
+                    self._callPendingAnswer = nil
+                }
+            }
         }
+
+        action.fulfill()
+        _siprixModule.writeLog("CxProvider: Fulfilled CXAnswerCallAction - CallKit will now activate audio")
     }
     
     func provider(_: CXProvider, perform action: CXPlayDTMFCallAction) {
@@ -2145,12 +2212,44 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
    
     func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
-        _siprixModule.writeLog("CxProvider: didActivate")
+        _siprixModule.writeLog("CxProvider: _callPendingAnswer: \(_callPendingAnswer?.id ?? -999)")
+        _siprixModule.writeLog("CxProvider: _audioSessionConfigured (before): \(_audioSessionConfigured)")
+        _siprixModule.writeLog("CxProvider: audioSession.isInputAvailable: \(audioSession.isInputAvailable) isOtherAudioPlaying: \(audioSession.isOtherAudioPlaying)")
+
+        #if os(iOS)
+        if !audioSession.isInputAvailable || audioSession.isOtherAudioPlaying {
+            _siprixModule.writeLog("CxProvider: Audio session interrupted/blocked - forcing reset")
+            do {
+                try audioSession.setActive(false)
+                try audioSession.setActive(true)
+                _siprixModule.writeLog("CxProvider: Audio session reset successful")
+            } catch {
+                _siprixModule.writeLog("CxProvider: Audio session reset failed: \(error)")
+            }
+        }
+        #endif
+
+        ensureAudioSessionConfigured()
         _siprixModule.activate(audioSession)
+        _siprixModule.writeLog("CxProvider: _audioSessionConfigured (after): \(_audioSessionConfigured)")
+
+        if let call = _callPendingAnswer {
+            _siprixModule.writeLog("CxProvider: Found _callPendingAnswer: callId:\(call.id) uuid:\(call.uuid)")
+            let callStillExists = _callsList.contains(where: { $0.id == call.id })
+            if callStillExists {
+                _siprixModule.writeLog("CxProvider: Call still exists, proceeding with accept")
+                proceedCxAnswerAction(call)
+            } else {
+                _siprixModule.writeLog("CxProvider: Call no longer exists (cancelled)")
+            }
+            _callPendingAnswer = nil
+        }
+        _siprixModule.writeLog("CxProvider: ======================================== didActivate END")
     }
 
     func provider(_: CXProvider, didDeactivate audioSession: AVAudioSession) {
         _siprixModule.writeLog("CxProvider: didDeactivate")
+        _audioSessionConfigured = false  // Reset flag when deactivated
         _siprixModule.deactivate(audioSession)
     }
 
