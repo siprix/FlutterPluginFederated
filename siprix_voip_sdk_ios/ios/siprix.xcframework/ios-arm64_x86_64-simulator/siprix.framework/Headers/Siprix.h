@@ -363,6 +363,7 @@ EXPORT
 - (BOOL)overrideAudioOutputToSpeaker:(BOOL)on;
  -(BOOL)routeAudioToBluetoth;
  -(BOOL)routeAudioToBuiltIn;
+ -(void)handleIncomingPush;
 #endif
 
 - (int)accountAdd:(SiprixAccData* _Nonnull)accData;

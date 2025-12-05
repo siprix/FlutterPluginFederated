@@ -1796,6 +1796,8 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
     
     public func onPushIncoming() -> String {
+        _siprixModule.handleIncomingPush()
+
         let call = CallModel(callId:kInvalidId, withVideo:true, from:"SiprixPushKit")
         _callsList.append(call)
         

@@ -1,3 +1,10 @@
+## 1.0.29
+- Fixed sound artifacts which could appear when SDK hosts conference call
+- Added ability to skip registration request when SDK has been succfully registered less than 1sec ago
+- iOS: Added new method 'handlePushNotif' which restores registration when push received
+  Fixes related to handling connection in background mode 
+  //2025.12.05
+
 ## 1.0.28
 - Updated upgradeToVideo implementation. Added new mode 'manual'
 - Added new event 'onCallVideoUpgradeRequested'
