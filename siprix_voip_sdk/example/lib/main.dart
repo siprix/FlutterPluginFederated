@@ -92,10 +92,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint("[!!!] Handling a background message id:'${message.messageId}' data:'${message.data}'");
 
   try{
-    debugPrint("Initialize siprix");
+    debugPrint("Initialize siprix by push notif");
     _MyAppState._initializeSiprix();
 
-    debugPrint("Read and add accounts");
+    debugPrint("Read and add accounts by push notif");
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String accJsonStr = prefs.getString('accounts') ?? '';
     if(accJsonStr.isNotEmpty) {
@@ -179,7 +179,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   static void _initializeSiprix([LogsModel? logsModel]) async {
-    debugPrint('_initializeSiprix');
+    debugPrint('Initialize siprix');
     InitData iniData = InitData();
     iniData.license  = "...license-credentials...";
     iniData.logLevelFile = LogLevel.debug;

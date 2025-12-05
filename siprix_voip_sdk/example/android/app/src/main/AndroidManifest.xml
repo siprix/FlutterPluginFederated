@@ -12,7 +12,9 @@
         android:icon="@mipmap/ic_launcher">
 
         <!-- Uncomment if required to use own service and notification implementation.
-             Don't forget to set `iniData.serviceClassName` in the Flutter part of the project
+             Don't forget to set
+             `iniData.serviceClassName = "com.siprix.voip_sdk_example.MyNotifService"`
+              in the Flutter part of the project
         <service
             android:name=".MyNotifService"
             android:exported="false"
