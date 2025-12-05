@@ -3,7 +3,7 @@ description: Windows implementation of the Siprix VoIP SDK plugin for embedding 
 homepage: https://siprix-voip.com
 repository: https://github.com/siprix/FlutterPluginFederated/tree/main/siprix_voip_sdk_windows
 documentation: https://docs.siprix-voip.com
-version: 1.0.19
+version: 1.0.20
 
 environment:
   sdk: ^3.2.0
