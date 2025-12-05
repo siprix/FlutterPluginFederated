@@ -1,4 +1,9 @@
-## 1.0.31
+## 1.0.19
+- Fixed sound artifacts which could appear when SDK hosts conference call
+- Added ability to skip registration request when SDK has been succfully registered less than 1sec ago
+  //2025.12.05
+
+## 1.0.18
 - Updated upgradeToVideo implementation. Added new mode 'manual'
 - Added new event 'onCallVideoUpgradeRequested'
   Triggered when specified 'acc.upgradeToVideo=manual' and remote side requests to add video
