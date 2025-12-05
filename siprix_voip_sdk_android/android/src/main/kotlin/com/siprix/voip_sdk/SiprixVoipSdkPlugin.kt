@@ -33,6 +33,7 @@ import com.siprix.SiprixCore
 import com.siprix.SiprixEglBase
 import com.siprix.SubscrData
 import com.siprix.VideoData
+
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -41,10 +42,8 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.view.TextureRegistry
-import io.flutter.view.TextureRegistry.SurfaceTextureEntry
 import org.webrtc.EglBase
 import org.webrtc.EglRenderer
 import org.webrtc.GlRectDrawer
@@ -470,7 +469,7 @@ class SurfaceTextureRenderer
 
 class FlutterRendererAdapter(texturesRegistry: TextureRegistry,
                              messenger: BinaryMessenger) : EventChannel.StreamHandler {
-  private val textureEntry: SurfaceTextureEntry
+  private val textureEntry: TextureRegistry.SurfaceTextureEntry
   private val surfaceTextureRenderer: SurfaceTextureRenderer
   private val rendererEvents: RendererCommon.RendererEvents
   private val eventChannel: EventChannel
@@ -575,7 +574,7 @@ class FlutterRendererAdapter(texturesRegistry: TextureRegistry,
 /// SiprixVoipSdkPlugin
 
 class SiprixVoipSdkPlugin: FlutterPlugin,
-  MethodCallHandler, ActivityAware, PluginRegistry.NewIntentListener,
+  MethodChannel.MethodCallHandler, ActivityAware, PluginRegistry.NewIntentListener,
   PluginRegistry.RequestPermissionsResultListener {
 
   companion object {
@@ -634,8 +633,8 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     if(skipPermissionRequest != true) requestPermissions()
 
     //Set activity attributes
-    var dontShowWhenLocked = appInfo.metaData?.getBoolean("com.siprix.DontShowWhenLocked")
-    setActivityFlags(_activity, dontShowWhenLocked)
+    var dontShowWhenLocked = appInfo.metaData?.getBoolean("com.siprix.DontShowWhenLocked") ?:false
+    setActivityFlags(_activity, !dontShowWhenLocked)
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
@@ -657,23 +656,39 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     if (_bgService != null) {
       _core.setModelListener(null)
 
-      _activity?.unbindService(_serviceConnection)
+      if(_bgService!!.isDetached()) _bgService?.destroyInternal()
+      else _activity?.unbindService(_serviceConnection)
       _bgService = null
     }
   }
 
   private fun startAndBindNotifService(serviceClassName : String?) {
     try{
+      _core.moduleWriteLog("Start notif service, activity:${_activity} name:${serviceClassName}")
       if(_bgService != null) return//already bound
 
       val srvClass = if(serviceClassName!=null) Class.forName(serviceClassName) else CallNotifService::class.java
       val srvIntent = Intent(_appContext, srvClass)
       _activity?.bindService(srvIntent, _serviceConnection, Context.BIND_AUTO_CREATE)
-
-      srvIntent.setAction(CallNotifService.kActionAppStarted)
       _appContext.startService(srvIntent)
     }catch (ex: Exception) {
-      Log.e(TAG, "Can't start service: '${ex}'")
+      _core.moduleWriteLog("Can't start service: '${ex}', create it manually")
+      createDetachedNotifService(serviceClassName)
+    }
+  }
+
+  private fun createDetachedNotifService(serviceClassName : String?) {
+    try {
+      if(serviceClassName!=null) {
+        val clazz = Class.forName(serviceClassName)
+        _bgService = clazz.newInstance() as CallNotifService
+      }
+      else{
+        _bgService = CallNotifService()
+      }
+      _bgService?.createInternal(_appContext)
+    } catch (e: Exception) {
+      _core.moduleWriteLog("Can't create instance of CallNotifService '${serviceClassName}'")
     }
   }
 
@@ -1000,8 +1015,11 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
     _accountsIds.add(accIdArg.value)
     Log.i(TAG, "handleAccountAdd id:${accIdArg.value} err:${err}/${_core.getErrText(err)}")
-    raiseIncomingCallWhenAccountsRestored()
-    raiseIncomingMsgWhenAccountsRestored()
+
+    Handler(Looper.getMainLooper()).post {
+      raiseIncomingCallWhenAccountsRestored()
+      raiseIncomingMsgWhenAccountsRestored()
+    }
   }
 
   private fun handleAccountUpdate(args : HashMap<String, Any?>, result: MethodChannel.Result) {
@@ -1700,7 +1718,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   }
 
   private fun handleIntent(method: String, intent: Intent) : Boolean {
-    Log.i(TAG, "handleIntent '${method}' ${intent}")
+    _core.moduleWriteLog("handleIntent '${method}' ${intent}")
 
     _bgService?.handleIncomingCallIntent(intent)
 
@@ -1783,15 +1801,15 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     }
   }
 
-  private fun setActivityFlags(activity: Activity?, dontShowWhenLocked: Boolean?) {
+  private fun setActivityFlags(activity: Activity?, showWhenLocked: Boolean) {
     if(activity != null) {
       if (Build.VERSION.SDK_INT < 27) {
         var flags = WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
-        if(dontShowWhenLocked != true) flags += WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;
+        if(showWhenLocked) flags += WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;
         activity.window.addFlags(flags)
       } else {
         activity.setTurnScreenOn(true)
-        if(dontShowWhenLocked != true) activity.setShowWhenLocked(true)
+        if(showWhenLocked) activity.setShowWhenLocked(true)
       }
     }
   }

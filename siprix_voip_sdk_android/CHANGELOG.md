@@ -1,3 +1,11 @@
+## 1.0.25
+- Fixed sound artifacts which could appear when SDK hosts conference call
+- Added ability to skip registration request when SDK has been succfully registered less than 1sec ago
+- Android: Use Bluetooth as default device when it present
+- Android: Added fallback to default ringtone
+  Redesigned CallNotif service impl
+  //2025.12.05
+
 ## 1.0.24
 - Updated upgradeToVideo implementation. Added new mode 'manual'
 - Added new event 'onCallVideoUpgradeRequested'
