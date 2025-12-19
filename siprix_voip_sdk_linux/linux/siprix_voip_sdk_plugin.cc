@@ -52,6 +52,7 @@ const char kMethodCallMuteMic[]         = "Call_MuteMic";
 const char kMethodCallMuteCam[]         = "Call_MuteCam";
 const char kMethodCallSendDtmf[]        = "Call_SendDtmf";
 const char kMethodCallPlayFile[]        = "Call_PlayFile";
+const char kMethodCallPlayTone[]        = "Call_PlayTone";
 const char kMethodCallStopPlayFile[]    = "Call_StopPlayFile";
 const char kMethodCallRecordFile[]      = "Call_RecordFile";
 const char kMethodCallStopRecordFile[]  = "Call_StopRecordFile";
@@ -118,6 +119,7 @@ const char kArgStarted[]    = "started";
 const char kArgStatusCode[] = "statusCode";
 const char kArgExpireTime[] = "expireTime";
 const char kArgWithVideo[]  = "withVideo";
+const char kArgDurationMs[] = "durationMs";
 
 const char kArgDvcIndex[] = "dvcIndex";
 const char kArgDvcName[]  = "dvcName";
@@ -879,7 +881,7 @@ FlMethodResponse* handleCallSendDtmf(FlValue* args, SiprixVoipSdkPlugin* self)
     if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_INT) return badArgsResponse();
     const Siprix::CallId callId = fl_value_get_int(val);
 
-    val = fl_value_lookup_string(args, "durationMs");
+    val = fl_value_lookup_string(args, kArgDurationMs);
     if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_INT) return badArgsResponse();
     const int64_t durationMs = fl_value_get_int(val);
 
@@ -922,6 +924,31 @@ FlMethodResponse* handleCallStopRecordFile(FlValue* args, SiprixVoipSdkPlugin* s
     const Siprix::CallId callId = fl_value_get_int(val);
 
     const Siprix::ErrorCode err = Siprix::Call_StopRecordFile(self->module_, callId);
+    return sendResult(err);
+}
+
+FlMethodResponse* handleCallPlayTone(FlValue* args, SiprixVoipSdkPlugin* self)
+{
+    FlValue* val = fl_value_lookup_string(args, kArgCallId);
+    if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_INT) return badArgsResponse();
+    const Siprix::CallId callId = fl_value_get_int(val);
+
+    val = fl_value_lookup_string(args, "toneType");
+    if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_STRING) return badArgsResponse();
+    const gchar* toneType = fl_value_get_string(val);
+
+    val = fl_value_lookup_string(args, kArgDurationMs);
+    if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_INT) return badArgsResponse();
+    const int64_t durationMs = fl_value_get_int(val);
+
+    Siprix::PlayerId playerId = 0;
+    const Siprix::ErrorCode err = Siprix::Call_PlayTone(self->module_, callId, toneType, 
+                                                 static_cast<uint16_t>(durationMs), &playerId);
+    if (err == Siprix::EOK) {
+        g_autoptr(FlValue) res = fl_value_new_int(playerId);
+        return FL_METHOD_RESPONSE(fl_method_success_response_new(res));
+    }
+
     return sendResult(err);
 }
 
@@ -1107,6 +1134,10 @@ FlMethodResponse* handleSubscriptionAdd(FlValue* args, SiprixVoipSdkPlugin* self
   val = fl_value_lookup_string(args, "eventType");
   if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_STRING)
       Subscr_SetEventType(subscrData, fl_value_get_string(val));
+
+  val = fl_value_lookup_string(args, "body");
+  if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_STRING)
+      Subscr_SetBody(subscrData, fl_value_get_string(val));
 
   Siprix::SubscriptionId subscrId=0;
   const Siprix::ErrorCode err = Siprix::Subscription_Create(self->module_, subscrData, &subscrId);
@@ -1359,6 +1390,7 @@ static void siprix_voip_sdk_plugin_handle_method_call(
     if(strcmp(method, kMethodCallMuteCam) == 0)          response = handleCallMuteCam(args, self); else
     if(strcmp(method, kMethodCallSendDtmf)== 0)          response = handleCallSendDtmf(args, self); else
     if(strcmp(method, kMethodCallPlayFile) == 0)         response = handleCallPlayFile(args, self); else
+    if(strcmp(method, kMethodCallPlayTone) == 0)         response = handleCallPlayTone(args, self); else
     if(strcmp(method, kMethodCallStopPlayFile) == 0)     response = handleCallStopPlayFile(args, self); else
     if(strcmp(method, kMethodCallRecordFile) == 0)       response = handleCallRecordFile(args, self); else
     if(strcmp(method, kMethodCallStopRecordFile) == 0)   response = handleCallStopRecordFile(args, self); else
