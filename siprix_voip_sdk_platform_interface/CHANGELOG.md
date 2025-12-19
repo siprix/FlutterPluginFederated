@@ -1,3 +1,7 @@
+## 1.0.11
+- Added new method 'playTone'
+  //2025.12.19
+
 ## 1.0.10
 - Added new event 'onCallVideoUpgradeRequested'
 - Added new method 'acceptVideoUpgrade'

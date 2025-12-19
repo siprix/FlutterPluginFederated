@@ -39,6 +39,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kMethodCallMuteCam         = 'Call_MuteCam';
   static const String kMethodCallSendDtmf        = 'Call_SendDtmf';
   static const String kMethodCallPlayFile        = 'Call_PlayFile';
+  static const String kMethodCallPlayTone        = 'Call_PlayTone';
   static const String kMethodCallStopPlayFile    = 'Call_StopPlayFile';
   static const String kMethodCallRecordFile      = 'Call_RecordFile';
   static const String kMethodCallStopRecordFile  = 'Call_StopRecordFile';
@@ -113,6 +114,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kArgStatusCode = 'statusCode';
   static const String kArgExpireTime = 'expireTime';
   static const String kArgWithVideo  = 'withVideo';
+  static const String kArgDurationMs = 'durationMs';
   static const String kArgDvcIndex   = 'dvcIndex';
   static const String kArgDvcName    = 'dvcName';
   static const String kArgDvcGuid    = 'dvcGuid';
@@ -242,7 +244,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   Future<void> sendDtmf(int callId, String tones, int durationMs, int intertoneGapMs, int method) {
     return _methodChannel.invokeMethod<void>(kMethodCallSendDtmf,
       {kArgCallId:callId, 'dtmfs':tones,
-        'durationMs':durationMs, 'intertoneGapMs':intertoneGapMs, 'method':method} );
+        kArgDurationMs:durationMs, 'intertoneGapMs':intertoneGapMs, 'method':method} );
   }
 
   Future<void> bye(int callId) {
@@ -278,6 +280,11 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   Future<void> muteCam(int callId, bool mute) {
     return _methodChannel.invokeMethod<void>(kMethodCallMuteCam,
       {kArgCallId:callId, 'mute':mute} );
+  }
+
+  Future<int?> playTone(int callId, String toneType, int durationMs) {
+    return _methodChannel.invokeMethod<int>(kMethodCallPlayTone,
+      {kArgCallId:callId, 'toneType':toneType, kArgDurationMs:durationMs} );
   }
 
   Future<int?> playFile(int callId, String pathToMp3File, bool loop) {
