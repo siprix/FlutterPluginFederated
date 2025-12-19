@@ -41,17 +41,17 @@ void main() async {
   //await _initializeFCM();
 
   //Create models
-  LogsModel logsModel = LogsModel(true);//Set 'false' when logs won't rendering on UI
-  CdrsModel cdrsModel = CdrsModel();//List of recent calls (Call Details Records)
+  LogsModel logsModel           = LogsModel(true);//Set 'false' when logs won't rendering on UI
+  CdrsModel cdrsModel           = CdrsModel();//List of recent calls (Call Details Records)
 
-  DevicesModel devicesModel = DevicesModel(logsModel);//List of devices
-  NetworkModel networkModel = NetworkModel(logsModel);//Network state details
+  DevicesModel devicesModel      = DevicesModel(logsModel);//List of devices
+  NetworkModel networkModel      = NetworkModel(logsModel);//Network state details
   AppAccountsModel accountsModel = AppAccountsModel(logsModel);//List of accounts
-  MessagesModel messagesModel = MessagesModel(accountsModel, logsModel);
-  AppCallsModel callsModel = AppCallsModel(accountsModel, logsModel, cdrsModel);//List of calls
-  SubscriptionsModel subscrModel = SubscriptionsModel<AppBlfSubscrModel>(accountsModel, AppBlfSubscrModel.fromJson, logsModel);//List of subscriptions
-  //VuMeterModel vuModel = VuMeterModel();
-  //VoiceMailModel vmModel = VoiceMailModel(logsModel);
+  MessagesModel messagesModel    = MessagesModel(accountsModel, logsModel);//List of messages
+  AppCallsModel callsModel       = AppCallsModel(accountsModel, logsModel, cdrsModel);//List of calls
+  SubscriptionsModel subscrModel = SubscriptionsModel(accountsModel, createSubscrFromJson, logsModel);//List of subscriptions
+  //VuMeterModel vuModel         = VuMeterModel();
+  //VoiceMailModel vmModel       = VoiceMailModel(logsModel);
 
   //Run app
   runApp(
@@ -242,7 +242,7 @@ class _MyAppState extends State<MyApp> {
 
     //Load messages, than accounts, then other models
     msgs.loadFromJson(msgsJsonStr);
-    accs.loadFromJson(accJsonStr);
+    await accs.loadFromJson(accJsonStr);
     subs.loadFromJson(subsJsonStr);
     cdrs.loadFromJson(cdrsJsonStr);
 

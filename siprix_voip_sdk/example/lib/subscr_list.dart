@@ -43,26 +43,26 @@ class _SubscrListPageState extends State<SubscrListPage> {
       return Text(subscr.label, style: Theme.of(context).textTheme.titleSmall);
     }else{
       AppBlfSubscrModel blfSubscr = subscriptions[index] as AppBlfSubscrModel;
-      return 
+      return
         ListenableBuilder(listenable: blfSubscr,
           builder: (BuildContext context, Widget? child) {
-            return 
+            return
               ListTile(
                 selected: (_selRowIdx == index),
                 selectedColor: Colors.black,
                 selectedTileColor: Theme.of(context).secondaryHeaderColor,
                 leading: _getSubscrIcon(blfSubscr.state, blfSubscr.blfState),
                 title: Text('${blfSubscr.label} (${blfSubscr.toExt})', style: Theme.of(context).textTheme.titleSmall),
-                subtitle: Text('${blfSubscr.blfState}',//subscr.response
+                subtitle: Text('${blfSubscr.blfState.name}',//subscr.response
                   style: const TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic, color: Colors.grey)),
                 trailing: _subscrListTileMenu(index),
                 onTap: () { onTapSubscrListTile(index); },
                 dense: true,
-            ); 
+            );
         });
-    }  
+    }
   }
- 
+
   void onTapSubscrListTile(int rowIndex) {
     setState(() {
       _selRowIdx = rowIndex;
@@ -70,9 +70,9 @@ class _SubscrListPageState extends State<SubscrListPage> {
   }
 
   Widget _addSubscriptionButton() {
-    return 
-      Align(alignment: Alignment.topRight, 
-        child:Padding(padding: const EdgeInsets.all(11), 
+    return
+      Align(alignment: Alignment.topRight,
+        child:Padding(padding: const EdgeInsets.all(11),
           child:OutlinedButton(onPressed: _addSubscription, child: const Icon(Icons.add_circle)))
       );
   }
@@ -80,8 +80,8 @@ class _SubscrListPageState extends State<SubscrListPage> {
     Navigator.of(context).pushNamed(SubscrAddPage.routeName);
   }
 
-  PopupMenuButton<SubscrAction> _subscrListTileMenu(int index) {  
-    return 
+  PopupMenuButton<SubscrAction> _subscrListTileMenu(int index) {
+    return
       PopupMenuButton<SubscrAction>(
         onOpened: () { onTapSubscrListTile(index); },
         onSelected: (SubscrAction action) { _doSubscriptionAction(action, index); },
@@ -93,9 +93,8 @@ class _SubscrListPageState extends State<SubscrListPage> {
         ],
       );
   }
-  
-  
-  void _doSubscriptionAction(SubscrAction action, int index) {    
+
+  void _doSubscriptionAction(SubscrAction action, int index) {
     context.read<SubscriptionsModel>().deleteSubscription(index).catchError((error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
     });
@@ -103,10 +102,10 @@ class _SubscrListPageState extends State<SubscrListPage> {
 
   Widget _getSubscrIcon(SubscriptionState s, BLFState blfState) {
     Color color = (s==SubscriptionState.destroyed) ? Colors.grey :
-                  (blfState == BLFState.terminated)||(blfState == BLFState.unknown) ? Colors.green : Colors.red;    
+                  (blfState == BLFState.terminated)||(blfState == BLFState.unknown) ? Colors.green : Colors.red;
     bool blinking = (blfState==BLFState.early);
     return blinking ? const AnimatedContactIcon() : Icon(Icons.account_circle, color: color);
-  }  
+  }
 
 }//SubscrListPage
 

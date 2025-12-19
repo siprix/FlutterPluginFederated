@@ -17,7 +17,7 @@ class SubscrAddPage extends StatefulWidget {
   State<SubscrAddPage> createState() => _SubscrAddPageState();
 }
 
-class _SubscrAddPageState extends State<SubscrAddPage> {  
+class _SubscrAddPageState extends State<SubscrAddPage> {
   final _formKey = GlobalKey<FormState>();
   final AppBlfSubscrModel _subscr = AppBlfSubscrModel("", 0);
   String _errText="";
@@ -25,7 +25,7 @@ class _SubscrAddPageState extends State<SubscrAddPage> {
   @override
   void initState() {
     super.initState();
-     final accounts = context.read<AppAccountsModel>();    
+     final accounts = context.read<AppAccountsModel>();
      if(accounts.selAccountId != null)  _subscr.fromAccId = accounts.selAccountId!;
   }
 
