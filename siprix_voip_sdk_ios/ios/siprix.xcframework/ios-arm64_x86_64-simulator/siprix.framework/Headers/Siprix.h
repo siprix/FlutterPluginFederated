@@ -214,6 +214,7 @@ EXPORT
 @property(nonatomic, retain) NSString* _Nonnull mimeSubtype;
 @property(nonatomic, retain) NSString* _Nonnull eventType;
 @property(nonatomic, retain) NSNumber* _Nullable expireTime;
+@property(nonatomic, retain) NSString* _Nullable body;
 @end
 
 EXPORT
@@ -320,8 +321,8 @@ EXPORT
             statusCode:(NSInteger)statusCode;
 
 - (void)onCallRedirected:(NSInteger)origCallId
-            relatedCallId:(NSInteger)relatedCallId
-            referTo:(NSString * _Nonnull)referTo;
+          relatedCallId:(NSInteger)relatedCallId
+          referTo:(NSString * _Nonnull)referTo;
 
 - (void)onCallVideoUpgraded:(NSInteger) callId
           withVideo:(BOOL)withVideo;
@@ -384,6 +385,8 @@ EXPORT
 - (int)callSendDtmf:(int)callId dtmfs:(NSString* _Nonnull)dtmfs
          durationMs:(int)durationMs intertoneGapMs:(int)intertoneGapMs method:(DtmfMethod)method;
 - (int)callSendDtmf:(int)callId dtmfs:(NSString* _Nonnull)dtmfs;
+- (int)callPlayTone:(int)callId toneType:(NSString * _Nonnull)toneType durationMs:(int)durationMs
+                                     playerData : (SiprixPlayerData * _Nonnull)data;
 - (int)callPlayFile:(int)callId pathToMp3File:(NSString* _Nonnull)pathToMp3File loop:(BOOL)loop
                                      playerData:(SiprixPlayerData* _Nonnull)data;
 - (int)callStopPlayFile:(int)playerId;

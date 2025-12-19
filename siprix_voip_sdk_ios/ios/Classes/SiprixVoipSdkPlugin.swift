@@ -35,6 +35,7 @@ private let kMethodCallGetStats         = "Call_GetStats";
 private let kMethodCallMuteMic          = "Call_MuteMic"
 private let kMethodCallMuteCam          = "Call_MuteCam"
 private let kMethodCallSendDtmf         = "Call_SendDtmf"
+private let kMethodCallPlayTone         = "Call_PlayTone"
 private let kMethodCallPlayFile         = "Call_PlayFile"
 private let kMethodCallStopPlayFile     = "Call_StopPlayFile"
 private let kMethodCallRecordFile       = "Call_RecordFile"
@@ -106,6 +107,7 @@ private let kArgVideoTextureId  = "videoTextureId"
 private let kArgStatusCode = "statusCode"
 private let kArgExpireTime = "expireTime"
 private let kArgWithVideo  = "withVideo"
+private let kArgDurationMs  = "durationMs"
 
 private let kArgDvcIndex = "dvcIndex"
 private let kArgDvcName  = "dvcName"
@@ -643,6 +645,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         case kMethodCallMuteMic       :   handleCallMuteMic(argsMap!, result:result)
         case kMethodCallMuteCam       :   handleCallMuteCam(argsMap!, result:result)
         case kMethodCallSendDtmf      :   handleCallSendDtmf(argsMap!, result:result)
+        case kMethodCallPlayTone      :   handleCallPlayTone(argsMap!, result:result)
         case kMethodCallPlayFile      :   handleCallPlayFile(argsMap!, result:result)
         case kMethodCallStopPlayFile  :   handleCallStopPlayFile(argsMap!, result:result)
         case kMethodCallRecordFile     :  handleCallRecordFile(argsMap!, result:result)
@@ -762,13 +765,13 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         _initialized = (err == kErrorCodeEOK)
         
         #if os(iOS) && !targetEnvironment(simulator)
-        if((err == kErrorCodeEOK) && (enableCallKit != nil) && enableCallKit!) {
+        if((err == kErrorCodeEOK) && (enableCallKit == true)) {
             let singleCall = (singleCallMode != nil) && singleCallMode!
             let includeInRecents = (enableCallKitRecents != nil) && enableCallKitRecents!
             _callKitProvider = SiprixCxProvider(_siprixModule, singleCallMode:singleCall, includeInRecents:includeInRecents)
         }
       
-        if((err == kErrorCodeEOK) && (_callKitProvider != nil) && (enablePushKit != nil) && enablePushKit!) {
+        if((err == kErrorCodeEOK) && (_callKitProvider != nil) && (enablePushKit == true)) {
             _pushKitProvider = SiprixPushRegistry(_siprixModule, eventHandler:_eventHandler)
         }
         #endif
@@ -1118,7 +1121,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
     func handleCallSendDtmf(_ args : ArgsMap, result: @escaping FlutterResult) {
         let callId         = args[kArgCallId] as? Int
-        let durationMs     = args["durationMs"] as? Int
+        let durationMs     = args[kArgDurationMs] as? Int
         let intertoneGapMs = args["intertoneGapMs"] as? Int
         let method         = args["method"] as? Int
         let dtmfs          = args["dtmfs"] as? String
@@ -1139,6 +1142,26 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         }else {
             let err = _callKitProvider!.cxActionPlayDtmf(callId!, digits:dtmfs!);
             sendResult(err, result:result)
+        }
+    }
+
+    func handleCallPlayTone(_ args : ArgsMap, result: @escaping FlutterResult) {
+        let callId     = args[kArgCallId] as? Int
+        let toneType   = args["toneType"] as? String
+        let durationMs = args[kArgDurationMs] as? Int
+
+        if((callId == nil)||(toneType==nil)||(durationMs==nil)) {
+            sendBadArguments(result:result)
+            return
+        }
+
+        let data = SiprixPlayerData()
+        let err = _siprixModule.callPlayTone(Int32(callId!), toneType:toneType!,
+                                             durationMs:Int32(durationMs!), playerData:data)
+        if(err == kErrorCodeEOK){
+            result(data.playerId)
+        }else{
+            result(FlutterError(code: String(err), message: _siprixModule.getErrorText(err), details: nil))
         }
     }
 
@@ -1334,7 +1357,10 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
         let eventType = args["eventType"] as? String
         if(eventType != nil) { subscrData.eventType = eventType! }
-     
+
+        let body = args["body"] as? String
+        if(body != nil) { subscrData.body = body! }
+
         let err = _siprixModule.subscrCreate(subscrData)
         if(err == kErrorCodeEOK){
             result(subscrData.mySubscrId)
@@ -1708,7 +1734,8 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     private var _cxProvider: CXProvider!
     private var _cxCallCtrl: CXCallController
     private var _callsList: [CallModel] = []
-      
+    private var _audioSessionActivated = false
+
     static let kECallNotFound: Int32       = -1040
     static let kEConfRequires2Calls: Int32 = -1055
     
@@ -1760,14 +1787,17 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
     
     func onSipConnected(_ callId: Int, withVideo:Bool) {
-        _siprixModule.activate( AVAudioSession.sharedInstance())
+        //Activate audio session (case when enabled PushKit+CallKit, but push notif didn't received)
+        if(!_audioSessionActivated) {
+            _siprixModule.writeLog("CxProvider: manually activate audio session")
+            _siprixModule.activate( AVAudioSession.sharedInstance())
+        }
 
         let call = self._callsList.first(where: {$0.id == callId})
         if(call == nil) { return }
 
         call!.connectedSuccessfully = true
-        //call!.cxAnswerAction?.fulfill()
-            
+
         //Set 'connected' time of the outgoing call
         if(!call!.isIncoming) {
             _cxProvider.reportOutgoingCall(with:call!.uuid, connectedAt: nil)
@@ -1820,14 +1850,28 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
                                  completion: { error in self.printResult("CXCallUpdate", err:error)
         })
     }
-    
-    func proceedCxAnswerAction(_ call: CallModel) {
-        let err = _siprixModule.callAccept(Int32(call.id), withVideo:call.withVideo)
-        if (err == kErrorCodeEOK) { call.cxAnswerAction?.fulfill() }
-        else                      { call.cxAnswerAction?.fail()    }
-        _siprixModule.writeLog("CxProvider: proceedCxAnswerAction err:\(err) sipCallId:\(call.id) uuid:\(call.uuid))")
+
+    func acceptCallsAfterActivateAudio() {
+        _callsList.filter({$0.answeredByCallKit}).forEach { call in
+            proceedCxAnswerAction(call)
+        }
     }
-    
+
+    func proceedCxAnswerAction(_ call: CallModel) {
+        if(_audioSessionActivated) {
+            call.answeredByCallKit = false
+            let err = _siprixModule.callAccept(Int32(call.id), withVideo:call.withVideo)
+            if (err == kErrorCodeEOK) { call.cxAnswerAction?.fulfill() }
+            else                      { call.cxAnswerAction?.fail()    }
+            _siprixModule.writeLog("CxProvider: proceedCxAnswerAction err:\(err) sipCallId:\(call.id) uuid:\(call.uuid))")
+        }
+        else{
+            _siprixModule.writeLog("CxProvider: cxAnswerAction?.fulfill")
+            call.cxAnswerAction?.fulfill()
+            call.cxAnswerAction = nil
+        }
+    }
+
     func proceedCxEndAction(_ call: CallModel) {
         var err = kErrorCodeEOK
         if(call.isIncoming && !call.connectedSuccessfully) {
@@ -2075,9 +2119,9 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         }
        
         call!.cxAnswerAction = action
+        call!.answeredByCallKit = true
         
         if (call!.id == kInvalidId) {
-            call!.answeredByCallKit = true
             _siprixModule.writeLog("CxProvider: CXAnswer uuid:\(action.callUUID) SIP hasn't received yet")
         }else{
             _siprixModule.writeLog("CxProvider: CXAnswer uuid:\(action.callUUID) callId:\(call!.id)")
@@ -2149,11 +2193,15 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
         _siprixModule.writeLog("CxProvider: didActivate")
         _siprixModule.activate(audioSession)
+        _audioSessionActivated = true
+
+        acceptCallsAfterActivateAudio()
     }
 
     func provider(_: CXProvider, didDeactivate audioSession: AVAudioSession) {
         _siprixModule.writeLog("CxProvider: didDeactivate")
         _siprixModule.deactivate(audioSession)
+        _audioSessionActivated = false
     }
 
     public func  getCallByUUID(_ uuid: UUID) -> CallModel? {

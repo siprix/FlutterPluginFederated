@@ -80,9 +80,10 @@ enum ErrorCode : int32_t
     ECallCantReferAtt    = -1053,
     ECallReferAttSameId  = -1054,
     EConfRequires2Calls  = -1055,
-    ECallIsHolding       = -1056,    
+    ECallIsHolding       = -1056,
     ERndrAlreadyAssigned = -1057,
     ESipHeaderNotFound   = -1058,
+    EToneNameInvalid     = -1059,
 
     EBadDeviceIndex      = -1070,
 
@@ -341,6 +342,8 @@ EXPORT ErrorCode Call_GetSipHeader(ISiprixModule* module, CallId callId,
                                 const char* hdrName, char* hdrVal, uint32_t* hdrValLen);
 EXPORT ErrorCode Call_GetNonce(ISiprixModule* module, CallId callId, char* nonceVal, uint32_t* nonceValLen);
 EXPORT ErrorCode Call_GetStats(ISiprixModule* module, CallId callId, char* statsVal, uint32_t* statsValLen);
+EXPORT ErrorCode Call_PlayTone(ISiprixModule* module, CallId callId, const char* tone, 
+                                uint16_t durationMs, PlayerId* playerId);
 EXPORT ErrorCode Call_StopRingtone(ISiprixModule* module);
 
 ////////////////////////////////////////////////////////////////////////////
@@ -507,6 +510,7 @@ EXPORT void     Subscr_SetAccountId(SubscrData* sub, AccountId accId);
 EXPORT void     Subscr_SetMimeSubtype(SubscrData* sub, const char* subtype);
 EXPORT void     Subscr_SetEventType(SubscrData* sub, const char* type);
 EXPORT void     Subscr_SetExpireTime(SubscrData* sub, uint32_t expireTime);
+EXPORT void     Subscr_SetBody(SubscrData* sub, const char* body);
 
 ////////////////////////////////////////////////////////////////////////////
 //Set fields of MsgData
