@@ -10,7 +10,8 @@ import 'siprix_voip_sdk.dart';
 
 /// Holds properties of SIP subscription item
 class SubscriptionModel extends ChangeNotifier implements ISiprixData {
-  SubscriptionModel([this.toExt="", this.fromAccId=0, this.mimeSubType="", this.eventType=""]);
+  SubscriptionModel({required this.toExt, required this.fromAccId,
+                    required this.mimeSubType, required this.eventType, this.body});
   ///Unique id assigned by library (valid only during current session)
   int mySubscrId=0;
   ///Remote extension, which will notify us when its state changed
@@ -23,6 +24,8 @@ class SubscriptionModel extends ChangeNotifier implements ISiprixData {
   String mimeSubType="";
   ///Event type which library will put in the SIP header 'Event'
   String eventType="";
+  ///String which library will put into the SIP request
+  String? body;
   ///Label using for display this subscription on UI
   String label="";
   ///Expire time in seconds (how often library will update this subscription)
@@ -41,9 +44,11 @@ class SubscriptionModel extends ChangeNotifier implements ISiprixData {
       'accId'    : fromAccId,
       'accUri'   : accUri,
       'mimeSubType': mimeSubType,
-      'eventType': eventType
+      'eventType': eventType,
+      'runtimeType':runtimeType.toString()
     };
     if(expireTime !=null)  ret['expireTime']  = expireTime;
+    if(body       !=null)  ret['body'] = body;
     return ret;
   }
 
@@ -55,6 +60,7 @@ class SubscriptionModel extends ChangeNotifier implements ISiprixData {
       if((key == 'accId')&&(value is int))          { fromAccId = value;   } else
       if((key == 'accUri')&&(value is String))      { accUri = value;      } else
       if((key == 'mimeSubType')&&(value is String)) { mimeSubType = value; } else
+      if((key == 'body')&&(value is String))        { body = value;        } else
       if((key == 'eventType')&&(value is String))   { eventType = value;   } else
       if((key == 'expireTime')&&(value is int))     { expireTime = value;  }
     });
@@ -62,12 +68,14 @@ class SubscriptionModel extends ChangeNotifier implements ISiprixData {
 
   ///Create BLF subscription
   factory SubscriptionModel.BLF(String ext, int accId) {
-    return SubscriptionModel(ext, accId, "dialog-info+xml", "dialog");
+    return SubscriptionModel(toExt:ext, fromAccId:accId,
+                            mimeSubType:"dialog-info+xml", eventType:"dialog");
   }
 
   ///Create Presence subscription
   factory SubscriptionModel.Presence(String ext, int accId) {
-    return SubscriptionModel(ext, accId, "pidf+xml", "presence");
+    return SubscriptionModel(toExt:ext, fromAccId:accId,
+                            mimeSubType:"pidf+xml", eventType:"presence");
   }
 
   ///Handle event raised by library (override on app level)
@@ -86,9 +94,9 @@ typedef SaveChangesCallback = void Function(String jsonStr);
 
 
 /// Subscriptions list model ((contains list of subscriptions, methods for managing them, handlers of library event)
-class SubscriptionsModel<T extends SubscriptionModel> extends ChangeNotifier {
-  final T Function(Map<String, dynamic>) _itemCreateFunc;
-  final List<T> _subscriptions = [];
+class SubscriptionsModel extends ChangeNotifier {
+  final SubscriptionModel Function(Map<String, dynamic>) _itemCreateFunc;
+  final List<SubscriptionModel> _subscriptions = [];
   final IAccountsModel _accountsModel;
   final ILogsModel? _logs;
 
@@ -103,13 +111,13 @@ class SubscriptionsModel<T extends SubscriptionModel> extends ChangeNotifier {
   /// Returns number of subscriptions in list
   int get length => _subscriptions.length;
   /// Returns subscription by its index in list
-  T operator [](int i) => _subscriptions[i];
+  SubscriptionModel operator [](int i) => _subscriptions[i];
 
   /// Callback which model invokes when subscriptions changes should be saved
   SaveChangesCallback? onSaveChanges;
 
   ///Add new subscription
-  Future<void> addSubscription(T sub, {bool saveChanges=true}) async {
+  Future<void> addSubscription(SubscriptionModel sub, {bool saveChanges=true}) async {
     _logs?.print('Adding new subscription ext:${sub.toExt} accId:${sub.fromAccId}');
 
     try {
@@ -145,7 +153,7 @@ class SubscriptionsModel<T extends SubscriptionModel> extends ChangeNotifier {
     }
   }
 
-  void _integrateAddedSubscription(T sub, bool saveChanges) {
+  void _integrateAddedSubscription(SubscriptionModel sub, bool saveChanges) {
     _subscriptions.add(sub);
 
     notifyListeners();

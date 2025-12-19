@@ -730,7 +730,12 @@ class SiprixVoipSdk {
     return _platform.muteCam(callId, mute);
   }
 
-  /// Play file to remote side of the specified call
+  /// Play tone to remote side of the specified call or local speaker (when specified 'callId=0')
+  Future<int?> playTone(int callId, String toneType, int durationMs) {
+    return _platform.playTone(callId, toneType, durationMs);
+  }
+
+  /// Play file to remote side of the specified call or local speaker (when specified 'callId=0')
   Future<int?> playFile(int callId, String pathToMp3File, bool loop) {
     return _platform.playFile(callId, pathToMp3File, loop);
   }

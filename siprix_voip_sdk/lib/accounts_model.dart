@@ -496,6 +496,7 @@ class AccountsModel extends ChangeNotifier implements IAccountsModel {
 
   void _selectAccount(int? index) {
     if((index != null)&&(index >=0)&&(index < length)&&(_selAccountIndex != index)){
+      _logs?.print('Account id: ${_accounts[index].myAccId} set as default');
       _selAccountIndex = index;
       _raiseSaveChanges();
       notifyListeners();
