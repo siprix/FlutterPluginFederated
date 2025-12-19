@@ -1,6 +1,21 @@
+## 1.0.33
+- Added new method 'PlayTone' and ability to play files/tones to local speaker even where there is no call
+- Redesigned internal mixer impl to avoid sound artifacts when SDK hosts conference call
+- Added ability to send SIP responses back to sender
+- Added ability to create few subscriptions for the same ext@account with different events
+- Added ability to set body for SUBSCRIBE request
+- Fixed handling SDP with enabled 'rtcp-mux'
+- iOS: updated CallKit impl (accept SIP call after activate audio session)
+- iOS: imroved handling networks switching and restore connection when app become active
+- Flutter-Android: fixed potential security exception on handling reject call notification
+- Flutter: updated 'SubscriptionsModel' implementation
+- Flutter example: added popup dialogs for dtmf/transfer.. actions in call UI
+- Flutter example: added more more explicit way to display and set default SIP account
+  //2025.12.19
+
 ## 1.0.32
 - Fixed sound artifacts which could appear when SDK hosts conference call
-- Added ability to skip registration request when SDK has been succfully registered less than 1sec ago
+- Added ability to skip registration request when SDK has been successfully registered less than 1sec ago
 - Android: Use Bluetooth as default device when it present
 - Android: Added fallback to default ringtone
   Redesigned CallNotif service impl
