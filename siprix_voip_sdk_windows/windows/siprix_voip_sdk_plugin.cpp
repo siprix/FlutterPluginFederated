@@ -48,6 +48,7 @@ const char kMethodCallMuteMic[]         = "Call_MuteMic";
 const char kMethodCallMuteCam[]         = "Call_MuteCam";
 const char kMethodCallSendDtmf[]        = "Call_SendDtmf";
 const char kMethodCallPlayFile[]        = "Call_PlayFile";
+const char kMethodCallPlayTone[]        = "Call_PlayTone";
 const char kMethodCallStopPlayFile[]    = "Call_StopPlayFile";
 const char kMethodCallRecordFile[]      = "Call_RecordFile";
 const char kMethodCallStopRecordFile[]  = "Call_StopRecordFile";
@@ -113,6 +114,7 @@ const char kArgVideoTextureId[]  = "videoTextureId";
 const char kArgStatusCode[] = "statusCode";
 const char kArgExpireTime[] = "expireTime";
 const char kArgWithVideo[]  = "withVideo";
+const char kArgDurationMs[] = "durationMs";
 
 const char kArgDvcIndex[]   = "dvcIndex";
 const char kArgDvcName[]    = "dvcName";
@@ -210,6 +212,7 @@ void SiprixVoipSdkPlugin::buildHandlersTable()
      handlers_[kMethodCallMuteMic]          = std::bind(&SiprixVoipSdkPlugin::handleCallMuteMic,        this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallMuteCam]          = std::bind(&SiprixVoipSdkPlugin::handleCallMuteCam,        this, std::placeholders::_1, std::placeholders::_2);     
      handlers_[kMethodCallSendDtmf]         = std::bind(&SiprixVoipSdkPlugin::handleCallSendDtmf,       this, std::placeholders::_1, std::placeholders::_2);
+     handlers_[kMethodCallPlayTone]         = std::bind(&SiprixVoipSdkPlugin::handleCallPlayTone,       this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallPlayFile]         = std::bind(&SiprixVoipSdkPlugin::handleCallPlayFile,       this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallStopPlayFile]     = std::bind(&SiprixVoipSdkPlugin::handleCallStopPlayFile,   this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallRecordFile]       = std::bind(&SiprixVoipSdkPlugin::handleCallRecordFile,     this, std::placeholders::_1, std::placeholders::_2);
@@ -746,7 +749,7 @@ void SiprixVoipSdkPlugin::handleCallSendDtmf(const flutter::EncodableMap& argsMa
 {
     bool bFound1, bFound2, bFound3, bFound4, bFound5;
     Siprix::CallId callId = parseValue<int32_t>(kArgCallId, argsMap, bFound1);
-    int32_t durationMs    = parseValue<int32_t>("durationMs", argsMap, bFound2);
+    int32_t durationMs    = parseValue<int32_t>(kArgDurationMs, argsMap, bFound2);
     int32_t intertoneGapMs= parseValue<int32_t>("intertoneGapMs", argsMap, bFound3);
     int32_t method        = parseValue<int32_t>("method", argsMap, bFound4);
     std::string dtmfs     = parseValue<std::string>("dtmfs", argsMap, bFound5);
@@ -758,8 +761,24 @@ void SiprixVoipSdkPlugin::handleCallSendDtmf(const flutter::EncodableMap& argsMa
     sendResult(err, result);
 }
 
+void SiprixVoipSdkPlugin::handleCallPlayTone(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
+{
+    bool bFound1, bFound2, bFound3;
+    Siprix::CallId callId    = parseValue<int32_t>(kArgCallId, argsMap, bFound1);
+    std::string toneType     = parseValue<std::string>("toneType", argsMap, bFound2);
+    const int32_t durationMs = parseValue<int32_t>(kArgDurationMs, argsMap, bFound3);
+    if (!bFound1 || !bFound2 || !bFound3) { sendBadArgResult(result); return; }
+
+    Siprix::PlayerId playerId = 0;
+    const Siprix::ErrorCode err = Siprix::Call_PlayTone(module_, callId, toneType.c_str(), 
+                                                        static_cast<uint16_t>(durationMs), &playerId);
+
+    if (err == Siprix::EOK) result->Success(flutter::EncodableValue(static_cast<int32_t>(playerId)));
+    else                    result->Error(std::to_string(err), std::string(Siprix::GetErrorText(err)));
+}
+
 void SiprixVoipSdkPlugin::handleCallPlayFile(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
-{    
+{
     bool bFound1, bFound2, bFound3;
     Siprix::CallId callId     = parseValue<int32_t>(kArgCallId, argsMap, bFound1);
     std::string pathToMp3File = parseValue<std::string>("pathToMp3File", argsMap, bFound2);
@@ -933,6 +952,7 @@ void SiprixVoipSdkPlugin::handleSubscriptionAdd(const flutter::EncodableMap& arg
         if(valName->compare("extension")   == 0) Siprix::Subscr_SetExtension(subscrData, strVal->c_str());
         if(valName->compare("mimeSubType") == 0) Siprix::Subscr_SetMimeSubtype(subscrData, strVal->c_str());
         if(valName->compare("eventType")   == 0) Siprix::Subscr_SetEventType(subscrData, strVal->c_str());
+        if(valName->compare("body")        == 0) Siprix::Subscr_SetBody(subscrData, strVal->c_str());
         continue;
     }
 
