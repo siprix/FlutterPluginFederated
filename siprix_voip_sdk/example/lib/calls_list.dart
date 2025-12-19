@@ -1,6 +1,7 @@
 // ignore_for_file: unused_element
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,6 +19,7 @@ import 'main.dart';
 //CallsListPage - represents list of calls
 
 enum CallAction {accept, reject, switchTo, hangup, hold, redirect}
+enum CallActionDialogType {dtmf, transferBlind, transferAttended, stats}
 
 class CallsListPage extends StatefulWidget {
   const CallsListPage({super.key});
@@ -39,6 +41,14 @@ class _CallsListPageState extends State<CallsListPage> {
         calls.calcDuration();
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<AppCallsModel>().onSwitchedCall = (int callId) {
+      CallActionDialog.popOnSwitchedCall(context);
+    };
   }
 
   @override
@@ -109,14 +119,6 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
   final SiprixVideoRenderer _localRenderer  = SiprixVideoRenderer();
   final SiprixVideoRenderer _remoteRenderer = SiprixVideoRenderer();
   static const double eIconSize = 30;
-
-  bool _sendDtmfMode = false;
-
-  final TextEditingController _transferBlindTextCtrl = TextEditingController();
-  bool _transferBlindMode = false;
-
-  int? _transferAttendedToCallId;
-  bool _transferAttendedMode = false;
 
   @override
   void initState() {
@@ -205,10 +207,6 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
       return children;
     }
 
-    if(_sendDtmfMode)         { children.add(_buildSendDtmf());         return children; }
-    if(_transferBlindMode)    { children.add(_buildTransferBlind());    return children; }
-    if(_transferAttendedMode) { children.add(_buildTransferAttended()); return children; }
-
     final bool isCallConnected = (widget.myCall.state == CallState.connected);
 
     children.add(Wrap(spacing: 25, runSpacing: 15, crossAxisAlignment: WrapCrossAlignment.start, children: [
@@ -233,6 +231,7 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
 
     children.add(const SizedBox(height: 10));
 
+    AppCallsModel calls = context.read<AppCallsModel>();
     children.add(Wrap(spacing: 25, runSpacing: 15, crossAxisAlignment: WrapCrossAlignment.start, children: [
       IconButton.filledTonal( iconSize: eIconSize, onPressed: _showAddCallPage, icon: const Icon(Icons.add),
       ),
@@ -250,23 +249,36 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
           },);
         },
         menuChildren: [
-          MenuItemButton(leadingIcon: Icon(widget.myCall.isFilePlaying ? Icons.stop : Icons.play_arrow),
+          MenuItemButton(leadingIcon: Icon(widget.myCall.isFilePlaying ? Icons.stop
+                                                                       : Icons.play_arrow),
             onPressed: isCallConnected ? _playFile : null,
             child: Text(widget.myCall.isFilePlaying ? "Stop playing" : 'Play file')),
 
-          MenuItemButton(leadingIcon: Icon(Icons.radio_button_checked, color: widget.myCall.isRecStarted ? Colors.red : null),
+          MenuItemButton(leadingIcon: Icon(Icons.radio_button_checked,
+                                           color: widget.myCall.isRecStarted ? Colors.red : null),
             onPressed: isCallConnected ? _recordFile : null,
             child: Text(widget.myCall.isRecStarted ? 'Stop record': 'Record')),
 
           const Divider(),
 
           MenuItemButton(leadingIcon: const Icon(Icons.phone_forwarded),
-              onPressed: context.read<AppCallsModel>().hasConnectedFewCalls() ? _toggleTransferAttendedMode : null,
-              child: const Text('Transfer attended')),
+              onPressed: calls.hasConnectedFewCalls() ? _toggleTransferAttendedMode : null,
+              child: const Text('Transfer att')),
 
           MenuItemButton(leadingIcon: const Icon(Icons.forward),
               onPressed: isCallConnected ? _toggleTransferBlindMode : null,
               child: const Text('Transfer')),
+
+          MenuItemButton(leadingIcon: Icon(calls.confModeStarted ? Icons.call_split_outlined
+                                                                 : Icons.call_merge_outlined),
+            onPressed: calls.hasConnectedFewCalls() ? _makeConference : null,
+            child: Text(calls.confModeStarted ? 'End conference' : 'Conference')),
+
+          const Divider(),
+
+          MenuItemButton(leadingIcon: const Icon(Icons.text_snippet_outlined),
+            onPressed: isCallConnected ? _getCallsStats : null,
+            child: const Text('Stats')),
         ]
       ),
     ]));
@@ -340,11 +352,6 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
       .catchError(showSnackBar);
   }
 
-  void _sendDtmf(String tone) {
-    widget.myCall.sendDtmf(tone)
-      .catchError(showSnackBar);
-  }
-
   void _holdCall() {
     widget.myCall.hold()
       .catchError(showSnackBar);
@@ -390,15 +397,8 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
     calls.makeConference().catchError(showSnackBar);
   }
 
-  void _transferBlind(String ext) async {
-    widget.myCall.transferBlind(ext)
-      .catchError(showSnackBar);
-  }
-
-  void _transferAttended(int? toCallId) async {
-    if(toCallId==null) return;
-
-    widget.myCall.transferAttended(toCallId)
+  void _upgradeCallToVideo() {
+    widget.myCall.upgradeToVideo()
       .catchError(showSnackBar);
   }
 
@@ -406,80 +406,196 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
     Navigator.of(context).pushNamed(CallAddPage.routeName);
   }
 
+  void _getCallsStats() {
+    CallActionDialog.show(context, widget.myCall, CallActionDialogType.stats);
+  }
+
   void _toggleSendDtmfMode() {
-    setState(() => _sendDtmfMode = !_sendDtmfMode );
+    CallActionDialog.show(context, widget.myCall, CallActionDialogType.dtmf);
   }
 
   void _toggleTransferBlindMode() {
-    setState(() => _transferBlindMode = !_transferBlindMode );
+    CallActionDialog.show(context, widget.myCall, CallActionDialogType.transferBlind);
   }
 
   void _toggleTransferAttendedMode() {
-    setState(() => _transferAttendedMode = !_transferAttendedMode );
+    CallActionDialog.show(context, widget.myCall, CallActionDialogType.transferAttended);
+  }
+
+}//_CallsPageState
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+//CallActionDialog - popup control with
+
+class CallActionDialog extends StatefulWidget {
+  const CallActionDialog(this.myCall, this.type, {super.key});
+  final CallActionDialogType type;
+  final CallModel myCall;
+
+  static const String _kRouteName = "/CallActionDialogRouteName";
+  /// Show dialog of the specified type for specified call
+  static void show(BuildContext context, CallModel call, CallActionDialogType type) {
+    showDialog<void>(
+      context: context,
+      routeSettings: RouteSettings(name: _kRouteName),
+      builder: (BuildContext context) {
+        return CallActionDialog(call, type);
+      },
+    );
+  }
+
+  /// Pop CallActionDialog when call switched
+  static void popOnSwitchedCall(BuildContext context) {
+    Navigator.popUntil(context, (route) {
+        return (route.settings.name != _kRouteName);
+    });
+  }
+
+  @override
+  State<CallActionDialog> createState() => _CallActionDialogState();
+}
+
+class _CallActionDialogState extends State<CallActionDialog> {
+  static const double kSpacing=8;
+  TextEditingController? _transferBlindTextCtrl;
+  int? _transferAttendedToCallId;
+  String? _statsStr;
+
+  @override
+  void initState() {
+    if(widget.type == CallActionDialogType.stats) {
+      _fetchCallsStats();
+    }else if(widget.type == CallActionDialogType.transferBlind) {
+      _transferBlindTextCtrl = TextEditingController();
+    }
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return
+      AlertDialog(
+        contentPadding: EdgeInsets.all(5),
+        content: _buildContent(),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(10.0)),
+        ),
+      );
+  }
+
+  void _fetchCallsStats() async {
+    String? jsonString = await widget.myCall.getStats();
+    if(jsonString==null) return;
+
+    final dynamic jsonObject = jsonDecode(jsonString);
+    const JsonEncoder encoder = JsonEncoder.withIndent('  ');
+    _statsStr = encoder.convert(jsonObject);
+
+    setState(() {});
+  }
+
+  void _closeDialog() {
+    Navigator.of(context).pop();
+  }
+
+  void _sendDtmf(String tone) {
+    widget.myCall.sendDtmf(tone)
+      .catchError(showSnackBar);
+  }
+
+  void showSnackBar(dynamic err) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+  }
+
+  void _transferBlind() async {
+    widget.myCall.transferBlind(_transferBlindTextCtrl!.text)
+      .catchError(showSnackBar);
+    _closeDialog();
+  }
+
+  Widget _buildContent() {
+    switch(widget.type){
+      case CallActionDialogType.transferBlind:    return _buildTransferBlind();
+      case CallActionDialogType.transferAttended: return _buildTransferAttended();
+      case CallActionDialogType.stats:            return _buildCallStats();
+      default:                                    return _buildSendDtmf();
+    }
   }
 
   Widget _buildSendDtmf() {
-    const double spacing=8;
     return
       Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          const SizedBox(height: spacing,),
-          Wrap(spacing: spacing, children: <Widget>[
+          const SizedBox(height: kSpacing),
+          Wrap(spacing: kSpacing, children: <Widget>[
               OutlinedButton(child: const Text('1'), onPressed: (){ _sendDtmf("1"); }),
               OutlinedButton(child: const Text('2'), onPressed: (){ _sendDtmf("2"); }),
               OutlinedButton(child: const Text('3'), onPressed: (){ _sendDtmf("3"); }),
             ]
           ),
-          const SizedBox(height: spacing),
-          Wrap(spacing: spacing, children: <Widget>[
+          const SizedBox(height: kSpacing),
+          Wrap(spacing: kSpacing, children: <Widget>[
               OutlinedButton(child: const Text('4'), onPressed: (){ _sendDtmf("4"); }),
               OutlinedButton(child: const Text('5'), onPressed: (){ _sendDtmf("5"); }),
               OutlinedButton(child: const Text('6'), onPressed: (){ _sendDtmf("6"); }),
             ]
           ),
-          const SizedBox(height: spacing),
-          Wrap(spacing: spacing, children: <Widget>[
+          const SizedBox(height: kSpacing),
+          Wrap(spacing: kSpacing, children: <Widget>[
               OutlinedButton(child: const Text('7'), onPressed: (){ _sendDtmf("7"); }),
               OutlinedButton(child: const Text('8'), onPressed: (){ _sendDtmf("8"); }),
               OutlinedButton(child: const Text('9'), onPressed: (){ _sendDtmf("9"); }),
             ]
           ),
-          const SizedBox(height:spacing),
-          Wrap(spacing:spacing, children: <Widget>[
+          const SizedBox(height:kSpacing),
+          Wrap(spacing:kSpacing, children: <Widget>[
               OutlinedButton(child: const Text('*'), onPressed: (){ _sendDtmf("*"); }),
               OutlinedButton(child: const Text('0'), onPressed: (){ _sendDtmf("0"); }),
               OutlinedButton(child: const Text('#'), onPressed: (){ _sendDtmf("#"); }),
             ]
           ),
-          const SizedBox(height:spacing),
-          IconButton.filledTonal(onPressed: _toggleSendDtmfMode, icon:const Icon(Icons.close)),
+          const SizedBox(height:kSpacing),
+          IconButton.filledTonal(onPressed: _closeDialog, icon:const Icon(Icons.close)),
         ],
     );
   }
 
-  Widget _buildTransferBlind({String action="Transfer"}) {
-    const double spacing=10;
+  Widget _buildCallStats() {
     return
-      Row(spacing: spacing, mainAxisSize: MainAxisSize.min,
-        children: [
+      Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
+        ConstrainedBox(constraints: BoxConstraints(maxHeight: 250), child:
+          SingleChildScrollView(child:
+            SelectableText(_statsStr?? "No data", style: Theme.of(context).textTheme.bodySmall)
+          )
+        ),
+        IconButton.filledTonal(onPressed: _closeDialog, icon:const Icon(Icons.close)),
+    ]);
+  }
+
+  Widget _buildTransferBlind({String action="Transfer"}) {
+    return
+      Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Row(spacing: kSpacing, mainAxisSize: MainAxisSize.min, children: [
           Text("$action to:", style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.w600)),
 
           SizedBox(width: 120,
             child: TextField(decoration: const InputDecoration(hintText: 'Extension', isDense: true),
               textAlign: TextAlign.center, controller: _transferBlindTextCtrl, onChanged: (data){ setState(() {}); },)
           ),
+        ]),
 
-          OutlinedButton(onPressed: _transferBlindTextCtrl.text.isEmpty ? null : () {
-            _transferBlind(_transferBlindTextCtrl.text);
-            _toggleTransferBlindMode();
-          },
-              child: Text(action)),
-          IconButton.filledTonal(onPressed: _toggleTransferBlindMode, icon:const Icon(Icons.close)),
+        const SizedBox(height: kSpacing),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+          OutlinedButton(onPressed: _transferBlindTextCtrl!.text.isEmpty ? null : _transferBlind,
+            child: Text(action)
+          ),
+          IconButton.filledTonal(onPressed: _closeDialog, icon:const Icon(Icons.close)),
+        ])
       ]);
   }
 
   Widget _buildTransferAttended() {
-    const double spacing=10;
     final calls = context.read<AppCallsModel>();
     CallModel? srcCall = calls.switchedCall();
     final int srcCallId = (srcCall!=null) ? srcCall.myCallId : 0;
@@ -488,8 +604,8 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
     }
 
     return
-      Row(spacing: spacing, mainAxisSize: MainAxisSize.min,
-        children: [
+      Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Row(spacing: kSpacing, mainAxisSize: MainAxisSize.min, children: [
           const Text("Transfer to:", style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w600)),
 
           DropdownButton<int?>(
@@ -499,13 +615,22 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
               for(var i = 0; i < calls.length; i++)
                 if(srcCallId != calls[i].myCallId)
                   DropdownMenuItem<int>(value: calls[i].myCallId, child: Text(calls[i].nameAndExt))
-              ]
+            ]
           ),
+        ]),
 
-          OutlinedButton(onPressed: () { _transferAttended(_transferAttendedToCallId); }, child: const Text('Transfer')),
-          IconButton.filledTonal(onPressed: _toggleTransferAttendedMode, icon:const Icon(Icons.close)),
+        const SizedBox(height: kSpacing),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+          OutlinedButton(onPressed: _transferAttended, child: const Text('Transfer')),
+          IconButton.filledTonal(onPressed: _closeDialog, icon:const Icon(Icons.close)),
+        ])
       ]);
   }
 
+  void _transferAttended() async {
+    if(_transferAttendedToCallId==null) return;
 
-}//_CallsPageState
+    widget.myCall.transferAttended(_transferAttendedToCallId!)
+      .catchError(showSnackBar);
+  }
+}
