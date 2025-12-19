@@ -163,11 +163,16 @@ open class CallNotifService : Service() {
             val filter = IntentFilter()
             filter.addAction(kActionIncomingCallReject)
             filter.addAction(kActionIncomingCallStopRinger)
-            _context.registerReceiver(_actionReceiver, filter)
+            if (Build.VERSION.SDK_INT >= 34) {
+                _context.registerReceiver(_actionReceiver, filter, RECEIVER_NOT_EXPORTED)
+            } else {
+                _context.registerReceiver(_actionReceiver, filter)
+            }
         }
 
         val rcvrIntent = Intent(action)
         rcvrIntent.putExtras(bundle)
+        rcvrIntent.setPackage(_context.packageName)
         return PendingIntent.getBroadcast(
             _context, _requestCode++, rcvrIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

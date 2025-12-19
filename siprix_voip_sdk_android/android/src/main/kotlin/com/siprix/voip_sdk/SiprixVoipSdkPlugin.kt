@@ -84,6 +84,7 @@ const val kMethodCallMuteMic          = "Call_MuteMic"
 const val kMethodCallMuteCam          = "Call_MuteCam"
 const val kMethodCallSendDtmf         = "Call_SendDtmf"
 const val kMethodCallPlayFile         = "Call_PlayFile"
+const val kMethodCallPlayTone         = "Call_PlayTone"
 const val kMethodCallStopPlayFile     = "Call_StopPlayFile"
 const val kMethodCallRecordFile       = "Call_RecordFile"
 const val kMethodCallStopRecordFile   = "Call_StopRecordFile"
@@ -152,6 +153,7 @@ const val kArgForeground = "foreground"
 const val kArgStatusCode = "statusCode"
 const val kArgExpireTime = "expireTime"
 const val kArgWithVideo  = "withVideo"
+const val kArgDurationMs = "durationMs"
 
 const val kArgDvcIndex = "dvcIndex"
 const val kArgDvcName  = "dvcName"
@@ -746,6 +748,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
       kMethodCallMuteMic       ->   handleCallMuteMic(args, result)
       kMethodCallMuteCam       ->   handleCallMuteCam(args, result)
       kMethodCallSendDtmf      ->   handleCallSendDtmf(args, result)
+      kMethodCallPlayTone      ->   handleCallPlayTone(args, result)
       kMethodCallPlayFile      ->   handleCallPlayFile(args, result)
       kMethodCallStopPlayFile  ->   handleCallStopPlayFile(args, result)
       kMethodCallRecordFile    ->   handleCallRecordFile(args, result)
@@ -1224,7 +1227,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
   private fun handleCallSendDtmf(args : HashMap<String, Any?>, result: MethodChannel.Result) {
     val callId :Int?         = args[kArgCallId] as? Int
-    val durationMs : Int?    = args["durationMs"] as? Int
+    val durationMs : Int?    = args[kArgDurationMs] as? Int
     val interToneGapMs: Int? = args["intertoneGapMs"] as? Int
     val method  : Int?       = args["method"] as? Int
     val dtmfs  : String?     = args["dtmfs"] as? String
@@ -1238,7 +1241,26 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
       durationMs, interToneGapMs, SiprixCore.DtmfMethod.fromInt(method))
     sendResult(err, result)
   }
-  
+
+  private fun handleCallPlayTone(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    val callId : Int?     = args[kArgCallId] as? Int
+    val durationMs : Int? = args[kArgDurationMs] as? Int
+    val toneType :String? = args["toneType"] as? String
+
+    if((callId == null)||(toneType==null)||(durationMs==null)) {
+      sendBadArguments(result)
+      return
+    }
+
+    val playerIdArg = SiprixCore.IdOutArg()
+    val err = _core.callPlayTone(callId, toneType, durationMs, playerIdArg)
+    if(err == kErrorCodeEOK) {
+      result.success(playerIdArg.value)
+    }else{
+      result.error(err.toString(), _core.getErrText(err), null)
+    }
+  }
+
   private fun handleCallPlayFile(args : HashMap<String, Any?>, result: MethodChannel.Result) {
     val callId : Int?          = args[kArgCallId] as? Int
     val pathToMp3File :String? = args["pathToMp3File"] as? String
@@ -1422,6 +1444,9 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
     val eventType : String? = args["eventType"] as? String
     if(eventType != null) { subscrData.setEventType(eventType); }
+
+    val body : String? = args["body"] as? String
+    if(body != null) { subscrData.setBody(body); }
 
     val subscrIdArg = SiprixCore.IdOutArg()
     val err = _core.subscrCreate(subscrData, subscrIdArg)

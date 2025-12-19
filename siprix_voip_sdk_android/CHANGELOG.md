@@ -1,3 +1,13 @@
+## 1.0.26
+- Added new method 'PlayTone' and ability to play files/tones to local speaker even where there is no call
+- Redesigned internal mixer impl to avoid sound artifacts when SDK hosts conference call
+- Added ability to send SIP responses back to sender
+- Added ability to create few subscriptions for the same ext@account with different events
+- Added ability to set body for SUBSCRIBE request
+- Fixed handling SDP with enabled 'rtcp-mux'
+- Fixed potential security exception on handling reject call notification
+  //2025.12.19
+
 ## 1.0.25
 - Fixed sound artifacts which could appear when SDK hosts conference call
 - Added ability to skip registration request when SDK has been succfully registered less than 1sec ago
