@@ -33,6 +33,7 @@ private let kMethodCallGetStats         = "Call_GetStats";
 private let kMethodCallMuteMic          = "Call_MuteMic"
 private let kMethodCallMuteCam          = "Call_MuteCam"
 private let kMethodCallSendDtmf         = "Call_SendDtmf"
+private let kMethodCallPlayTone         = "Call_PlayTone"
 private let kMethodCallPlayFile         = "Call_PlayFile"
 private let kMethodCallStopPlayFile     = "Call_StopPlayFile"
 private let kMethodCallRecordFile       = "Call_RecordFile"
@@ -97,6 +98,7 @@ private let kArgVideoTextureId  = "videoTextureId"
 private let kArgStatusCode = "statusCode"
 private let kArgExpireTime = "expireTime"
 private let kArgWithVideo  = "withVideo"
+private let kArgDurationMs  = "durationMs"
 
 private let kArgDvcIndex = "dvcIndex"
 private let kArgDvcName  = "dvcName"
@@ -525,6 +527,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
                 case kMethodCallMuteMic       :   handleCallMuteMic(argsMap!, result:result)
                 case kMethodCallMuteCam       :   handleCallMuteCam(argsMap!, result:result)
                 case kMethodCallSendDtmf      :   handleCallSendDtmf(argsMap!, result:result)
+                case kMethodCallPlayTone      :   handleCallPlayTone(argsMap!, result:result)
                 case kMethodCallPlayFile      :   handleCallPlayFile(argsMap!, result:result)
                 case kMethodCallStopPlayFile  :   handleCallStopPlayFile(argsMap!, result:result)
                 case kMethodCallRecordFile    :   handleCallRecordFile(argsMap!, result:result)
@@ -950,7 +953,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
     func handleCallSendDtmf(_ args : ArgsMap, result: @escaping FlutterResult) {
         let callId         = args[kArgCallId] as? Int
-        let durationMs     = args["durationMs"] as? Int
+        let durationMs     = args[kArgDurationMs] as? Int
         let intertoneGapMs = args["intertoneGapMs"] as? Int
         let method         = args["method"] as? Int
         let dtmfs          = args["dtmfs"] as? String
@@ -966,6 +969,26 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
                                     intertoneGapMs:Int32(intertoneGapMs!),
                                     method:m)
         sendResult(err, result:result)
+    }
+
+    func handleCallPlayTone(_ args : ArgsMap, result: @escaping FlutterResult) {
+        let callId     = args[kArgCallId] as? Int
+        let toneType   = args["toneType"] as? String
+        let durationMs = args[kArgDurationMs] as? Int
+        
+        if((callId == nil)||(toneType==nil)||(durationMs==nil)) {
+            sendBadArguments(result:result)
+            return
+        }
+        
+        let data = SiprixPlayerData()
+        let err = _siprixModule.callPlayTone(Int32(callId!), toneType:toneType!,
+                                             durationMs:Int32(durationMs!), playerData:data)
+        if(err == kErrorCodeEOK){
+            result(data.playerId)
+        }else{
+            result(FlutterError(code: String(err), message: _siprixModule.getErrorText(err), details: nil))
+        }
     }
 
     func handleCallPlayFile(_ args : ArgsMap, result: @escaping FlutterResult) {
@@ -1149,6 +1172,9 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
         let eventType = args["eventType"] as? String
         if(eventType != nil) { subscrData.eventType = eventType! }
+
+        let body = args["body"] as? String
+        if(body != nil) { subscrData.body = body! }
      
         let err = _siprixModule.subscrCreate(subscrData)
         if(err == kErrorCodeEOK){
