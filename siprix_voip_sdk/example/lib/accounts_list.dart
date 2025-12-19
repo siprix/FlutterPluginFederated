@@ -18,6 +18,7 @@ class AccountsListPage extends StatefulWidget {
 enum AccAction {delete, unregister, register, edit}
 
 class _AccountsListPageState extends State<AccountsListPage> {
+  int _selRowIdx=0;
   @override
   Widget build(BuildContext context) {
     final accounts = context.watch<AppAccountsModel>();
@@ -39,27 +40,48 @@ class _AccountsListPageState extends State<AccountsListPage> {
     AccountModel acc = accounts[index];
     return
       ListTile(
-        selected: (accounts.selAccountId == acc.myAccId),
+        selected: (_selRowIdx == index),//(accounts.selAccountId == acc.myAccId),
         selectedColor: Colors.black,
         selectedTileColor: Theme.of(context).secondaryHeaderColor,
         leading: _getAccIcon(acc.regState),
         title: Text(acc.uri, style: Theme.of(context).textTheme.titleSmall, overflow: TextOverflow.ellipsis),
         subtitle: Text('ID: ${acc.myAccId} REG: ${acc.regText}', overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic, color: Colors.grey)),
-        trailing: _accListTileMenu(acc, index),
-        onTap: () { onTapAccListTile(acc.myAccId); },
+        trailing: _buildTrailingSection(accounts, index),
+        onTap: () { onTapAccListTile(index); },
         dense: true,
       );
   }
 
-  void onTapAccListTile(int accId) {
+  void onTapAccListTile(int rowIndex) {
+    setState(() {
+      _selRowIdx = rowIndex;
+    });
+  }
+
+  void onTapSetSelectedAccount(int accId) {
     context.read<AppAccountsModel>().setSelectedAccountById(accId);
+  }
+
+  Widget _buildTrailingSection(AccountsModel accounts, int index) {
+    AccountModel acc = accounts[index];
+    return
+      Wrap(children:[
+        if(accounts.selAccountId == acc.myAccId)
+          IconButton(onPressed: null,
+            icon: const Icon(Icons.check_circle), tooltip: "Default account")
+        else if(_selRowIdx == index)
+          IconButton(onPressed: (){ onTapSetSelectedAccount(acc.myAccId); },
+            icon: const Icon(Icons.radio_button_unchecked_outlined)),
+
+        _accListTileMenu(acc, index)
+      ]);
   }
 
   PopupMenuButton<AccAction> _accListTileMenu(AccountModel acc, int index) {
     return
       PopupMenuButton<AccAction>(
-        //onOpened: () { onTapAccListTile(index); },
+        onOpened: () { onTapAccListTile(index); },
         onSelected: (AccAction action) { _doAccountAction(action, index); },
         itemBuilder: (BuildContext context) => <PopupMenuEntry<AccAction>>[
           const PopupMenuItem<AccAction>(
