@@ -223,6 +223,7 @@ EXPORT
 @property(nonatomic, assign) int fromAccId;
 @property(nonatomic, retain) NSString* _Nonnull toExt;
 @property(nonatomic, retain) NSString* _Nonnull body;
+@property(nonatomic, retain) NSString* _Nullable contentType;
 @end
 
 EXPORT
@@ -321,8 +322,8 @@ EXPORT
             statusCode:(NSInteger)statusCode;
 
 - (void)onCallRedirected:(NSInteger)origCallId
-            relatedCallId:(NSInteger)relatedCallId
-            referTo:(NSString * _Nonnull)referTo;
+          relatedCallId:(NSInteger)relatedCallId
+          referTo:(NSString * _Nonnull)referTo;
 
 - (void)onCallVideoUpgraded:(NSInteger) callId
           withVideo:(BOOL)withVideo;

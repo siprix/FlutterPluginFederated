@@ -1140,6 +1140,9 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         let fromAccId = args[kArgAccId] as? Int
         if(fromAccId != nil) { msgData.fromAccId = Int32(fromAccId!) }
        
+        let contentType = args["contentType"] as? String
+        if(contentType != nil) { msgData.contentType = contentType! }
+
         let body = args[kBody] as? String
         if(body != nil) { msgData.body = body! }
 
