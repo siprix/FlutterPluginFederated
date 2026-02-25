@@ -223,6 +223,7 @@ EXPORT
 @property(nonatomic, assign) int fromAccId;
 @property(nonatomic, retain) NSString* _Nonnull toExt;
 @property(nonatomic, retain) NSString* _Nonnull body;
+@property(nonatomic, retain) NSString* _Nullable contentType;
 @end
 
 EXPORT

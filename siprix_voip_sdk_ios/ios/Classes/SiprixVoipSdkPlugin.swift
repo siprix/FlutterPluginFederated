@@ -772,7 +772,8 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         }
       
         if((err == kErrorCodeEOK) && (_callKitProvider != nil) && (enablePushKit == true)) {
-            _pushKitProvider = SiprixPushRegistry(_siprixModule, eventHandler:_eventHandler)
+            _pushKitProvider = SiprixPushRegistry.shared
+            _pushKitProvider?.setModule(_siprixModule, eventHandler:_eventHandler)
         }
         #endif
       
@@ -1324,6 +1325,9 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         
         let fromAccId = args[kArgAccId] as? Int
         if(fromAccId != nil) { msgData.fromAccId = Int32(fromAccId!) }
+
+        let contentType = args["contentType"] as? String
+        if(contentType != nil) { msgData.contentType = contentType! }
        
         let body = args[kBody] as? String
         if(body != nil) { msgData.body = body! }
@@ -1675,22 +1679,26 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 ///SiprixPushRegistry
 
 class SiprixPushRegistry : NSObject, PKPushRegistryDelegate {
-    private let _siprixModule : SiprixModule
-    private var _eventHandler : SiprixEventHandler
+    static let shared = SiprixPushRegistry()
+    private var _siprixModule : SiprixModule?
+    private var _eventHandler : SiprixEventHandler?
     private let _registry: PKPushRegistry
     private var _token: String?
-    
-    init(_  module: SiprixModule, eventHandler : SiprixEventHandler) {
-        _siprixModule = module
-        _eventHandler = eventHandler
+
+    private override init() {
         _registry = PKPushRegistry(queue: .main)
         super.init()
         
         _registry.delegate = self
         _registry.desiredPushTypes = [.voIP]
-        _siprixModule.writeLog("SiprixPushRegistry: created")
     }
-    
+
+    public func setModule(_ module: SiprixModule, eventHandler : SiprixEventHandler) {
+        _siprixModule = module
+        _eventHandler = eventHandler
+        _siprixModule?.writeLog("SiprixPushRegistry: created")
+    }
+
     public func getToken() -> String? {
         if(_token == nil) {
             let data = _registry.pushToken(for: .voIP)
@@ -1717,9 +1725,9 @@ class SiprixPushRegistry : NSObject, PKPushRegistryDelegate {
            
     public func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload:
                                 PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
-        _siprixModule.writeLog("PushRegistry: didReceiveIncomingPushWith:\(type) \(payload.dictionaryPayload)")
+        _siprixModule?.writeLog("PushRegistry: didReceiveIncomingPushWith:\(type) \(payload.dictionaryPayload)")
         if(type == .voIP) {
-            _eventHandler.didReceiveIncomingPush(payload.dictionaryPayload)
+            _eventHandler?.didReceiveIncomingPush(payload.dictionaryPayload)
         }
         completion()
     }
@@ -1787,7 +1795,7 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
     
     func onSipConnected(_ callId: Int, withVideo:Bool) {
-        //Activate audio session (case when enabled PushKit+CallKit, but push notif didn't received)
+        //Activate audio (case when enabled PushKit+CallKit, but push notif hasn't received)
         if(!_audioSessionActivated) {
             _siprixModule.writeLog("CxProvider: manually activate audio session")
             _siprixModule.activate( AVAudioSession.sharedInstance())
@@ -1851,25 +1859,12 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         })
     }
 
-    func acceptCallsAfterActivateAudio() {
-        _callsList.filter({$0.answeredByCallKit}).forEach { call in
-            proceedCxAnswerAction(call)
-        }
-    }
-
     func proceedCxAnswerAction(_ call: CallModel) {
-        if(_audioSessionActivated) {
-            call.answeredByCallKit = false
-            let err = _siprixModule.callAccept(Int32(call.id), withVideo:call.withVideo)
-            if (err == kErrorCodeEOK) { call.cxAnswerAction?.fulfill() }
-            else                      { call.cxAnswerAction?.fail()    }
-            _siprixModule.writeLog("CxProvider: proceedCxAnswerAction err:\(err) sipCallId:\(call.id) uuid:\(call.uuid))")
-        }
-        else{
-            _siprixModule.writeLog("CxProvider: cxAnswerAction?.fulfill")
-            call.cxAnswerAction?.fulfill()
-            call.cxAnswerAction = nil
-        }
+        call.answeredByCallKit = false
+        let err = _siprixModule.callAccept(Int32(call.id), withVideo:call.withVideo)
+        if (err == kErrorCodeEOK) { call.cxAnswerAction?.fulfill() }
+        else                      { call.cxAnswerAction?.fail()    }
+        _siprixModule.writeLog("CxProvider: proceedCxAnswerAction err:\(err) sipCallId:\(call.id) uuid:\(call.uuid))")
     }
 
     func proceedCxEndAction(_ call: CallModel) {
@@ -2194,8 +2189,6 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         _siprixModule.writeLog("CxProvider: didActivate")
         _siprixModule.activate(audioSession)
         _audioSessionActivated = true
-
-        acceptCallsAfterActivateAudio()
     }
 
     func provider(_: CXProvider, didDeactivate audioSession: AVAudioSession) {

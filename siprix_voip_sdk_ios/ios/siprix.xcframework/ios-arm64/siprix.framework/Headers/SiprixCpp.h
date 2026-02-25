@@ -518,6 +518,7 @@ EXPORT MsgData* Msg_GetDefault();
 EXPORT void     Msg_SetExtension(MsgData* msg, const char* extension);
 EXPORT void     Msg_SetAccountId(MsgData* msg, AccountId accId);
 EXPORT void     Msg_SetBody(MsgData* msg, const char* body);
+EXPORT void     Msg_SetContentType(MsgData* msg, const char* contentType);
 
 ////////////////////////////////////////////////////////////////////////////
 //Get error text
