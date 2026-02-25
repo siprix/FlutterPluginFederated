@@ -1,3 +1,11 @@
+## 1.0.21
+- Added ability to retrieve last received SIP message when call terminated
+- Added ability to end call when it's waiting on Re-Invite response
+- Don't update registration when it's failed on TCP connection closed by remote side
+- Redesigned deleting subscriptions (after receive confirmation from remote side)
+- Added ability to set ContentType for Message requests
+- Added new exampe app with single model for easy start (https://github.com/siprix/SampleFlutter)
+
 ## 1.0.20
 - Added new method 'PlayTone' and ability to play files/tones to local speaker even where there is no call
 - Redesigned internal mixer impl to avoid sound artifacts when SDK hosts conference call

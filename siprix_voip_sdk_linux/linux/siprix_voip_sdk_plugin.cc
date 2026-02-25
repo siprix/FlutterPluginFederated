@@ -1094,6 +1094,10 @@ FlMethodResponse* handleMessageSend(FlValue* args, SiprixVoipSdkPlugin* self)
   if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_STRING)
       Msg_SetBody(msgData, fl_value_get_string(val));
 
+  val = fl_value_lookup_string(args, "contentType");
+  if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_STRING)
+      Msg_SetContentType(msgData, fl_value_get_string(val));
+
   Siprix::MessageId msgId = 0;
   const Siprix::ErrorCode err = Siprix::Message_Send(self->module_, msgData, &msgId);
   g_autoptr(FlValue) res = fl_value_new_int(msgId);
