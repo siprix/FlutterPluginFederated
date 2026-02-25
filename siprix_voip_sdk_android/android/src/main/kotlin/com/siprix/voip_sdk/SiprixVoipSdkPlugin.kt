@@ -6,6 +6,7 @@ package com.siprix.voip_sdk
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.DialogInterface
@@ -637,6 +638,8 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     //Set activity attributes
     var dontShowWhenLocked = appInfo.metaData?.getBoolean("com.siprix.DontShowWhenLocked") ?:false
     setActivityFlags(_activity, !dontShowWhenLocked)
+
+    if(!dontShowWhenLocked) requestFullScreenIntent()
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
@@ -1413,6 +1416,9 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     val body : String? = args[kBody] as? String
     if(body != null) { msgData.setBody(body); }
 
+    val contentType : String? = args["contentType"] as? String
+    if(contentType != null) { msgData.setContentType(contentType); }
+
     val msgIdArg = SiprixCore.IdOutArg()
     val err = _core.messageSend(msgData, msgIdArg)
     if(err == kErrorCodeEOK) {
@@ -1650,6 +1656,19 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
             ContextCompat.checkSelfPermission(_activity!!, permission) == PackageManager.PERMISSION_GRANTED)
   }
 
+  private fun requestFullScreenIntent() {
+    if (Build.VERSION.SDK_INT < 34) return;
+
+    val notifMgr = _activity!!.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    if (notifMgr.canUseFullScreenIntent()) return;
+
+    val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+      data = Uri.fromParts("package", _activity!!.packageName, null)
+      flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+    _activity!!.startActivity(intent)
+  }
+
   private fun requestPermissions() {
     //Add 'CAMERA' if manifest contains it
     val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
@@ -1744,26 +1763,15 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
   private fun handleIntent(method: String, intent: Intent) : Boolean {
     _core.moduleWriteLog("handleIntent '${method}' ${intent}")
-
     _bgService?.handleIncomingCallIntent(intent)
-
-    if(canHandleIntent(intent)) {
-      raiseIncomingCallEvent(intent)
-      return true
-    }
-    return false
-  }
-
-  private fun canHandleIntent(intent: Intent):Boolean {
-    //Skip intent if extra is null or action not expected
-    val isCallIncomingAction = (CallNotifService.kActionIncomingCall == intent.action)//tap on notification
-    val isCallAcceptAction = (CallNotifService.kActionIncomingCallAccept == intent.action)//tap on 'Accept'
-    return (intent.extras != null) && (isCallIncomingAction || isCallAcceptAction)
+    return raiseIncomingCallEvent(intent)
   }
 
   private fun raiseIncomingCallEvent(intent: Intent) : Boolean {
+    val isCallAcceptAction = (CallNotifService.kActionIncomingCallAccept == intent.action)//tap on 'Accept'
+    val isCallIncomingAction = (CallNotifService.kActionIncomingCall == intent.action)//tap on 'Accept'
+    if((intent.extras == null) || (!isCallAcceptAction && !isCallIncomingAction)) return false;
     Log.i(TAG, "raiseIncomingCallEvent: ${intent}")
-    if(intent.extras == null) return true
 
     //Get accId from intent
     val args = intent.extras!!
@@ -1785,7 +1793,6 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     Log.i(TAG, "raise onCallIncoming $callId")
     _eventListener.onCallIncoming(callId, accId, video, from, to)
 
-    val isCallAcceptAction = (CallNotifService.kActionIncomingCallAccept == intent.action)//tap on 'Accept'
     if(isCallAcceptAction) {
       Log.i(TAG, "raise onCallAcceptNotif $callId")
       _eventListener.onCallAcceptNotif(callId, video)

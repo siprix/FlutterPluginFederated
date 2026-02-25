@@ -394,6 +394,9 @@ open class CallNotifService : Service() {
             _service.cancelNotification(callId)
         }
 
+        override fun onCallConnected(callId: Int, hdrFrom: String?, hdrTo: String?, withVideo:Boolean) {
+        }
+
         override fun onCallIncoming(
             callId: Int, accId: Int, withVideo: Boolean,
             hdrFrom: String, hdrTo: String
@@ -508,7 +511,6 @@ open class CallNotifService : Service() {
         const val kCallChannelId = "kSiprixCallChannelId_"
         const val kMsgChannelId  = "kSiprixMsgChannelId_"
 
-        const val kActionAppStarted = "kActionAppStarted"
         const val kActionForeground = "kActionForeground"
         
         const val kActionIncomingCall = "kActionIncomingCall"
