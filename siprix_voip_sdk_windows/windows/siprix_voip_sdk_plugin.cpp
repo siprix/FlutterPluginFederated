@@ -363,7 +363,8 @@ void SiprixVoipSdkPlugin::handleModuleInitialize(const flutter::EncodableMap& ar
         const std::string* strVal = std::get_if<std::string>(&val.second);
         if(strVal) {
             if(valName->compare("license")   == 0)   Siprix::Ini_SetLicense(iniData,      strVal->c_str());else
-            if(valName->compare("brandName") == 0)   Siprix::Ini_SetBrandName(iniData,    strVal->c_str());
+            if(valName->compare("brandName") == 0)   Siprix::Ini_SetBrandName(iniData,    strVal->c_str());else
+            if(valName->compare("homeFolder") == 0)  Siprix::Ini_SetHomeFolder(iniData,   strVal->c_str());
             continue;
         }
 
@@ -914,8 +915,9 @@ void SiprixVoipSdkPlugin::handleMessageSend(const flutter::EncodableMap& argsMap
 
     const std::string* strVal = std::get_if<std::string>(&val.second);
     if(strVal) {
-        if(valName->compare("extension") == 0) Siprix::Msg_SetExtension(msgData, strVal->c_str());
-        if(valName->compare(kBody) == 0)       Siprix::Msg_SetBody(msgData, strVal->c_str());
+        if(valName->compare(kBody) == 0)          Siprix::Msg_SetBody(msgData, strVal->c_str()); else
+        if(valName->compare("extension") == 0)    Siprix::Msg_SetExtension(msgData, strVal->c_str()); else
+        if(valName->compare("contentType") == 0)  Siprix::Msg_SetContentType(msgData, strVal->c_str());
         continue;
     }
 
