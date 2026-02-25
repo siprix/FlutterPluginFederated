@@ -181,11 +181,13 @@ class _MyAppState extends State<MyApp> {
   static void _initializeSiprix([LogsModel? logsModel]) async {
     debugPrint('Initialize siprix');
     InitData iniData = InitData();
-    iniData.license  = "...license-credentials...";
     iniData.logLevelFile = LogLevel.debug;
     iniData.logLevelIde = LogLevel.info;
-    
-    //- uncomment if required -//
+
+    //- Put here license key after purchase, for trial evaluation key is not required -//
+    //iniData.license  = "...license-key...";
+
+    //- Uncomment if required -//
     //iniData.enableVUmeter = true;
     //iniData.singleCallMode = false;
     //iniData.tlsVerifyServer = false;

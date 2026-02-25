@@ -142,6 +142,9 @@ class SubscriptionsModel extends ChangeNotifier {
           sub.mySubscrId = existingSubscrId;
           _integrateAddedSubscription(sub, saveChanges);
         }
+        else {
+          return Future.error(err.toString());
+        }
       }
       else {
         _logs?.print('Can\'t add subscription: ${err.code} ${err.message} ');
@@ -167,12 +170,7 @@ class SubscriptionsModel extends ChangeNotifier {
     try {
       int subscrId = _subscriptions[index].mySubscrId;
       await SiprixVoipSdk().deleteSubscription(subscrId);
-
-      _subscriptions.removeAt(index);
-
-      notifyListeners();
-      _raiseSaveChanges();
-      _logs?.print('Deleted subscription subscrId:$subscrId');
+      _logs?.print('Deleting subscription subscrId:$subscrId');
 
     } on PlatformException catch (err) {
       _logs?.print('Can\'t delete subscription: ${err.code} ${err.message}');
@@ -183,8 +181,19 @@ class SubscriptionsModel extends ChangeNotifier {
   ///Handle library event raised when received NOTIFY request
   void onSubscrStateChanged(int subscrId, SubscriptionState s, String resp) {
     _logs?.print('onSubscrStateChanged subscrId:$subscrId resp:$resp ${s.toString()}');
+
+    //Find subscription by id
     int idx = _subscriptions.indexWhere((sub) => (sub.mySubscrId == subscrId));
-    if(idx != -1) {
+    if(idx == -1) return;
+
+    if(s == SubscriptionState.destroyed) {
+      //Remove destroyed subscription from list
+      _logs?.print('Deleted subscription subscrId:$subscrId');
+      _subscriptions.removeAt(idx);
+      notifyListeners();
+      _raiseSaveChanges();
+    }else{
+      //Update state of the found subscription
       _subscriptions[idx].onSubscrStateChanged(s, resp);
     }
   }

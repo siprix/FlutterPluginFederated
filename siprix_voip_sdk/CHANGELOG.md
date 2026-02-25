@@ -1,3 +1,18 @@
+## 1.0.34
+- Windows: Fixed handling homeFolder with Unicode symbols
+- Windows: Added ability to detect default audio device changes and switch audio during a call
+- Added ability to retrieve last received SIP message when call terminated
+- Added ability to end call when it's waiting on Re-Invite response
+- Don't update registration when it's failed on TCP connection closed by remote side
+- Redesigned deleting subscriptions (after receive confirmation from remote side)
+- iOS: improved switching between transports
+- iOS: converted SiprixPushRegistry to singleton.
+- Android: added ability to request full screen intent permission
+- Added ability to set ContentType for Message requests
+- Flutter: Added homeFolder setting
+- Added new exampe app with single model for easy start (https://github.com/siprix/SampleFlutter)
+  //2026.02.25
+
 ## 1.0.33
 - Added new method 'PlayTone' and ability to play files/tones to local speaker even where there is no call
 - Redesigned internal mixer impl to avoid sound artifacts when SDK hosts conference call
@@ -10,7 +25,7 @@
 - Flutter-Android: fixed potential security exception on handling reject call notification
 - Flutter: updated 'SubscriptionsModel' implementation
 - Flutter example: added popup dialogs for dtmf/transfer.. actions in call UI
-- Flutter example: added more more explicit way to display and set default SIP account
+- Flutter example: added more explicit way to display and set default SIP account
   //2025.12.19
 
 ## 1.0.32

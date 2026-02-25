@@ -23,7 +23,7 @@ Plugin implements ready to use SIP VoIP Client with ability to:
 ### Add dependency in pubspec.yaml
 ```
 dependencies:
-  siprix_voip_sdk: ^1.0.33
+  siprix_voip_sdk: ^1.0.34
   provider: ^6.1.1
 ```
 
@@ -66,9 +66,12 @@ class _MyAppState extends State<MyApp> {
 
   void _initializeSiprix([LogsModel? logsModel]) async {
     InitData iniData = InitData();
-    iniData.license  = "...license-credentials...";
     iniData.logLevelFile = LogLevel.info;
-    //- uncomment if required -//
+
+    //- Put here license key after purchase, for trial evaluation key is not required -//
+    //iniData.license  = "...license-credentials...";
+
+    //- Uncomment if required -//
     //iniData.enableCallKit = true;
     //iniData.enablePushKit = true;
     //iniData.unregOnDestroy = false;

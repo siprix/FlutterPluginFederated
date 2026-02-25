@@ -76,6 +76,9 @@ class InitData implements ISiprixData {
   /// Enable VU volume meter (triggers event 'VuMeterLevel') when call exist
   bool? enableVUmeter;
 
+  /// Folder where to store log files
+  String? homeFolder;
+
   @override
   Map<String, dynamic> toJson() {
     Map<String, dynamic> ret = {};
@@ -100,6 +103,7 @@ class InitData implements ISiprixData {
     if(transpForceIPv4!=null)   ret['transpForceIPv4'] = transpForceIPv4;
     if(enableAes128Sha32!=null) ret['enableAes128Sha32'] = enableAes128Sha32;
     if(enableVUmeter!=null)     ret['enableVUmeter'] = enableVUmeter;
+    if(homeFolder!=null)        ret['homeFolder'] = homeFolder;
     return ret;
   }
 }//InitData

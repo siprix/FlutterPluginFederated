@@ -9,21 +9,24 @@ import 'siprix_voip_sdk.dart';
 
 /// Message destination -  contains lists of parameters for sending message
 class MessageDestination implements ISiprixData {
-  MessageDestination(this.toExt, this.fromAccId, this.body);
-  /// Extension (phone number) to dial
+  MessageDestination(this.toExt, this.fromAccId, this.body, {this.contentType});
+  /// Extension (phone number) where to send message
   final String toExt;
   /// Id of the account which should send INVITE request
   final int    fromAccId;
   /// Set display name in the SIP header From (overrides value set in the account specified by 'fromAccId')
   final String body;
+  /// Put this value into header ContentType
+  final String? contentType;
 
   @override
   Map<String, dynamic> toJson() {
     Map<String, dynamic> ret = {
       'extension': toExt,
       'accId'    : fromAccId,
-      'body'     : body
+      'body'     : body,
     };
+    if(contentType!=null) ret['contentType'] = contentType;
     return ret;
   }
 }
