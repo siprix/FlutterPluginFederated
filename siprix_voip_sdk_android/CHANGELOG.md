@@ -1,3 +1,12 @@
+## 1.0.28
+- Fixed bug with losing mute state when switch between calls or make conference
+- Improved handling RtcpMux/BUNDLE options when ICE enabled
+- Fixed triggering 'OnPlayerState' event
+- Added ability to set brandName in the 'msid' SDP attribute
+- Android Flutter: Added ability to sync calls state when Activity destroyed during the call
+- Android Flutter: Fixed potential exception on display incoming call notification
+  //2026.03.18
+
 ## 1.0.27
 - Added ability to retrieve last received SIP message when call terminated
 - Added ability to end call when it's waiting on Re-Invite response
@@ -6,6 +15,7 @@
 - Android: added ability to request full screen intent permission
 - Added ability to set ContentType for Message requests
 - Added new exampe app with single model for easy start (https://github.com/siprix/SampleFlutter)
+  //2026.02.25
 
 ## 1.0.26
 - Added new method 'PlayTone' and ability to play files/tones to local speaker even where there is no call

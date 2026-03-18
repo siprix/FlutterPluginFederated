@@ -45,6 +45,7 @@ open class CallNotifService : Service() {
     private var _requestCode: Int = 1
     private var _isBound: Boolean = false
     private var _pendingMsgs : MutableList<Bundle> = mutableListOf()
+    private var _callsState: HashMap<String, Any?>? = null
 
     inner class LocalBinder : Binder() {
         val service: CallNotifService
@@ -345,6 +346,32 @@ open class CallNotifService : Service() {
 
     fun isForegroundMode() :Boolean { return _foregroundModeStarted }
 
+    fun syncCallsState(args : HashMap<String, Any?>) {
+        _callsState = args
+    }
+
+    fun getCallsState() : HashMap<String, Any?>? {
+        return _callsState
+    }
+
+    private fun removeCallIfPresentInSavedState(callId: Int) {
+        if(_callsState==null) return;
+
+        val switchedCallId = _callsState!!.get("switchedCallId") as? Int
+        if(switchedCallId == callId) _callsState!!.remove("switchedCallId")
+
+        val callsList = _callsState!!.get("callsList") as? ArrayList<Any>
+        if(callsList==null) return
+        for (call in callsList) {
+            val callDict = call as? HashMap<String, Any?>?
+            val myCallId = callDict?.get("myCallId") as? Int?
+            if(myCallId == callId) {
+                callsList.remove(call)
+                break;
+            }
+        }
+    }
+
     private fun acquireWakelock() {
         if (ContextCompat.checkSelfPermission(_context, Manifest.permission.WAKE_LOCK)
             != PackageManager.PERMISSION_GRANTED) return
@@ -392,6 +419,7 @@ open class CallNotifService : Service() {
 
         override fun onCallTerminated(callId: Int, statusCode: Int) {
             _service.cancelNotification(callId)
+            _service.removeCallIfPresentInSavedState(callId)
         }
 
         override fun onCallConnected(callId: Int, hdrFrom: String?, hdrTo: String?, withVideo:Boolean) {

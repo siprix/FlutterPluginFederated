@@ -106,6 +106,7 @@ const val kMethodSubscriptionDelete  = "Subscription_Delete"
 
 const val kMethodDvcSetForegroundMode= "Dvc_SetForegroundMode"
 const val kMethodDvcIsForegroundMode = "Dvc_IsForegroundMode"
+const val kMethodDvcSyncCallsState   = "Dvc_SyncCallsState"
 
 const val kMethodDvcGetPlayoutNumber = "Dvc_GetPlayoutDevices"
 const val kMethodDvcGetRecordNumber  = "Dvc_GetRecordingDevices"
@@ -140,6 +141,7 @@ const val kOnCallRedirected   = "OnCallRedirected"
 const val kOnCallVideoUpgraded= "OnCallVideoUpgraded"
 const val kOnCallVideoUpgradeRequested= "OnCallVideoUpgradeRequested"
 const val kOnCallSwitched     = "OnCallSwitched"
+const val kOnCallsSyncState   = "OnCallsSyncState"
 const val kOnCallHeld         = "OnCallHeld"
 
 const val kOnMessageSentState = "OnMessageSentState"
@@ -278,6 +280,10 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgWithVideo] = withVideo
     argsMap[kArgCallId] = callId
     channel?.invokeMethod(kOnCallAcceptNotif, argsMap)
+  }
+
+  fun onCallsSyncState(argsMap : HashMap<String, Any?>) {
+    channel?.invokeMethod(kOnCallsSyncState, argsMap)
   }
 
   override fun onCallDtmfReceived(callId: Int, tone: Int) {
@@ -620,6 +626,16 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     Log.i(TAG, "onDetachedFromEngine this:${this.hashCode()} binding:${binding.hashCode()}")
+    _eventListener.setMethodChannel(null)
+    _channel.setMethodCallHandler(null)
+
+    if (_bgService != null) {
+      _core.setModelListener(null)
+
+      if(_bgService!!.isDetached()) _bgService?.destroyInternal()
+      else _activity?.unbindService(_serviceConnection)
+      _bgService = null
+    }
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -655,16 +671,6 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
   override fun onDetachedFromActivity() {
     Log.i(TAG, "onDetachedFromActivity this:${this.hashCode()}")
-    _eventListener.setMethodChannel(null)
-    _channel.setMethodCallHandler(null)
-
-    if (_bgService != null) {
-      _core.setModelListener(null)
-
-      if(_bgService!!.isDetached()) _bgService?.destroyInternal()
-      else _activity?.unbindService(_serviceConnection)
-      _bgService = null
-    }
   }
 
   private fun startAndBindNotifService(serviceClassName : String?) {
@@ -676,6 +682,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
       val srvIntent = Intent(_appContext, srvClass)
       _activity?.bindService(srvIntent, _serviceConnection, Context.BIND_AUTO_CREATE)
       _appContext.startService(srvIntent)
+
     }catch (ex: Exception) {
       _core.moduleWriteLog("Can't start service: '${ex}', create it manually")
       createDetachedNotifService(serviceClassName)
@@ -704,6 +711,9 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
       _bgService = binder.service
 
       if(_activity != null) {
+        var state = _bgService?.getCallsState()
+        if(state != null) _eventListener.onCallsSyncState(state)
+
         handleIntent("onServiceConnected", _activity!!.intent)
       }
     }
@@ -773,6 +783,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
       kMethodDvcSetForegroundMode->  handleDvcSetForegroundMode(args, result)
       kMethodDvcIsForegroundMode->   handleDvcIsForegroundMode(args, result)
+      kMethodDvcSyncCallsState->     handleDvcSyncCallsState(args, result)
 
       kMethodDvcGetPlayoutNumber->   handleDvcGetPlayoutNumber(args, result)
       kMethodDvcGetRecordNumber ->   handleDvcGetRecordNumber(args, result)
@@ -1505,6 +1516,16 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     result.success(if(_bgService!=null) _bgService!!.isForegroundMode() else false)
   }
 
+  private fun handleDvcSyncCallsState(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    if(_bgService == null) {
+      result.error("-", "Service has not bound yet", null)
+    }else{
+      _bgService!!.syncCallsState(args)
+      Log.i(TAG, "handleDvcSyncCallsState: $args")
+      result.success("State saved")
+    }
+  }
+
   private fun handleDvcGetPlayoutNumber(args : HashMap<String, Any?>, result: MethodChannel.Result) {
     result.success(_core.dvcGetAudioDevices())
   }
@@ -1767,7 +1788,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     return raiseIncomingCallEvent(intent)
   }
 
-  private fun raiseIncomingCallEvent(intent: Intent) : Boolean {
+  private fun raiseIncomingCallEvent(intent: Intent, addToPendingIfNoAccount: Boolean=true) : Boolean {
     val isCallAcceptAction = (CallNotifService.kActionIncomingCallAccept == intent.action)//tap on 'Accept'
     val isCallIncomingAction = (CallNotifService.kActionIncomingCall == intent.action)//tap on 'Accept'
     if((intent.extras == null) || (!isCallAcceptAction && !isCallIncomingAction)) return false;
@@ -1778,7 +1799,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     val accId = args.getInt(CallNotifService.kExtraAccId)
 
     //When this instance of plugin doesn't have accId yet - store intent and raise it later
-    if(!_accountsIds.contains(accId)) {
+    if(!_accountsIds.contains(accId) && addToPendingIfNoAccount) {
         Log.w(TAG, "skip as accounts from previous session hasn't restored yet")
         _pendingIntents.add(intent)
         return false
@@ -1816,7 +1837,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   private fun raiseIncomingCallWhenAccountsRestored() {
     val intentsIterator = _pendingIntents.iterator()
     while (intentsIterator.hasNext()) {
-      if(raiseIncomingCallEvent(intentsIterator.next())) {
+      if(raiseIncomingCallEvent(intentsIterator.next(), addToPendingIfNoAccount = false)) {
         intentsIterator.remove()
       }
     }
