@@ -21,9 +21,10 @@ class AccountPage extends StatefulWidget {
 
 class AccountPageState extends State<AccountPage> {
   final _formKey = GlobalKey<FormState>();
-  AccountModel _account = AccountModel();
+  late AccountModel _account;
   bool _passwordVisible = false;
   bool _advancedMode = false;
+  bool _isInitialized = false;
   List<Codec> _audioCodecsList=[];
   List<Codec> _videoCodecsList=[];
   String _errText = "";
@@ -31,9 +32,19 @@ class AccountPageState extends State<AccountPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _account = ModalRoute.of(context)!.settings.arguments as AccountModel;
-    _audioCodecsList = Codec.getCodecsList(_account.aCodecs, audio:true);
-    _videoCodecsList = Codec.getCodecsList(_account.vCodecs, audio:false);
+    if(!_isInitialized) {
+      _isInitialized = true;
+      AccountModel? _inAcc = ModalRoute.of(context)!.settings.arguments as AccountModel?;
+
+      //Clone account if exist (allows to drop copy when user canceled changes) or create new one
+      _account = AccountModel.cloneOrCreateNew(_inAcc);
+      _audioCodecsList = Codec.getCodecsList(_account.aCodecs, audio:true);
+      _videoCodecsList = Codec.getCodecsList(_account.vCodecs, audio:false);
+    }
+  }
+
+  bool isAddMode() {
+    return (_account.myAccId == 0);
   }
 
   @override
@@ -214,7 +225,9 @@ class AccountPageState extends State<AccountPage> {
         decoration: const InputDecoration(labelText: 'TURN password'),
         onChanged: (String? value) { setState(() { _account.turnPassword = value; }); },
         initialValue: _account.turnPassword,
-      )
+      ),
+      _buildIceEnabled(),
+      _buildRtcpMuxEnabled()
     ];
   }
 
@@ -226,7 +239,7 @@ class AccountPageState extends State<AccountPage> {
           labelText: 'Media encryption:',
           contentPadding: EdgeInsets.all(0),
         ),
-        value: _account.secureMedia,
+        initialValue: _account.secureMedia,
         elevation: 1,
         onChanged: (SecureMedia? value) { setState(() { _account.secureMedia = value!; }); },
         items: SecureMedia.values.map((t) => _secureMediaItem(t)).toList()
@@ -274,7 +287,7 @@ class AccountPageState extends State<AccountPage> {
                 onChanged: (bool? sel) { setState(() { items[c].selected = sel!; }); },
               ),
               title: Text(Codec.name(items[c].id)),
-              trailing:  Icon(Icons.drag_handle)
+              trailing: const Icon(Icons.drag_handle)
             ),
         ],
         onReorder: (int oldIndex, int newIndex) {
@@ -321,10 +334,6 @@ class AccountPageState extends State<AccountPage> {
     );
   }
 
-  bool isAddMode() {
-    return (_account.myAccId == 0);
-  }
-
   DropdownMenuItem<SipTransport> transportItem(SipTransport transp) {
     return DropdownMenuItem<SipTransport>(value: transp, child:
       Text(transp.name, style:Theme.of(context).textTheme.bodyMedium,)
@@ -339,7 +348,7 @@ class AccountPageState extends State<AccountPage> {
           labelText: 'Sip signalling transport:',
           labelStyle: TextStyle(color: isAddMode() ? null : Theme.of(context).disabledColor),
         ),
-        value: _account.transport,
+        initialValue: _account.transport,
         onChanged: isAddMode() ? (SipTransport? value) { setState(() { _account.transport = value!; }); } : null,
         items: SipTransport.values.map((t) => transportItem(t)).toList()
     ));
@@ -355,6 +364,26 @@ class AccountPageState extends State<AccountPage> {
     );
   }
 
+  Widget _buildIceEnabled() {
+    return CheckboxListTile(
+      contentPadding: const EdgeInsetsDirectional.all(0),
+      title: const Text('ICE'),
+      onChanged: (bool? val) {  setState(() { _account.iceEnabled = val;  }); },
+      value: _account.iceEnabled,
+      tristate:true,
+    );
+  }
+
+ Widget _buildRtcpMuxEnabled() {
+    return CheckboxListTile(
+      contentPadding: const EdgeInsetsDirectional.all(0),
+      title: const Text('Rtcp-Mux'),
+      onChanged: (bool? val) {  setState(() { _account.rtcpMuxEnabled = val;  }); },
+      value: _account.rtcpMuxEnabled,
+      tristate:true,
+    );
+  }
+
   Widget _buildUpgradeToVideModeDropDown() {
     return ButtonTheme(alignedDropdown: true, child:
       DropdownButtonFormField<UpgradeToVideoMode>(
@@ -363,7 +392,7 @@ class AccountPageState extends State<AccountPage> {
           labelText: 'Upgrade to video mode:',
           labelStyle: TextStyle(color: isAddMode() ? null : Theme.of(context).disabledColor),
         ),
-        value: _account.upgradeToVideo,
+        initialValue: _account.upgradeToVideo,
         onChanged: (UpgradeToVideoMode? value) { setState(() { _account.upgradeToVideo = value!; }); },
         items: UpgradeToVideoMode.values.map((t) => _upgradeTovideoModeItem(t)).toList()
     ));

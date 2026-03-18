@@ -116,7 +116,7 @@ class _AccountsListPageState extends State<AccountsListPage> {
   }
 
   void _addAccount() {
-    Navigator.of(context).pushNamed(AccountPage.routeName, arguments: AccountModel());
+    Navigator.of(context).pushNamed(AccountPage.routeName);
   }
 
   void _editAccount(int index) {
