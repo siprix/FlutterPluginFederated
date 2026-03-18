@@ -23,7 +23,7 @@ Plugin implements ready to use SIP VoIP Client with ability to:
 ### Add dependency in pubspec.yaml
 ```
 dependencies:
-  siprix_voip_sdk: ^1.0.33
+  siprix_voip_sdk: ^1.0.35
   provider: ^6.1.1
 ```
 
@@ -66,9 +66,12 @@ class _MyAppState extends State<MyApp> {
 
   void _initializeSiprix([LogsModel? logsModel]) async {
     InitData iniData = InitData();
-    iniData.license  = "...license-credentials...";
     iniData.logLevelFile = LogLevel.info;
-    //- uncomment if required -//
+
+    //- Put here license key after purchase, for trial evaluation key is not required -//
+    //iniData.license  = "...license-credentials...";
+
+    //- Uncomment if required -//
     //iniData.enableCallKit = true;
     //iniData.enablePushKit = true;
     //iniData.unregOnDestroy = false;
@@ -138,6 +141,10 @@ Please contact [support@siprix-voip.com](mailto:support@siprix-voip.com) if you 
 ## How to integrate Android FCM?
 [See detailed manual here](https://docs.siprix-voip.com/rst/flutter.html#android-add-firebase-push-notifications)
 
+## Can I use library without models layer?
+
+Yes, you can create own abstraction layer between app and library and directly use existing API.
+As example of this approach here is [one more example application](https://github.com/siprix/SampleFlutter).
 
 ## How to use this library without provider?
 

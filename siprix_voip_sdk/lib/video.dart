@@ -164,7 +164,7 @@ class SiprixVideoView extends StatelessWidget {
     return _renderer.hasTexture
                     ? AspectRatio(aspectRatio: _renderer.aspectRatio,
                         child: Texture(textureId: _renderer.textureId, filterQuality: filterQuality))
-                    : const Placeholder();
+                    : const SizedBox.shrink();
   }
 
   //Widget buildWithText(BuildContext context) {

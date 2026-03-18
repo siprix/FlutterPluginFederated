@@ -1,3 +1,17 @@
+## 1.0.35
+- Fixed bug with losing mute state when switch between calls or make conference
+- Improved handling RtcpMux/BUNDLE options when ICE enabled
+- MacOS: Fixed potential crash on initialize
+- Fixed triggering 'OnPlayerState' event
+- Added ability to set brandName in the 'msid' SDP attribute
+- Android Flutter: Added ability to sync calls state when Activity destroyed during the call
+- Android Flutter: Fixed potential exception on display incoming call notification
+- iOS Flutter: Fixed bug with inverted mute behaviour on iOS 17+
+- iOS Flutter: Signal Flutter when call muted by CalKit
+- iOS Flutter: Added new setting 'enableCallKitMute' (ability to mute call by CallKit)
+- iOS Flutter: Added new setting 'enableCallKitReportCallAsVideo' (ability to mute call by CallKit)
+  //2026.03.18
+
 ## 1.0.34
 - Windows: Fixed handling homeFolder with Unicode symbols
 - Windows: Added ability to detect default audio device changes and switch audio during a call

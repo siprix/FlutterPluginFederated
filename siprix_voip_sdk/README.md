@@ -23,7 +23,7 @@ Plugin implements ready to use SIP VoIP Client with ability to:
 ### Add dependency in pubspec.yaml
 ```
 dependencies:
-  siprix_voip_sdk: ^1.0.34
+  siprix_voip_sdk: ^1.0.35
   provider: ^6.1.1
 ```
 
@@ -141,6 +141,10 @@ Please contact [support@siprix-voip.com](mailto:support@siprix-voip.com) if you 
 ## How to integrate Android FCM?
 [See detailed manual here](https://docs.siprix-voip.com/rst/flutter.html#android-add-firebase-push-notifications)
 
+## Can I use library without models layer?
+
+Yes, you can create own abstraction layer between app and library and directly use existing API.
+As example of this approach here is [one more example application](https://github.com/siprix/SampleFlutter).
 
 ## How to use this library without provider?
 
