@@ -358,8 +358,18 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
   }
 
   void _muteMic() {
-    widget.myCall.muteMic(!widget.myCall.isMicMuted)
-      .catchError(showSnackBar);
+    final calls = context.read<AppCallsModel>();
+    if(calls.confModeStarted) {
+      //In the conf mode mute mic of all calls using state of the current call as base
+      final bool isMuted = widget.myCall.isMicMuted;
+      for(var i = 0; i < calls.length; i++) {
+        calls[i].muteMic(!isMuted)
+          .catchError(showSnackBar);
+      }
+    } else {
+      widget.myCall.muteMic(!widget.myCall.isMicMuted)
+        .catchError(showSnackBar);
+    }
   }
 
   void _muteCam() {
