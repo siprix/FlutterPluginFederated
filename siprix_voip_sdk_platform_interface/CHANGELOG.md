@@ -1,3 +1,8 @@
+## 1.0.12
+- Added new method 'syncCallsState' 
+- Added new events 'onCallKitMuted', 'onCallsSyncState'
+  //2026.03.18
+
 ## 1.0.11
 - Added new method 'playTone'
   //2025.12.19

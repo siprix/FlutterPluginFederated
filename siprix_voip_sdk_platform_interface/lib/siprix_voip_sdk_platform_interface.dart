@@ -65,6 +65,8 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
 
   static const String kMethodDvcSetForegroundMode= 'Dvc_SetForegroundMode';
   static const String kMethodDvcIsForegroundMode=  'Dvc_IsForegroundMode';
+  static const String kMethodDvcSyncCallsState  =  'Dvc_SyncCallsState';
+
   static const String kMethodDvcGetPlayoutNumber = 'Dvc_GetPlayoutDevices';
   static const String kMethodDvcGetRecordNumber  = 'Dvc_GetRecordingDevices';
   static const String kMethodDvcGetVideoNumber   = 'Dvc_GetVideoDevices';
@@ -102,6 +104,8 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kOnCallVideoUpgradeRequested= 'OnCallVideoUpgradeRequested';
   static const String kOnCallSwitched     = 'OnCallSwitched';
   static const String kOnCallHeld         = 'OnCallHeld';
+  static const String kOnCallKitMuted     = 'OnCallKitMuted';
+  static const String kOnCallsSyncState   = 'OnCallsSyncState';
 
   static const String kOnMessageSentState = 'OnMessageSentState';
   static const String kOnMessageIncoming  = 'OnMessageIncoming';
@@ -147,6 +151,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kBody      = 'body';
   static const String kMicLevel  = 'mic';
   static const String kSpkLevel  = 'spk';
+  static const String kArgMute   = 'mute';
 
   static const String kChannelName = 'siprix_voip_sdk';
 
@@ -274,12 +279,12 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
 
   Future<void> muteMic(int callId, bool mute) {
     return _methodChannel.invokeMethod<void>(kMethodCallMuteMic,
-      {kArgCallId:callId, 'mute':mute} );
+      {kArgCallId:callId, kArgMute:mute} );
   }
 
   Future<void> muteCam(int callId, bool mute) {
     return _methodChannel.invokeMethod<void>(kMethodCallMuteCam,
-      {kArgCallId:callId, 'mute':mute} );
+      {kArgCallId:callId, kArgMute:mute} );
   }
 
   Future<int?> playTone(int callId, String toneType, int durationMs) {
@@ -499,6 +504,13 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   Future<bool?>? isForegroundMode() {
     if(Platform.isAndroid) {
       return _methodChannel.invokeMethod<bool?>(kMethodDvcIsForegroundMode, {});
+    }
+    return null;
+  }
+
+  Future<void>? syncCallsState(ISiprixData callsData) {
+    if(Platform.isAndroid) {
+      return _methodChannel.invokeMethod<void>(kMethodDvcSyncCallsState, callsData.toJson());
     }
     return null;
   }
