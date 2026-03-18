@@ -264,6 +264,22 @@ class CallHeldArg {
   }
 }
 
+/// Helper class for handling 'onCallHeld' event raised by library
+class CallKitMutedArg {
+  int callId=0;
+  bool mute = false;
+  bool fromMap(Map<dynamic, dynamic> argsMap) {
+    int argsCounter=0;
+
+    argsMap.forEach((key, value) {
+      if((key == SiprixVoipSdkPlatform.kArgCallId)&&(value is int)) { callId = value; argsCounter+=1; } else
+      if((key == SiprixVoipSdkPlatform.kArgMute)&&(value is bool)) { mute  = value; argsCounter+=1; }
+    });
+    return (argsCounter==2);
+  }
+}
+
+
 /// Helper class for handling 'onCallSwitched' event raised by library
 class CallSwitchedArg {
   int callId=0;
@@ -380,6 +396,7 @@ class MediaDevice {
 /// Account state listener, usign by 'AccountsModel'
 class AccStateListener {
   AccStateListener({required this.regStateChanged});
+  ///Triggered by library when account's state changed
   void Function(int accId, RegState state, String response) regStateChanged;
 }
 
@@ -399,8 +416,8 @@ class NetStateListener {
 class CallStateListener {
   CallStateListener({this.proceeding, this.incoming, this.incomingPush, this.acceptNotif,
     this.connected, this.terminated, this.dtmfReceived,
-    this.transferred, this.redirected, this.videoUpgraded, this.videoUpgradeRequested, 
-    this.held, this.switched, this.playerStateChanged});
+    this.transferred, this.redirected, this.videoUpgraded, this.videoUpgradeRequested,
+    this.held, this.muted, this.syncState, this.switched, this.playerStateChanged});
 
   ///Triggered by library when changed player state in specific call
   void Function(int playerId, PlayerState s)? playerStateChanged;
@@ -428,6 +445,10 @@ class CallStateListener {
   void Function(int callId, int tone)? dtmfReceived;
   ///Triggered by library when local or remote side has put call on hold
   void Function(int callId, HoldState)? held;
+  ///Triggered by library when call has been muted by CallKit (iOS only)
+  void Function(int callId, bool mute)? muted;
+  ///Triggered by library from 'onAttachedToActivity'
+  void Function(Map<String, dynamic> argsMap)? syncState;
   ///Triggered by library when new call gives audio focus
   void Function(int callId)? switched;
 }
@@ -945,6 +966,10 @@ class SiprixVoipSdk {
     return _platform.isForegroundMode();
   }
 
+  ///Provide calls state to the Android's service
+  Future<void>? syncCallsState(ISiprixData callsData) {
+    return _platform.syncCallsState(callsData);
+  }
 
   //-//////////////////////////////////////////////////////////////////////////////////////
   //-Siprix callbacks handler
@@ -979,6 +1004,8 @@ class SiprixVoipSdk {
       case SiprixVoipSdkPlatform.kOnCallVideoUpgradeRequested: _onCallVideoUpgradeRequested(argsMap); break;
       case SiprixVoipSdkPlatform.kOnCallSwitched     : _onCallSwitched(argsMap);     break;
       case SiprixVoipSdkPlatform.kOnCallHeld         : _onCallHeld(argsMap);         break;
+      case SiprixVoipSdkPlatform.kOnCallKitMuted     : _onCallKitMuted(argsMap);     break;
+      case SiprixVoipSdkPlatform.kOnCallsSyncState   : _onCallsSyncState(argsMap);   break;
 
       case SiprixVoipSdkPlatform.kOnMessageSentState : _onMessageSentState(argsMap); break;
       case SiprixVoipSdkPlatform.kOnMessageIncoming  : _onMessageIncoming(argsMap);  break;
@@ -1091,6 +1118,18 @@ class SiprixVoipSdk {
     if(arg.fromMap(argsMap)) {
       callListener?.held?.call(arg.callId, arg.state);
     }
+  }
+
+  void _onCallKitMuted(Map<dynamic, dynamic> argsMap) {
+    CallKitMutedArg arg = CallKitMutedArg();
+    if(arg.fromMap(argsMap)) {
+      callListener?.muted?.call(arg.callId, arg.mute);
+    }
+  }
+
+  void _onCallsSyncState(Map<dynamic, dynamic> argsMap) {
+    Map<String, dynamic> stringDynamicMap = Map<String, dynamic>.from(argsMap);
+    callListener?.syncState?.call(stringDynamicMap);
   }
 
   void _onCallSwitched(Map<dynamic, dynamic> argsMap) {

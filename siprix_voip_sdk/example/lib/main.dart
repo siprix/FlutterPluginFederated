@@ -150,6 +150,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  late final AppLifecycleListener? _listener;
+
   @override
   void initState() {
     super.initState();
@@ -157,6 +159,21 @@ class _MyAppState extends State<MyApp> {
     _initializeSiprix(context.read<LogsModel>());
     widget.writeRingtoneAsset();//after initialize Siprix as uses its 'homeFolder'
     _readSavedState();
+
+    if(Platform.isAndroid)
+      _listener = AppLifecycleListener(onInactive: _onAndroidAppInactive);
+  }
+
+  @override
+  void dispose() {
+    _listener?.dispose();
+    super.dispose();
+  }
+
+  // Listen to the app lifecycle 'Inactive' state and send calls state to service (Android only)
+  void _onAndroidAppInactive() async {
+    debugPrint("_onAppLifecycleInactive");
+    await SiprixVoipSdk().syncCallsState(context.read<AppCallsModel>());
   }
 
   @override

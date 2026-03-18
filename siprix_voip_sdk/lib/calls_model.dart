@@ -42,50 +42,36 @@ class CallDestination implements ISiprixData {
 /// Call state
 enum CallState{
   /// Outgoing call just initiated
-  dialing,
+  dialing(0, "Dialing"),
   /// Outgoing call in progress, received 100Trying or 180Ringing
-  proceeding,
-
+  proceeding(1, "Proceeding"),
   /// Incoming call just received
-  ringing,
-
+  ringing(2, "Ringing"),
   /// Incoming call rejecting after invoke 'call.reject'
-  rejecting,
-
+  rejecting(3, "Rejecting"),
   /// Incoming call accepting after invoke 'call.accept'
-  accepting,
-
+  accepting(4, "Accepting"),
   /// Call successfully established, RTP is flowing
-  connected,
-
+  connected(5, "Connected"),
   /// Call disconnecting after invoke 'call.bye'
-  disconnecting,
-
+  disconnecting(6, "Disconnecting"),
   /// Call holding (renegotiating RTP stream states)
-  holding,
+  holding(7, "Holding"),
+
   /// Call held, RTP is NOT flowing
-  held,
-
+  held(8, "Held"),
   /// Call transferring
-  transferring,
-}
+  transferring(9, "Transferring");
 
-/// Extension which resolves call state to name
-extension CallStateExtension on CallState {
-  ///Returns name of the call state
-  String get name {
-    switch(this) {
-      case CallState.dialing:    return "Dialing";
-      case CallState.proceeding: return "Proceeding";
-      case CallState.ringing:    return "Ringing";
-      case CallState.rejecting:  return "Rejecting";
-      case CallState.accepting:  return "Accepting";
-      case CallState.connected:  return "Connected";
-      case CallState.holding:    return "Holding";
-      case CallState.held:       return "Held";
-      case CallState.disconnecting: return "Disconnecting";
-      case CallState.transferring:  return "Transferring";
-    }
+  const CallState(this.id, this.name);
+  /// Call state id
+  final int id;
+  /// Call state name
+  final String name;
+
+  /// Returns state which matches specified int value
+  static CallState from(int val) {
+    return CallState.values.where((e) => e.id == val).first;
   }
 }
 
@@ -147,7 +133,7 @@ enum PlayerState {
 
 
 /// Call model (contains call attributes, methods for managing them, handles library events)
-class CallModel extends ChangeNotifier {
+class CallModel extends ChangeNotifier implements ISiprixData {
   CallModel(this.myCallId, this.accUri, this.remoteExt, this.isIncoming, this.hasSecureMedia, this._hasVideo, [this._logs]) {
     _state = isIncoming ? CallState.ringing : CallState.dialing;
   }
@@ -224,6 +210,71 @@ class CallModel extends ChangeNotifier {
 
   /// Returns true if call state is `connected`
   bool get isConnected => (_state==CallState.connected);
+
+  @override
+  Map<String, dynamic> toJson() {
+    Map<String, dynamic> ret = {
+      'myCallId' : myCallId,
+      'accUri': accUri,
+      'remoteExt' : remoteExt,
+      'displName' : displName,
+      'receivedDtmf' : receivedDtmf,
+      'response' : response,
+      'state' : state.id,
+      'holdState' : holdState.id,
+      'startTime' : startTime.millisecondsSinceEpoch,
+      'hasVideo' : hasVideo,
+      'playerId' : playerId,
+      'isIncoming' : isIncoming,
+      'hasSecureMedia' : hasSecureMedia,
+      'isMicMuted' : isMicMuted,
+      'isCamMuted' : isCamMuted,
+      'isRecStarted' : isRecStarted,
+      'isUpgradingToVideo' : isUpgradingToVideo,
+      'hasVideoUpgradeRequest' : hasVideoUpgradeRequest
+    };
+    return ret;
+  }
+
+  /// Creates instance of CallModel with values read from json
+  static CallModel? fromJson(Map<dynamic, dynamic> jsonMap, ILogsModel? logs) {
+    //Read required attributes
+    int? _myCallId; String? _accUri, _remoteExt;
+    bool? _isIncoming, _hasSecureMedia, _hasVideo;
+    jsonMap.forEach((key, value) {
+      if((key == 'myCallId')&&(value is int))        { _myCallId = value;    } else
+      if((key == 'accUri')&&(value is String))       { _accUri = value; } else
+      if((key == 'remoteExt')&&(value is String))    { _remoteExt = value; } else
+      if((key == 'isIncoming')&&(value is bool))     { _isIncoming = value;} else
+      if((key == 'hasSecureMedia')&&(value is bool)) { _hasSecureMedia = value;} else
+      if((key == 'hasVideo')&&(value is bool))       { _hasVideo = value;}
+    });
+    //Check if present
+    if((_myCallId==null)||(_accUri==null)||(_remoteExt==null)||
+       (_isIncoming==null)||(_hasSecureMedia==null)||(_hasVideo==null)) return null;
+
+    //Create new inst
+    CallModel call = CallModel(_myCallId!, _accUri!, _remoteExt!, _isIncoming!, _hasSecureMedia!, _hasVideo!, logs);
+
+    //Read the rest values
+    jsonMap.forEach((key, value) {
+      if((key == 'displName')&&(value is String))    { call.displName = value;     } else
+      if((key == 'receivedDtmf')&&(value is String)) { call._receivedDtmf = value; } else
+      if((key == 'response')&&(value is String))     { call._response = value;     } else
+      if((key == 'state')&&(value is int))           { call._state = CallState.from(value);} else
+      if((key == 'holdState')&&(value is int))       { call._holdState = HoldState.from(value);} else
+      if((key == 'startTime')&&(value is int))       { call._startTime = DateTime.fromMillisecondsSinceEpoch(value); }
+      if((key == 'playerId')&&(value is int))        { call._playerId = value;    } else
+      if((key == 'isMicMuted')&&(value is bool))     { call._isMicMuted = value;  } else
+      if((key == 'isCamMuted')&&(value is bool))     { call._isCamMuted = value;  } else
+      if((key == 'isRecStarted')&&(value is bool))   { call._isRecStarted = value;} else
+      if((key == 'isUpgradingToVideo')&&(value is bool)) { call._isUpgradingToVideo = value;} else
+      if((key == 'hasVideoUpgradeRequest')&&(value is bool)) { call._hasVideoUpgradeRequest = value;}
+    });
+    //Update duration
+    call.calcDuration();
+    return call;
+  }
 
   /// Format call duration as 'hh:mm:ss' or 'mm:ss'
   static String formatDuration(Duration duration) {
@@ -527,6 +578,12 @@ class CallModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Handle mute state changes (iOS/CallKit only)
+  void onMuted(bool mute) {
+    _isMicMuted = mute;
+    notifyListeners();
+  }
+
   /// Handle player state changes
   bool onPlayerStateChanged(int playerId, PlayerState state) {
     if(_playerId != playerId) return false;//player doesn't belong to this call
@@ -553,7 +610,7 @@ typedef NewIncomingCallCallback = void Function();
 //--------------------------------------------------------------------------
 
 /// Calls list model (contains list of calls, methods for managing them, handlers of library events)
-class CallsModel extends ChangeNotifier {
+class CallsModel extends ChangeNotifier implements ISiprixData {
   final List<CallModel> _callItems = [];
   final IAccountsModel _accountsModel;
   final CdrsModel? _cdrs;
@@ -566,6 +623,7 @@ class CallsModel extends ChangeNotifier {
   /// Constructor (set event handler)
   CallsModel(this._accountsModel, [this._logs, this._cdrs]) {
     SiprixVoipSdk().callListener = CallStateListener(
+      syncState : onSyncCallsState,
       playerStateChanged: onPlayerStateChanged,
       proceeding : onProceeding,
       incoming : onIncomingSip,
@@ -579,6 +637,7 @@ class CallsModel extends ChangeNotifier {
       videoUpgradeRequested : onVideoUpgradeRequested,
       dtmfReceived : onDtmfReceived,
       switched : onSwitched,
+      muted : onMuted,
       held : onHeld
     );
   }
@@ -606,14 +665,17 @@ class CallsModel extends ChangeNotifier {
   int get switchedCallId => _switchedCallId;
   /// Returns switched call instance (or null when there are no calls)
   CallModel? switchedCall() {
-    final int index = _callItems.indexWhere((c) => c.myCallId==_switchedCallId);
+    return _findCall(_switchedCallId);
+  }
+
+  CallModel? _findCall(int callId) {
+    int index = _callItems.indexWhere((c) => c.myCallId==callId);
     return (index == -1) ? null : _callItems[index];
   }
 
   /// Returns true if exists call with specified id
   bool contains(int callId) {
-    int index = _callItems.indexWhere((c) => c.myCallId==callId);
-    return (index != -1);
+    return _findCall(callId)!=null;
   }
 
   /// Returns true if conference mode started
@@ -702,9 +764,7 @@ class CallsModel extends ChangeNotifier {
   /// Handle 1xx response event raised by library and route it to matched call instance
   void onProceeding(int callId, String response) {
     _logs?.print('onProceeding callId:$callId response:$response');
-
-    int index = _callItems.indexWhere((c) => c.myCallId==callId);
-    if(index != -1) _callItems[index].onProceeding(response);
+    _findCall(callId)?.onProceeding(response);
   }
 
 
@@ -718,8 +778,7 @@ class CallsModel extends ChangeNotifier {
   void onIncomingSip(int callId, int accId, bool withVideo, String hdrFrom, String hdrTo) {
     _logs?.print('onIncoming callId:$callId accId:$accId from:$hdrFrom to:$hdrTo withVideo:$withVideo');
 
-    int index = _callItems.indexWhere((c) => c.myCallId==callId);
-    if(index != -1) return;//Call already exists, skip
+    if(contains(callId)) return;//Call already exists, skip
 
     String accUri = _accountsModel.getUri(accId);
     bool hasSecureMedia = _accountsModel.hasSecureMedia(accId);
@@ -742,8 +801,7 @@ class CallsModel extends ChangeNotifier {
 
   /// Handle case when call answered by tapping notification button (Android only)
   void onAcceptNotif(int callId, bool withVideo) {
-    int index = _callItems.indexWhere((c) => c.myCallId==callId);
-    if(index != -1) _callItems[index].accept(withVideo);
+    _findCall(callId)?.accept(withVideo);
   }
 
   /// Handles 2xx responses raised by library and route it to matched call instance
@@ -751,8 +809,7 @@ class CallsModel extends ChangeNotifier {
     _logs?.print('onConnected callId:$callId from:$from to:$to withVideo:$withVideo');
     _cdrs?.setConnected(callId, from, to, withVideo);
 
-    int index = _callItems.indexWhere((c) => c.myCallId==callId);
-    if(index != -1) _callItems[index].onConnected(from, to, withVideo);
+    _findCall(callId)?.onConnected(from, to, withVideo);
     notifyListeners();
   }
 
@@ -780,8 +837,7 @@ class CallsModel extends ChangeNotifier {
   void onTransferred(int callId, int statusCode) {
     _logs?.print('onTransferred callId:$callId statusCode:$statusCode');
 
-    int index = _callItems.indexWhere((c) => c.myCallId==callId);
-    if(index != -1) _callItems[index].onTransferred(statusCode);
+    _findCall(callId)?.onTransferred(statusCode);
   }
 
   /// Handle redirect response event raised by library and route it to matched call instance
@@ -789,11 +845,10 @@ class CallsModel extends ChangeNotifier {
     _logs?.print('onRedirected origCallId:$origCallId relatedCallId:$relatedCallId to:$referTo');
 
     //Find 'origCallId'
-    int index = _callItems.indexWhere((c) => c.myCallId==origCallId);
-    if(index == -1) return;
+    CallModel? origCall = _findCall(origCallId);
+    if(origCall == null) return;
 
     //Clone 'origCallId' and add to collection of calls as related one
-    CallModel origCall = _callItems[index];
     CallModel relatedCall = CallModel(relatedCallId, origCall.accUri, parseExt(referTo), false, origCall.hasSecureMedia, origCall.hasVideo, _logs);
     _callItems.add(relatedCall);
     notifyListeners();
@@ -803,20 +858,18 @@ class CallsModel extends ChangeNotifier {
   void onVideoUpgraded(int callId, bool withVideo) {
     _logs?.print('onVideoUpgraded callId:$callId withVideo:$withVideo');
 
-    int index = _callItems.indexWhere((c) => c.myCallId==callId);
-    if(index == -1) return;
+    CallModel? call = _findCall(callId);
+    if(call == null) return;
 
-    bool isUpgradeModeRecvOnly = _accountsModel.isUpgradeToVideoModeRecvOnly(_callItems[index].accUri);
-    _callItems[index].onVideoUpgraded(withVideo, isUpgradeModeRecvOnly);
+    bool isUpgradeModeRecvOnly = _accountsModel.isUpgradeToVideoModeRecvOnly(call.accUri);
+    call.onVideoUpgraded(withVideo, isUpgradeModeRecvOnly);
   }
 
   /// Handle request 'upgrade to video' received from remote side
   void onVideoUpgradeRequested(int callId) {
     _logs?.print('onVideoUpgradeRequested callId:$callId');
 
-    int index = _callItems.indexWhere((c) => c.myCallId==callId);
-    if(index != -1) _callItems[index].onVideoUpgradeRequested();
-
+    _findCall(callId)?.onVideoUpgradeRequested();
     onVideoUpgradeRequestReceived?.call(callId);
   }
 
@@ -824,16 +877,22 @@ class CallsModel extends ChangeNotifier {
   void onDtmfReceived(int callId, int tone) {
     _logs?.print('onDtmfReceived callId:$callId tone:$tone');
 
-    int index = _callItems.indexWhere((c) => c.myCallId==callId);
-    if(index != -1) _callItems[index].onDtmfReceived(tone);
+    _findCall(callId)?.onDtmfReceived(tone);
   }
 
   /// Handle hold event raised by library and route it to matched call instance
   void onHeld(int callId, HoldState s) {
     _logs?.print('onHeld callId:$callId $s');
 
-    int index = _callItems.indexWhere((c) => c.myCallId==callId);
-    if(index != -1) _callItems[index].onHeld(s);
+    _findCall(callId)?.onHeld(s);
+    notifyListeners();
+  }
+
+  /// Handle muted event raised by CallKit (iOS/CallKit only)
+  void onMuted(int callId, bool mute) {
+    _logs?.print('onMuted callId:$callId $mute');
+
+    _findCall(callId)?.onMuted(mute);
     notifyListeners();
   }
 
@@ -853,6 +912,34 @@ class CallsModel extends ChangeNotifier {
     _logs?.print('onPlayerStateChanged playerId:$playerId $state');
     for(final call in _callItems)
       if(call.onPlayerStateChanged(playerId, state)) break;
+  }
+
+  /// Serialize list of accounts+calls to json
+  @override
+  Map<String, dynamic> toJson() {
+    Map<String, dynamic> ret = {};
+    if(_callItems.isNotEmpty) {
+      List<Map<String, dynamic>> callsList=[];
+      for(final call in _callItems) callsList.add(call.toJson());
+      ret['callsList'] = callsList;
+      ret['switchedCallId'] = _switchedCallId;
+    }
+    return ret;
+  }
+
+  /// Restore saved calls when Activity re-created while service has been running (Android only)
+  void onSyncCallsState(Map<String, dynamic> argsMap) {
+    for (var c in argsMap['callsList'] ?? []) {
+      CallModel? newCall = CallModel.fromJson(Map<String, dynamic>.from(c), _logs);
+      if(newCall != null) _callItems.add(newCall);
+    }
+    _switchedCallId = argsMap['switchedCallId'] ?? kEmptyCallId;
+    _logs?.print('onSyncState calls:${_callItems.length}');
+
+    if(_callItems.isNotEmpty) {
+      notifyListeners();
+      onNewIncomingCall?.call();
+    }
   }
 
   /// Parse SIP uri and return extension
