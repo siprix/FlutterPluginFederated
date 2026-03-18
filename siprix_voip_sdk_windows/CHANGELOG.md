@@ -1,3 +1,10 @@
+## 1.0.23
+- Fixed bug with losing mute state when switch between calls or make conference
+- Improved handling RtcpMux/BUNDLE options when ICE enabled
+- Fixed triggering 'OnPlayerState' event
+- Added ability to set brandName in the 'msid' SDP attribute
+  //2026.03.18
+
 ## 1.0.22
 - Windows: Fixed handling homeFolder with Unicode symbols
 - Windows: Added ability to detect default audio device changes and automatically switch audio during a call
@@ -7,6 +14,7 @@
 - Redesigned deleting subscriptions (after receive confirmation from remote side)
 - Added ability to set ContentType for Message requests
 - Added new exampe app with single model for easy start (https://github.com/siprix/SampleFlutter)
+  //2026.02.25
 
 ## 1.0.21
 - Added new method 'PlayTone' and ability to play files/tones to local speaker even where there is no call
