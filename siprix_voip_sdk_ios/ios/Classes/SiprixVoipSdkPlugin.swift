@@ -95,12 +95,13 @@ private let kOnCallVideoUpgraded = "OnCallVideoUpgraded"
 private let kOnCallVideoUpgradeRequested = "OnCallVideoUpgradeRequested"
 private let kOnCallSwitched     = "OnCallSwitched"
 private let kOnCallHeld         = "OnCallHeld"
+private let kOnCallKitMuted     = "OnCallKitMuted"
 
 private let kOnMessageSentState = "OnMessageSentState"
 private let kOnMessageIncoming  = "OnMessageIncoming"
 
-private let kOnSipNotify        = "OnSipNotify";
-private let kOnVuMeterLevel     = "OnVuMeterLevel";
+private let kOnSipNotify        = "OnSipNotify"
+private let kOnVuMeterLevel     = "OnVuMeterLevel"
 
 private let kArgVideoTextureId  = "videoTextureId"
 
@@ -140,9 +141,10 @@ private let kArgTone   = "tone"
 private let kFrom      = "from"
 private let kTo        = "to"
 private let kBody      = "body"
-private let kEvent    = "event";
-private let kMicLevel = "mic";
-private let kSpkLevel = "spk";
+private let kEvent    = "event"
+private let kMicLevel = "mic"
+private let kSpkLevel = "spk"
+private let kArgMute = "mute"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -390,6 +392,15 @@ class SiprixEventHandler : NSObject, SiprixEventDelegate {
             argsMap[kMicLevel] = micLevel
             argsMap[kSpkLevel] = spkLevel
             self._channel.invokeMethod(kOnVuMeterLevel, arguments: argsMap)
+        }
+    }
+    
+    public func onCallKitMuted(_ callId:Int, mute:Bool) {
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgCallId] = callId
+            argsMap[kArgMute] = mute
+            self._channel.invokeMethod(kOnCallKitMuted, arguments: argsMap)
         }
     }
 }
@@ -756,7 +767,9 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
       
         let enablePushKit = args["enablePushKit"] as? Bool
         let enableCallKit = args["enableCallKit"] as? Bool
-        let enableCallKitRecents = args["enableCallKitRecents"] as? Bool
+        let enableCallKitRecents = args["enableCallKitRecents"] as? Bool ?? false
+        let enableCallKitMute = args["enableCallKitMute"] as? Bool ?? true
+        let reportCallAsVideo = args["enableCallKitReportCallAsVideo"] as? Bool ?? false
       
         let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         iniData.homeFolder = documentsURL.path + "/"
@@ -766,9 +779,9 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         
         #if os(iOS) && !targetEnvironment(simulator)
         if((err == kErrorCodeEOK) && (enableCallKit == true)) {
-            let singleCall = (singleCallMode != nil) && singleCallMode!
-            let includeInRecents = (enableCallKitRecents != nil) && enableCallKitRecents!
-            _callKitProvider = SiprixCxProvider(_siprixModule, singleCallMode:singleCall, includeInRecents:includeInRecents)
+            _callKitProvider = SiprixCxProvider(_siprixModule, eventHandler:_eventHandler,
+                                    singleCallMode:(singleCallMode ?? false), includeInRecents:enableCallKitRecents,
+                                    allowMuteByCallKit:enableCallKitMute, reportCallAsVideo:reportCallAsVideo)
         }
       
         if((err == kErrorCodeEOK) && (_callKitProvider != nil) && (enablePushKit == true)) {
@@ -1092,7 +1105,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
     func handleCallMuteMic(_ args : ArgsMap, result: @escaping FlutterResult) {
         let callId = args[kArgCallId] as? Int
-        let mute   = args["mute"] as? Bool
+        let mute   = args[kArgMute] as? Bool
 
         if((callId == nil)||(mute==nil)) {
             sendBadArguments(result:result)
@@ -1110,7 +1123,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
     func handleCallMuteCam(_ args : ArgsMap, result: @escaping FlutterResult) {
         let callId = args[kArgCallId] as? Int
-        let mute   = args["mute"] as? Bool
+        let mute   = args[kArgMute] as? Bool
 
         if((callId == nil)||(mute==nil)) {
             sendBadArguments(result:result)
@@ -1739,19 +1752,31 @@ class SiprixPushRegistry : NSObject, PKPushRegistryDelegate {
 
 class SiprixCxProvider : NSObject, CXProviderDelegate {
     private let _siprixModule : SiprixModule
-    private var _cxProvider: CXProvider!
-    private var _cxCallCtrl: CXCallController
+    private let _eventHandler : SiprixEventHandler
+    private let _cxProvider: CXProvider!
+    private let _cxCallCtrl: CXCallController
+    private let _allowMuteByCallKit: Bool
+    private let _reportCallAsVideo: Bool
     private var _callsList: [CallModel] = []
     private var _audioSessionActivated = false
 
     static let kECallNotFound: Int32       = -1040
     static let kEConfRequires2Calls: Int32 = -1055
     
-    init(_ module: SiprixModule, singleCallMode:Bool, includeInRecents:Bool) {
+    init(_ module:SiprixModule, eventHandler:SiprixEventHandler, 
+         singleCallMode:Bool, includeInRecents:Bool, 
+         allowMuteByCallKit:Bool, reportCallAsVideo:Bool) {
         _siprixModule = module
+        _eventHandler = eventHandler
+        _allowMuteByCallKit = allowMuteByCallKit
+        _reportCallAsVideo = reportCallAsVideo
+        
         _cxCallCtrl = CXCallController()
+        _cxProvider = CXProvider(configuration: Self.makeConfig(singleCallMode, includeInRecents:includeInRecents))
+        
         super.init()
-        createCxProvider(singleCallMode, includeInRecents:includeInRecents)
+        _cxProvider.setDelegate(self, queue: DispatchQueue.main)
+    
         _siprixModule.writeLog("CxProvider: created")
     }
         
@@ -1848,7 +1873,7 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     func reportNewIncomingCall(_ call : CallModel) {
         let update = CXCallUpdate()
         update.remoteHandle = CXHandle(type: .generic, value: call.fromTo)
-        update.hasVideo = call.withVideo
+        update.hasVideo = call.withVideo || _reportCallAsVideo
         update.supportsUngrouping = true
         update.supportsGrouping = true
         update.supportsHolding = true
@@ -1936,7 +1961,7 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     //--------------------------------------------------------
     //Actions
 
-    private func createCxProvider(_ singleCallMode : Bool, includeInRecents : Bool) {
+    private static func makeConfig(_ singleCallMode : Bool, includeInRecents : Bool) ->CXProviderConfiguration {
         let providerConfiguration : CXProviderConfiguration
         if #available(iOS 14.0, *) {
             providerConfiguration = CXProviderConfiguration()
@@ -1953,9 +1978,7 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         if let iconMaskImage = UIImage(named: "CallKitIcon") {
             providerConfiguration.iconTemplateImageData = iconMaskImage.pngData()
         }
-
-        _cxProvider = CXProvider(configuration: providerConfiguration)
-        _cxProvider.setDelegate(self, queue: DispatchQueue.main)
+        return providerConfiguration
     }
     
             
@@ -1996,8 +2019,11 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
 
     func cxActionSetMuted(_ callId:Int, muted: Bool) -> Int32 {
+        _siprixModule.writeLog("CxProvider: action CXSetMuted callId:\(callId) muted:\(muted)")
+        
         let call = _callsList.first(where: {$0.id == callId})
         if(call != nil) {
+            call!.micMuted = muted
             let action = CXSetMutedCallAction(call: call!.uuid, muted: muted)
             let transaction = CXTransaction(action: action)
         
@@ -2150,16 +2176,17 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
     
     func provider(_: CXProvider, perform action: CXSetMutedCallAction) {
-        _siprixModule.writeLog("CxProvider: CXSetMuted uuid:\(action.callUUID) muted:\(action.isMuted)")
-        //TODO fix case when callKit muted call, but flutter can't see that
-
+        var res:Int32 = -1
         let call = getCallByUUID(action.callUUID)
-        if((call != nil) && (_siprixModule.callMuteMic(Int32(call!.id), mute:action.isMuted)) == kErrorCodeEOK) {
+        if(call != nil)&&(_allowMuteByCallKit || (call!.micMuted == action.isMuted)) {
+            res = _siprixModule.callMuteMic(Int32(call!.id), mute:action.isMuted)
+            _eventHandler.onCallKitMuted(call!.id, mute:action.isMuted)
             action.fulfill()
         }
         else {
             action.fail()
         }
+        _siprixModule.writeLog("CxProvider: perform CXSetMuted uuid:\(action.callUUID) muted:\(action.isMuted) res:\(res)")
     }
         
     func provider(_: CXProvider, timedOutPerforming action: CXAction) {
@@ -2215,6 +2242,7 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         public var answeredByCallKit = false
         public var rejectedByCallKit = false
         public var endedByLocalSide = false
+        public var micMuted = false
         public var fromTo : String
         
         public var cxAnswerAction : CXAnswerCallAction?
