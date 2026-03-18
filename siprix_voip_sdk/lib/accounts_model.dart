@@ -49,8 +49,14 @@ class InitData implements ISiprixData {
   /// iOS only. Enable CallKit support
   bool? enableCallKit;
 
-  /// iOS only. Enable include a call in the system's Recents list after the call ends
+  /// iOS only. Enable include a call in the system's Recents list after the call ends. By default disabled.
   bool? enableCallKitRecents;
+
+  /// iOS only. Enable ability to mute call by CallKit. By default enabled.
+  bool? enableCallKitMute;
+
+  /// iOS only. Enable ability to report each incoming call as video one, which brings applications to front after accept call in CallKit. By default disabled.
+  bool? enableCallKitReportCallAsVideo;
 
   /// Android only. Class name of the service which allows to customize notifications and implemented as part of the android app. Example: `com.siprix.siprix_voip_sdk_example.MyNotifService`
   String? serviceClassName;
@@ -94,6 +100,8 @@ class InitData implements ISiprixData {
     if(listenVolChange!=null)   ret['listenVolChange'] = listenVolChange;
     if(enablePushKit!=null)     ret['enablePushKit'] = enablePushKit;
     if(enableCallKit!=null)     ret['enableCallKit'] = enableCallKit;
+    if(enableCallKitMute!=null) ret['enableCallKitMute'] = enableCallKitMute;
+    if(enableCallKitReportCallAsVideo!=null) ret['enableCallKitReportCallAsVideo'] = enableCallKitReportCallAsVideo;
     if(enableCallKitRecents!=null) ret['enableCallKitRecents'] = enableCallKitRecents;
     if(serviceClassName!=null)  ret['serviceClassName'] = serviceClassName;
     if(unregOnDestroy!=null)    ret['unregOnDestroy'] = unregOnDestroy;
@@ -389,6 +397,19 @@ class AccountModel implements ISiprixData {
   ///Returns true when enabled audio/video encryption
   bool get hasSecureMedia => (secureMedia!=null)&&(secureMedia!=SecureMedia.Disabled);
 
+  ///Returns copy of the input account or new account when input is null
+  factory AccountModel.cloneOrCreateNew(AccountModel? inAcc) {
+    if(inAcc != null) {
+      AccountModel acc = AccountModel.fromJson(inAcc.toJson());
+      acc.myAccId = inAcc.myAccId;
+      acc.regState = inAcc.regState;
+      acc.regText = inAcc.regText;
+      return acc;
+    } else{
+      return AccountModel();
+    }
+  }
+
   @override
   Map<String, dynamic> toJson() {
     Map<String, dynamic> ret = {
@@ -527,14 +548,17 @@ class AccountsModel extends ChangeNotifier implements IAccountsModel {
 
   @override
   String getUri(int accId) {
-    int index = _accounts.indexWhere((a) => a.myAccId==accId);
-    return (index == -1) ? "?" : _accounts[index].uri;
+    return _findAccount(accId)?.uri ?? "?";
   }
 
   @override
   bool hasSecureMedia(int accId) {
+    return _findAccount(accId)?.hasSecureMedia ?? false;
+  }
+
+  AccountModel? _findAccount(int accId) {
     int index = _accounts.indexWhere((a) => a.myAccId==accId);
-    return (index == -1) ? false : _accounts[index].hasSecureMedia;
+    return (index == -1) ? null : _accounts[index];
   }
 
   @override
@@ -584,7 +608,7 @@ class AccountsModel extends ChangeNotifier implements IAccountsModel {
 
   void _integrateAddedAccount(AccountModel acc, bool saveChanges) {
     _accounts.add(acc);
-      _logs?.print('Added successfully with id: ${acc.myAccId}');
+    _logs?.print('Added successfully with id: ${acc.myAccId}');
     if(saveChanges) {
       _selAccountIndex ??= 0;
       _raiseSaveChanges();
@@ -717,10 +741,10 @@ class AccountsModel extends ChangeNotifier implements IAccountsModel {
   ///Handles registtation state changes when received response from server
   void onRegStateChanged(int accId, RegState state, String response) {
     _logs?.print('onRegStateChanged accId:$accId resp:\'$response\' ${state.toString()}');
-    int idx = _accounts.indexWhere((account) => (account.myAccId == accId));
-    if(idx == -1) return;
 
-    AccountModel acc = _accounts[idx];
+    AccountModel? acc = _findAccount(accId);
+    if(acc == null) return;
+
     acc.regText = response;
     acc.regState = state;
 
