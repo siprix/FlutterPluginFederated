@@ -1,3 +1,10 @@
+## 1.0.22
+- Fixed bug with losing mute state when switch between calls or make conference
+- Improved handling RtcpMux/BUNDLE options when ICE enabled
+- Fixed triggering 'OnPlayerState' event
+- Added ability to set brandName in the 'msid' SDP attribute
+  //2026.03.18
+
 ## 1.0.21
 - Added ability to retrieve last received SIP message when call terminated
 - Added ability to end call when it's waiting on Re-Invite response
@@ -5,6 +12,7 @@
 - Redesigned deleting subscriptions (after receive confirmation from remote side)
 - Added ability to set ContentType for Message requests
 - Added new exampe app with single model for easy start (https://github.com/siprix/SampleFlutter)
+  //2026.02.25
 
 ## 1.0.20
 - Added new method 'PlayTone' and ability to play files/tones to local speaker even where there is no call
