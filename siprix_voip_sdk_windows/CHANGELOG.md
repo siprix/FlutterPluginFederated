@@ -1,3 +1,8 @@
+## 1.0.24
+- Fixed parsing SDP with wrong attributes order, which could cause to lose codecs settings
+- Filter out special characters from the 'brandName'
+  //2026.03.29
+
 ## 1.0.23
 - Fixed bug with losing mute state when switch between calls or make conference
 - Improved handling RtcpMux/BUNDLE options when ICE enabled
