@@ -358,17 +358,16 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
   }
 
   void _muteMic() {
+    final bool newMicMuted = !widget.myCall.isMicMuted;
     final calls = context.read<AppCallsModel>();
     if(calls.confModeStarted) {
-      //In the conf mode mute mic of all calls using state of the current call as base
-      final bool isMuted = widget.myCall.isMicMuted;
-      for(var i = 0; i < calls.length; i++) {
-        calls[i].muteMic(!isMuted)
-          .catchError(showSnackBar);
+      //Conf mode: mute mic of all calls using state of the current call as base
+      for(var c in calls) {
+        c.muteMic(newMicMuted).catchError(showSnackBar);
       }
     } else {
-      widget.myCall.muteMic(!widget.myCall.isMicMuted)
-        .catchError(showSnackBar);
+      //Single call mode: mute mic of the current call
+      widget.myCall.muteMic(newMicMuted).catchError(showSnackBar);
     }
   }
 
@@ -609,8 +608,8 @@ class _CallActionDialogState extends State<CallActionDialog> {
     final calls = context.read<AppCallsModel>();
     CallModel? srcCall = calls.switchedCall();
     final int srcCallId = (srcCall!=null) ? srcCall.myCallId : 0;
-    for(var i = 0; i < calls.length; i++) {
-      if(srcCallId != calls[i].myCallId) { _transferAttendedToCallId = calls[i].myCallId; break; }
+    for(var c in calls) {
+      if(srcCallId != c.myCallId) { _transferAttendedToCallId = c.myCallId; break; }
     }
 
     return
@@ -622,9 +621,9 @@ class _CallActionDialogState extends State<CallActionDialog> {
             value: _transferAttendedToCallId,
             onChanged: (int? value) { setState(() => _transferAttendedToCallId = value! );  },
             items: [
-              for(var i = 0; i < calls.length; i++)
-                if(srcCallId != calls[i].myCallId)
-                  DropdownMenuItem<int>(value: calls[i].myCallId, child: Text(calls[i].nameAndExt))
+              for(var c in calls)
+                if(srcCallId != c.myCallId)
+                  DropdownMenuItem<int>(value: c.myCallId, child: Text(c.nameAndExt))
             ]
           ),
         ]),

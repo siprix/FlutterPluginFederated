@@ -23,6 +23,8 @@ class CdrModel extends ChangeNotifier {
 
   /// Duration of the call
   String duration="";
+  /// Data from the header 'Reason', received in the CANCEL/BYE request
+  String reason="";
   /// Has call video
   bool hasVideo = false;
   /// Was call incoming
@@ -50,6 +52,7 @@ class CdrModel extends ChangeNotifier {
       'madeAt': madeAt.millisecondsSinceEpoch,
       'hasVideo': hasVideo
     };
+    if(reason.isNotEmpty)    ret['reason'] = reason;
     return ret;
   }
 
@@ -64,6 +67,7 @@ class CdrModel extends ChangeNotifier {
       if((key == 'incoming')&&(value is bool))     { cdr.incoming  = value; } else
       if((key == 'connected')&&(value is bool))    { cdr.connected = value; } else
       if((key == 'duration')&&(value is String))   { cdr.duration  = value; } else
+      if((key == 'reason')&&(value is String))     { cdr.reason    = value; } else
       if(key == 'madeAt') {
         if(value is int)    { cdr.madeAt = DateTime.fromMillisecondsSinceEpoch(value); }
         if(value is String) { cdr.madeAt = _fmt.parse(value); }//for backward compatibility
@@ -120,13 +124,14 @@ class CdrsModel extends ChangeNotifier {
   }
 
   /// Set 'terminated' and other attributes of the recent call item specified by callId
-  void setTerminated(int callId, int statusCode, String displName, String duration) {
+  void setTerminated(int callId, int statusCode, String reason, String displName, String duration) {
     int index = _cdrItems.indexWhere((c) => c.myCallId==callId);
     if(index == -1) return;
 
     CdrModel cdr = _cdrItems[index];
     cdr.displName = displName;
     cdr.statusCode = statusCode;
+    cdr.reason = reason;
     cdr.duration = duration;
 
     notifyListeners();

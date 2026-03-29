@@ -14,30 +14,25 @@ class MyNotifService : CallNotifService() {
     ) {
         Log.d(TAG, "displayIncomingCallNotification $callId")
         //!!! Don't modify bundle and intents
-        val bundle = buildBundle(callId, accId, withVideo, hdrFrom, hdrTo)
+        val bundle = buildCallBundle(callId, accId, withVideo, hdrFrom, hdrTo)
         val contentIntent = getIntentActivity(kActionIncomingCall, bundle)
-        val acceptCallIntent = getIntentActivity(kActionIncomingCallAccept, bundle)
-        val rejectCallIntent = getIntentService(kActionIncomingCallReject, bundle)
 
         //Modify notification and displayed text as it's required by the app
         //val displayName = parseDisplayName(hdrFrom)
         //val sipExt = parseExt(hdrFrom)
         val contentStr = buildContentString(hdrFrom)//if required format own string here using parsed 'displayName' and 'sipExt'
-        val builder: NotificationCompat.Builder = NotificationCompat.Builder(this, kCallChannelId)
+        val builder: NotificationCompat.Builder = NotificationCompat.Builder(this, kCallIncomingChannelId)
             .setSmallIcon(appResources.iconId)
-            .setContentTitle(appResources.contentLabel)
             .setContentText(contentStr)
             .setAutoCancel(true)
             .setDefaults(Notification.DEFAULT_ALL)
             .setContentIntent(contentIntent)
             .setFullScreenIntent(contentIntent, true)
             .setOngoing(true)
-            .addAction(0, appResources.rejectBtnLabel, rejectCallIntent)
-            .addAction(0, appResources.acceptBtnLabel, acceptCallIntent)
             .setDeleteIntent(getIntentService(kActionIncomingCallStopRinger, bundle))
             .setCategory(NotificationCompat.CATEGORY_CALL)
 
-        //!!! Don't modify notification id
-        notifMgr.notify(getNotifId(callId), builder.build())
+        //!!! Use 'callId' as notification id
+        notifMgr.notify(callId, builder.build())
     }
 }

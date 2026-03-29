@@ -1,5 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
 
+import 'dart:collection';
+
 import 'package:siprix_voip_sdk_platform_interface/siprix_voip_sdk_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -610,7 +612,7 @@ typedef NewIncomingCallCallback = void Function();
 //--------------------------------------------------------------------------
 
 /// Calls list model (contains list of calls, methods for managing them, handlers of library events)
-class CallsModel extends ChangeNotifier implements ISiprixData {
+class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements ISiprixData {
   final List<CallModel> _callItems = [];
   final IAccountsModel _accountsModel;
   final CdrsModel? _cdrs;
@@ -651,12 +653,11 @@ class CallsModel extends ChangeNotifier implements ISiprixData {
   /// Callback function which is raised by model when video upgrade request received
   CallVideoUpgradeRequestedCallback? onVideoUpgradeRequestReceived;
 
-  /// Returns true when list of calls is empty
-  bool get isEmpty => _callItems.isEmpty;
-  /// Returns number of calls in list
-  int get length => _callItems.length;
   /// Returns call by its index in list
   CallModel operator [](int i) => _callItems[i]; // get
+
+  @override
+  Iterator<CallModel> get iterator => _callItems.iterator;
 
   @protected List<CallModel> get callItems => _callItems;
   @protected IAccountsModel  get accountsModel => _accountsModel;
@@ -671,11 +672,6 @@ class CallsModel extends ChangeNotifier implements ISiprixData {
   CallModel? _findCall(int callId) {
     int index = _callItems.indexWhere((c) => c.myCallId==callId);
     return (index == -1) ? null : _callItems[index];
-  }
-
-  /// Returns true if exists call with specified id
-  bool contains(int callId) {
-    return _findCall(callId)!=null;
   }
 
   /// Returns true if conference mode started
@@ -778,7 +774,7 @@ class CallsModel extends ChangeNotifier implements ISiprixData {
   void onIncomingSip(int callId, int accId, bool withVideo, String hdrFrom, String hdrTo) {
     _logs?.print('onIncoming callId:$callId accId:$accId from:$hdrFrom to:$hdrTo withVideo:$withVideo');
 
-    if(contains(callId)) return;//Call already exists, skip
+    if(_findCall(callId) != null) return;//Call already exists, skip
 
     String accUri = _accountsModel.getUri(accId);
     bool hasSecureMedia = _accountsModel.hasSecureMedia(accId);
@@ -814,15 +810,15 @@ class CallsModel extends ChangeNotifier implements ISiprixData {
   }
 
   /// Handle teminated call event raised by library (removes call instance from list and notifies UI)
-  void onTerminated(int callId, int statusCode) {
+  void onTerminated(int callId, int statusCode) async {
     _logs?.print('onTerminated callId:$callId statusCode:$statusCode');
 
-    int index = _callItems.indexWhere((c) => c.myCallId==callId);
+    CallModel? call = _findCall(callId);
+    if(call != null) {
+      String reason = await SiprixVoipSdk().getSipHeader(callId, "Reason") ?? "-";
+      _cdrs?.setTerminated(callId, statusCode, reason, call.displName, call.durationStr);
 
-    if(index != -1) {
-      _cdrs?.setTerminated(callId, statusCode, _callItems[index].displName, _callItems[index].durationStr);
-
-      _callItems.removeAt(index);
+      _callItems.remove(call);
       _logs?.print('Removed call: $callId');
 
       if(_confModeStarted && !hasConnectedFewCalls()) {

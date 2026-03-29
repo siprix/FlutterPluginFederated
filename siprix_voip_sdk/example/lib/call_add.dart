@@ -146,6 +146,7 @@ class _CallAddPageState extends State<CallAddPage> {
           Text(cdr.madeAtDate),
           if(cdr.connected) Text("Duration: ${cdr.duration}"),
           if(cdr.statusCode!=0) Text("Status code: ${cdr.statusCode}"),
+          if(cdr.reason.isNotEmpty) Text(cdr.reason),
           if(cdr.hasVideo) const Icon(Icons.videocam_outlined, color: Colors.grey, size:18),
         ])
       ]);
