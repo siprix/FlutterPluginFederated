@@ -80,7 +80,7 @@ enum ErrorCode : int32_t
     ECallCantReferAtt    = -1053,
     ECallReferAttSameId  = -1054,
     EConfRequires2Calls  = -1055,
-    ECallIsHolding       = -1056,    
+    ECallIsHolding       = -1056,
     ERndrAlreadyAssigned = -1057,
     ESipHeaderNotFound   = -1058,
     EToneNameInvalid     = -1059,
