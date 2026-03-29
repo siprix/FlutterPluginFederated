@@ -1,3 +1,10 @@
+## 1.0.33
+- Fixed parsing SDP with wrong attributes order, which could cause to lose codecs settings
+- Filter out special characters from the 'brandName'
+- iOS Flutter: Updated CallKit implementation
+- iOS Flutter: Added ability to detect and notify Bluetooth device connection
+  //2026.03.29
+
 ## 1.0.32
 - Fixed bug with losing mute state when switch between calls or make conference
 - Improved handling RtcpMux/BUNDLE options when ICE enabled

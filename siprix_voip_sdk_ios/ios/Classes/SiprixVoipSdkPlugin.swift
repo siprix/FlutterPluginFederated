@@ -150,7 +150,6 @@ private let kArgMute = "mute"
 ////////////////////////////////////////////////////////////////////////////////////////
 //SiprixEventHandler
 class SiprixEventHandler : NSObject, SiprixEventDelegate {
-    
     private var _channel : FlutterMethodChannel
     private var _callKitProvider : SiprixCxProvider?
     private var _pushKitDisabled : Bool = true
@@ -166,20 +165,17 @@ class SiprixEventHandler : NSObject, SiprixEventDelegate {
         }
     }
     
-    public func setCallKitProvider(_ callKitProvider : SiprixCxProvider?, pushKitProvider : SiprixPushRegistry?) {
-        _callKitProvider = callKitProvider
+    public func configure(_ callKitProvider : SiprixCxProvider?, pushKitProvider : SiprixPushRegistry?) {
         _pushKitDisabled = (pushKitProvider==nil)
+        _callKitProvider = callKitProvider
         _ringer = (callKitProvider == nil) ? Ringer() : nil // Create ringer when CallKit disabled
     }
     
-    public func didReceiveIncomingPush(_ dictionaryPayload : [AnyHashable : Any]) {
-        let callKit_callUUID = _callKitProvider?.onPushIncoming()
-        if(callKit_callUUID != nil) {
-            var argsMap = [String:Any]()
-            argsMap[kArgCallKitUuid] = callKit_callUUID
-            argsMap[kArgPushPayload] = dictionaryPayload
-            _channel.invokeMethod(kOnPushIncoming, arguments: argsMap)
-        }
+    public func didReceiveIncomingPush(_ dictionaryPayload : [AnyHashable : Any], callKit_callUUID: String) {
+        var argsMap = [String:Any]()
+        argsMap[kArgCallKitUuid] = callKit_callUUID
+        argsMap[kArgPushPayload] = dictionaryPayload
+        _channel.invokeMethod(kOnPushIncoming, arguments: argsMap)
     }
     
     //////////////////////////////////////////////////////////////////////////
@@ -405,9 +401,77 @@ class SiprixEventHandler : NSObject, SiprixEventDelegate {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///AudioDevices
+
+class AudioDevices {
+    private var _isBtConnected: Bool = false
+    private var _eventHandler : SiprixEventHandler?
+    static let kOutSpeaker=0
+    static let kOutEarPiece=1
+    static let kRouteBuildIn=2
+    static let kRouteBluetooth=3
+    
+    public func configure(_ eventHandler : SiprixEventHandler) {
+        _eventHandler = eventHandler
+        checkIsBtConnected(notify: false)
+        addObserverForRouteChangeNotification()
+    }
+
+    deinit {
+        removeObserverRouteChangeNotification()
+    }
+    
+    func getCount() -> Int {
+        return _isBtConnected ? 4 : 3
+    }
+        
+    func getName(_ dvcIndex: Int) -> String {
+        switch(dvcIndex) {
+            case AudioDevices.kOutSpeaker:     return "Speaker"
+            case AudioDevices.kOutEarPiece:    return "Earpiece"
+            case AudioDevices.kRouteBuildIn:   return "BuiltIn"
+            case AudioDevices.kRouteBluetooth: return "Bluetooth"
+            default:                           return "---"
+        }
+    }
+    
+    private func checkIsBtConnected(notify : Bool){
+        let currentRouteOutputs = AVAudioSession.sharedInstance().currentRoute.outputs
+        let btPorts: [AVAudioSession.Port] = [.bluetoothA2DP, .bluetoothLE, .bluetoothHFP]
+        let newBtConnected = currentRouteOutputs.contains { btPorts.contains($0.portType) }
+        if(newBtConnected == _isBtConnected) { return }
+        
+        _isBtConnected = newBtConnected
+        if(notify) {  _eventHandler?.onDevicesAudioChanged() }
+        print("siprix: isBtConnected: \(_isBtConnected)")
+    }
+    
+    @objc private func handleRouteChange(notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
+        // Check whenever a new device is connected or disconnected
+        if((reason == .newDeviceAvailable)||(reason == .newDeviceAvailable)){
+            checkIsBtConnected(notify: true)
+        }
+    }
+    
+    private func addObserverForRouteChangeNotification() {
+        NotificationCenter.default.addObserver(self,
+            selector: #selector(handleRouteChange),
+            name: AVAudioSession.routeChangeNotification,
+            object: nil
+        )
+    }
+    
+    private func removeObserverRouteChangeNotification() {
+        NotificationCenter.default.removeObserver(self)
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-///Ringer
+///Ringer - plays ringtone when CallKit disabled
 
 class Ringer {
     private var player: AVAudioPlayer?
@@ -417,9 +481,10 @@ class Ringer {
         ringtonePath = path
     }
 
-    func unInit() {
-        if (player != nil)&&(player!.isPlaying) {
+    deinit {
+        if (player?.isPlaying == true) {
             player!.stop()
+            player = nil
         }
     }
 
@@ -520,7 +585,7 @@ class FlutterVideoRenderer : NSObject, SiprixVideoRendererDelegate, FlutterTextu
       }
       return nil
     }
-    
+
     func copyFrameToCVPixelBuffer(frame : SiprixVideoFrame) {
         if (_pixelBufferWidth != frame.width() || _pixelBufferHeight != frame.height()) {
             _pixelBufferWidth  = Int(frame.width())
@@ -553,7 +618,7 @@ class FlutterVideoRenderer : NSObject, SiprixVideoRendererDelegate, FlutterTextu
             self._textureRegistry.textureFrameAvailable(self._textureId)
         }
     }
-
+    
     func degrees(_ rotation : VideoFrameRotation) -> Int32 {
         switch(rotation) {
             case VideoFrameRotation.rotation_90: return 90
@@ -608,6 +673,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
     var _textureRegistry : FlutterTextureRegistry
     var _binMessenger : FlutterBinaryMessenger
     var _renderers = [Int64 : FlutterVideoRenderer]()
+    var _devicesList = AudioDevices()
     var _initialized = false
 
     init(withChannel channel:FlutterMethodChannel, registrar: FlutterPluginRegistrar) {
@@ -620,7 +686,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: kChannelName, binaryMessenger: registrar.messenger())
         
-        let instance = SiprixVoipSdkPlugin(withChannel:channel, registrar:registrar)
+    let instance = SiprixVoipSdkPlugin(withChannel:channel, registrar:registrar)
     registrar.addMethodCallDelegate(instance, channel: channel)
   }
 
@@ -781,17 +847,21 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         if((err == kErrorCodeEOK) && (enableCallKit == true)) {
             _callKitProvider = SiprixCxProvider(_siprixModule, eventHandler:_eventHandler,
                                     singleCallMode:(singleCallMode ?? false), includeInRecents:enableCallKitRecents,
-                                    allowMuteByCallKit:enableCallKitMute, reportCallAsVideo:reportCallAsVideo)
+                                    allowMuteByCallKit:enableCallKitMute, isEnabledPushKit:(enablePushKit == true),
+                                    reportCallAsVideo:reportCallAsVideo)
         }
       
         if((err == kErrorCodeEOK) && (_callKitProvider != nil) && (enablePushKit == true)) {
             _pushKitProvider = SiprixPushRegistry.shared
-            _pushKitProvider?.setModule(_siprixModule, eventHandler:_eventHandler)
+            _pushKitProvider?.setCallKitProvider(_callKitProvider)
+            _siprixModule.writeLog("SiprixPushRegistry: created")
         }
         #endif
       
         _siprixModule.enableCallKit(_callKitProvider != nil)
-        _eventHandler.setCallKitProvider(_callKitProvider, pushKitProvider:_pushKitProvider)
+      
+        _eventHandler.configure(_callKitProvider, pushKitProvider:_pushKitProvider)
+        _devicesList.configure(_eventHandler)
         
         sendResult(err, result:result)
     }
@@ -1453,7 +1523,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
     func handleDvcGetPlayoutNumber(_ args : ArgsMap, result: @escaping FlutterResult) {
         //let data = SiprixDevicesNumbData()
         //_siprixModule.dvcGetPlayoutDevices(data)
-        result(4)//result(data.number)
+        result(_devicesList.getCount())//result(data.number)
     }
 
     func handleDvcGetRecordNumber(_ args : ArgsMap, result: @escaping FlutterResult) {
@@ -1468,33 +1538,6 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         result(0)//result(data.number)
     }
 
-    //enum DvcType { case Playout; case Recording; case Video}
-    //func doGetDevice(_ dvcType:DvcType, args:ArgsMap, result:@escaping FlutterResult) {
-    //    let dvcIndex = args[kArgDvcIndex] as? Int
-    //
-    //    if(dvcIndex == nil) {
-    //        sendBadArguments(result:result)
-    //        return
-    //    }
-    //
-    //    let err : Int32
-    //    let data = SiprixDeviceData()
-    //    switch (dvcType) {
-    //        case .Playout   :  err = _siprixModule.dvcGetPlayoutDevice(Int32(dvcIndex!), device:data)
-    //        case .Recording :  err = _siprixModule.dvcGetRecordingDevice(Int32(dvcIndex!), device:data)
-    //        case .Video     :  err = _siprixModule.dvcGetVideoDevice(Int32(dvcIndex!), device:data)
-    //    }
-    //    if(err == kErrorCodeEOK) {
-    //        var argsMap = [String:Any]()
-    //        argsMap[kArgDvcName] = data.name
-    //        argsMap[kArgDvcGuid] = data.guid
-    //        result(argsMap);
-    //    }else{
-    //        result(FlutterError(code: String(err), message: _siprixModule.getErrorText(err), details: nil));
-    //    }
-    //}
-
-    enum iOSDevices : Int { case kOutSpeaker=0; case kOutEarPiece=1; case kRouteBluetoth=2; case kRouteBuildIn=3}
     func handleDvcGetPlayout(_ args : ArgsMap, result: @escaping FlutterResult) {
         //doGetDevice(DvcType.Playout, args:args, result:result)
         
@@ -1505,13 +1548,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         }
         
         var argsMap = [String:Any]()
-        switch(dvcIndex!) {
-            case iOSDevices.kOutSpeaker.rawValue:    argsMap[kArgDvcName] = "Speaker"
-            case iOSDevices.kOutEarPiece.rawValue:   argsMap[kArgDvcName] = "Earpiece"
-            case iOSDevices.kRouteBluetoth.rawValue: argsMap[kArgDvcName] = "Bluetooth"
-            case iOSDevices.kRouteBuildIn.rawValue:  argsMap[kArgDvcName] = "BuiltIn"
-            default:                                 argsMap[kArgDvcName] = "---"
-        }
+        argsMap[kArgDvcName] = _devicesList.getName(dvcIndex!)
         argsMap[kArgDvcGuid] = String(dvcIndex!)
         result(argsMap);
     }
@@ -1525,22 +1562,6 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
     }
 
 
-    //func doSetDevice(dvcType:DvcType, args : ArgsMap, result: @escaping FlutterResult) {
-    //    let dvcIndex = args[kArgDvcIndex] as? Int;
-    //
-    //    if(dvcIndex == nil) {
-    //        sendBadArguments(result:result);
-    //        return;
-    //    }
-    //
-    //    let err : Int32;
-    //    switch (dvcType) {
-    //        case .Playout   : err = _siprixModule.dvcSetPlayoutDevice(Int32(dvcIndex!));
-    //        case .Recording : err = _siprixModule.dvcSetRecordingDevice(Int32(dvcIndex!));
-    //        case .Video     : err = _siprixModule.dvcSetVideoDevice(Int32(dvcIndex!));
-    //    }
-    //    sendResult(err, result:result);
-    //}
 
     func handleDvcSetPlayout(_ args : ArgsMap, result: @escaping FlutterResult) {
         //doGetDevice(.Playout, args:args, result:result)
@@ -1553,11 +1574,11 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         
         let ret : Bool;
         switch(dvcIndex) {
-            case iOSDevices.kOutSpeaker.rawValue:    ret = _siprixModule.overrideAudioOutput(toSpeaker: true)
-            case iOSDevices.kOutEarPiece.rawValue:   ret = _siprixModule.overrideAudioOutput(toSpeaker: false)
-            case iOSDevices.kRouteBluetoth.rawValue: ret = _siprixModule.routeAudioToBluetoth()
-            case iOSDevices.kRouteBuildIn.rawValue:  ret = _siprixModule.routeAudioToBuiltIn()
-            default:                                 ret = false;
+            case AudioDevices.kOutSpeaker:     ret = _siprixModule.overrideAudioOutput(toSpeaker: true)
+            case AudioDevices.kOutEarPiece:    ret = _siprixModule.overrideAudioOutput(toSpeaker: false)
+            case AudioDevices.kRouteBluetooth: ret = _siprixModule.routeAudioToBluetooth()
+            case AudioDevices.kRouteBuildIn:   ret = _siprixModule.routeAudioToBuiltIn()
+            default:                           ret = false;
         }
 
         if (ret) { result("Success") }
@@ -1666,7 +1687,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
     }
     
     func setRingtonePath(_ err : Int32, assetPath: String?) {
-        if (err != kErrorCodeEOK) || (assetPath == nil) {
+        if (err != kErrorCodeEOK) || (assetPath == nil) || (_callKitProvider != nil) {
             return;
         }
 
@@ -1693,8 +1714,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
 class SiprixPushRegistry : NSObject, PKPushRegistryDelegate {
     static let shared = SiprixPushRegistry()
-    private var _siprixModule : SiprixModule?
-    private var _eventHandler : SiprixEventHandler?
+    private var _callKitProvider : SiprixCxProvider?
     private let _registry: PKPushRegistry
     private var _token: String?
 
@@ -1706,10 +1726,8 @@ class SiprixPushRegistry : NSObject, PKPushRegistryDelegate {
         _registry.desiredPushTypes = [.voIP]
     }
 
-    public func setModule(_ module: SiprixModule, eventHandler : SiprixEventHandler) {
-        _siprixModule = module
-        _eventHandler = eventHandler
-        _siprixModule?.writeLog("SiprixPushRegistry: created")
+    public func setCallKitProvider(_ callKitProvider : SiprixCxProvider?) {
+        _callKitProvider = callKitProvider
     }
 
     public func getToken() -> String? {
@@ -1738,9 +1756,8 @@ class SiprixPushRegistry : NSObject, PKPushRegistryDelegate {
            
     public func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload:
                                 PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
-        _siprixModule?.writeLog("PushRegistry: didReceiveIncomingPushWith:\(type) \(payload.dictionaryPayload)")
         if(type == .voIP) {
-            _eventHandler?.didReceiveIncomingPush(payload.dictionaryPayload)
+            _callKitProvider?.didReceiveIncomingPush(payload.dictionaryPayload)
         }
         completion()
     }
@@ -1758,18 +1775,20 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     private let _allowMuteByCallKit: Bool
     private let _reportCallAsVideo: Bool
     private var _callsList: [CallModel] = []
-    private var _audioSessionActivated = false
+    private var _isAudioSessionActivated = false
+    private var _isEnabledPushKit = false
 
     static let kECallNotFound: Int32       = -1040
     static let kEConfRequires2Calls: Int32 = -1055
     
     init(_ module:SiprixModule, eventHandler:SiprixEventHandler, 
          singleCallMode:Bool, includeInRecents:Bool, 
-         allowMuteByCallKit:Bool, reportCallAsVideo:Bool) {
+         allowMuteByCallKit:Bool, isEnabledPushKit:Bool, reportCallAsVideo:Bool) {
         _siprixModule = module
         _eventHandler = eventHandler
         _allowMuteByCallKit = allowMuteByCallKit
         _reportCallAsVideo = reportCallAsVideo
+        _isEnabledPushKit = isEnabledPushKit
         
         _cxCallCtrl = CXCallController()
         _cxProvider = CXProvider(configuration: Self.makeConfig(singleCallMode, includeInRecents:includeInRecents))
@@ -1799,9 +1818,16 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
     
     func onSipTerminated(_ callId: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(250)) { [weak self] in
+            self?.manualDeactivateAudioSession()
+        }
+
         let callIdx = _callsList.firstIndex(where: {$0.id == callId})
-        if(callIdx == nil) { return }
-            
+        if(callIdx == nil) {
+            _siprixModule.writeLog("CxProvider: onSipTerminated call not found callId:\(callId)")
+            return
+        }
+
         let call = self._callsList[callIdx!]
             
         call.cxEndAction?.fulfill()
@@ -1820,22 +1846,24 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
     
     func onSipConnected(_ callId: Int, withVideo:Bool) {
-        //Activate audio (case when enabled PushKit+CallKit, but push notif hasn't received)
-        if(!_audioSessionActivated) {
-            _siprixModule.writeLog("CxProvider: manually activate audio session")
-            _siprixModule.activate( AVAudioSession.sharedInstance())
+        //Activate audio (case when enabled PushKit+CallKit, but push notif hasn't received or didActivate hasn't triggered)
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(250)) { [weak self] in
+            self?.manualActivateAudioSession()
         }
 
+        //Find call
         let call = self._callsList.first(where: {$0.id == callId})
-        if(call == nil) { return }
-
-        call!.connectedSuccessfully = true
+        if(call == nil) {
+            _siprixModule.writeLog("CxProvider: onSipConnected not found callId:\(callId)")
+            return
+        }
 
         //Set 'connected' time of the outgoing call
+        call!.connectedSuccessfully = true
         if(!call!.isIncoming) {
             _cxProvider.reportOutgoingCall(with:call!.uuid, connectedAt: nil)
         }
-            
+
         //Update 'withVideo' flag
         //if(call!.withVideo != withVideo) {
             call!.withVideo = withVideo
@@ -1850,6 +1878,37 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         //}
     }
     
+    func manualActivateAudioSession() {
+        //Case when enabled PushKit+CallKit, but push notif hasn't received or didActivate hasn't triggered
+        if(!_isAudioSessionActivated && _isEnabledPushKit) {
+            _siprixModule.writeLog("CxProvider: manually activate audio session")
+            _siprixModule.activate(AVAudioSession.sharedInstance())
+            _isAudioSessionActivated = true
+        }
+    }
+
+    func manualDeactivateAudioSession() {
+        if(_isAudioSessionActivated && _isEnabledPushKit && _callsList.isEmpty) {
+            _siprixModule.writeLog("CxProvider: manually deactivate audio session")
+            _siprixModule.deactivate(AVAudioSession.sharedInstance())
+            _isAudioSessionActivated = false
+        }
+    }
+
+    func preConfigureAudioSession(_ withVideo:Bool) {
+        guard _callsList.isEmpty else { return }
+
+        let sharedSession = AVAudioSession.sharedInstance()
+        do {
+            _siprixModule.writeLog("CxProvider: preConfigure AVAudioSession")
+            try sharedSession.setCategory(.playAndRecord, mode: withVideo ? .videoChat : .voiceChat,
+                                          options: [.allowBluetooth, .mixWithOthers])
+            try sharedSession.setActive(false)
+        } catch {
+            _siprixModule.writeLog("CxProvider: failed to configure AVAudioSession: \(error.localizedDescription)")
+        }
+    }
+
     func onSipIncoming(_ callId:Int, withVideo:Bool, hdrFrom:String, hdrTo:String) {
         let call = CallModel(callId:callId, withVideo:withVideo, from:hdrFrom)
         _callsList.append(call)
@@ -1857,11 +1916,12 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         reportNewIncomingCall(call)
         _siprixModule.writeLog("CxProvider: onSipIncoming - added new call with uuid:\(call.uuid)")
     }
-    
+
     public func onPushIncoming() -> String {
         _siprixModule.handleIncomingPush()
+        preConfigureAudioSession(_reportCallAsVideo)
 
-        let call = CallModel(callId:kInvalidId, withVideo:true, from:"SiprixPushKit")
+        let call = CallModel(callId:kInvalidId, withVideo:_reportCallAsVideo, from:"SiprixPushKit")
         _callsList.append(call)
         
         reportNewIncomingCall(call)
@@ -1869,7 +1929,13 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         _siprixModule.writeLog("CxProvider: onPushIncoming - added new call with uuid:\(call.uuid)")
         return call.uuid.uuidString
     }
-        
+
+    public func didReceiveIncomingPush(_ dictionaryPayload : [AnyHashable : Any]) {
+        _siprixModule.writeLog("CxProvider: didReceiveIncomingPushWith: \(dictionaryPayload)")
+        let callKit_callUUID = onPushIncoming()
+        _eventHandler.didReceiveIncomingPush(dictionaryPayload, callKit_callUUID:callKit_callUUID)
+    }
+
     func reportNewIncomingCall(_ call : CallModel) {
         let update = CXCallUpdate()
         update.remoteHandle = CXHandle(type: .generic, value: call.fromTo)
@@ -2215,13 +2281,13 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     func provider(_ provider: CXProvider, didActivate audioSession: AVAudioSession) {
         _siprixModule.writeLog("CxProvider: didActivate")
         _siprixModule.activate(audioSession)
-        _audioSessionActivated = true
+        _isAudioSessionActivated = true
     }
 
     func provider(_: CXProvider, didDeactivate audioSession: AVAudioSession) {
         _siprixModule.writeLog("CxProvider: didDeactivate")
         _siprixModule.deactivate(audioSession)
-        _audioSessionActivated = false
+        _isAudioSessionActivated = false
     }
 
     public func  getCallByUUID(_ uuid: UUID) -> CallModel? {
