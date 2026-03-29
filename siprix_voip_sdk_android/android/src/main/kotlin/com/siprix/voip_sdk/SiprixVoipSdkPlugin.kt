@@ -189,14 +189,22 @@ const val kSpkLevel  = "spk"
 const val kErrorCodeEOK = 0
 const val kErrorDuplicateAccount = -1021
 
+interface ICallTerminated {
+  fun onCallTerminated()
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //EventListener
 
 class EventListener: ISiprixModelListener {
   private var channel: MethodChannel? = null
+  private var callTerminatedHandler : ICallTerminated? = null
 
   fun setMethodChannel(c : MethodChannel?) {
     channel = c
+  }
+  fun setCallTerminatedHandler(c : ICallTerminated?) {
+    callTerminatedHandler = c
   }
 
   override fun onTrialModeNotified() {
@@ -251,6 +259,10 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgCallId] = callId
     argsMap[kArgStatusCode] = statusCode
     channel?.invokeMethod(kOnCallTerminated, argsMap)
+
+    Handler(Looper.getMainLooper()).post {
+      callTerminatedHandler?.onCallTerminated()
+    }
   }
 
   override fun onCallConnected(callId: Int, hdrFrom: String?, hdrTo: String?, withVideo:Boolean) {
@@ -583,7 +595,7 @@ class FlutterRendererAdapter(texturesRegistry: TextureRegistry,
 /// SiprixVoipSdkPlugin
 
 class SiprixVoipSdkPlugin: FlutterPlugin,
-  MethodChannel.MethodCallHandler, ActivityAware, PluginRegistry.NewIntentListener,
+  MethodChannel.MethodCallHandler, ActivityAware, PluginRegistry.NewIntentListener, ICallTerminated,
   PluginRegistry.RequestPermissionsResultListener {
 
   companion object {
@@ -606,6 +618,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
   private var _pendingIntents : MutableList<Intent> = mutableListOf()
   private var _accountsIds: MutableSet<Int> = mutableSetOf()
+  private var _dontShowWhenLocked = false
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     Log.i(TAG, "onAttachedToEngine this:${this.hashCode()} binding:${flutterPluginBinding.hashCode()}")
@@ -618,6 +631,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     _channel.setMethodCallHandler(this)
 
     _eventListener = EventListener()
+    _eventListener.setCallTerminatedHandler(this)
     _eventListener.setMethodChannel(_channel)
 
     //Get core instance (create when hasn't created yet)
@@ -648,14 +662,15 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     val appInfo = _activity!!.packageManager.getApplicationInfo(_activity!!.packageName, PackageManager.GET_META_DATA)
 
     //Request permission (if required)
-    var skipPermissionRequest = appInfo.metaData?.getBoolean("com.siprix.SkipPermissionRequest")
+    val skipPermissionRequest = appInfo.metaData?.getBoolean("com.siprix.SkipPermissionRequest")
     if(skipPermissionRequest != true) requestPermissions()
 
     //Set activity attributes
-    var dontShowWhenLocked = appInfo.metaData?.getBoolean("com.siprix.DontShowWhenLocked") ?:false
-    setActivityFlags(_activity, !dontShowWhenLocked)
-
-    if(!dontShowWhenLocked) requestFullScreenIntent()
+    _dontShowWhenLocked = appInfo.metaData?.getBoolean("com.siprix.DontShowWhenLocked") ?:false
+    if(!_dontShowWhenLocked) {
+      setActivityTurnScreenOn()
+      requestFullScreenIntent()
+    }
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
@@ -667,6 +682,11 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     binding.addOnNewIntentListener(this)
     _activity = binding.activity
     _core.setModelListener(_eventListener)
+  }
+
+  override fun onCallTerminated() {
+    val hasCalls = _bgService?.hasOngoingCalls() ?: false
+    if(!hasCalls) setActivityShowWhenLocked(false)
   }
 
   override fun onDetachedFromActivity() {
@@ -1678,10 +1698,10 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   }
 
   private fun requestFullScreenIntent() {
-    if (Build.VERSION.SDK_INT < 34) return;
+    if (Build.VERSION.SDK_INT < 34) return
 
     val notifMgr = _activity!!.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    if (notifMgr.canUseFullScreenIntent()) return;
+    if (notifMgr.canUseFullScreenIntent()) return
 
     val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
       data = Uri.fromParts("package", _activity!!.packageName, null)
@@ -1693,7 +1713,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   private fun requestPermissions() {
     //Add 'CAMERA' if manifest contains it
     val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
-    var info =_activity!!.packageManager.getPackageInfo(_activity!!.packageName, PackageManager.GET_PERMISSIONS)
+    val info =_activity!!.packageManager.getPackageInfo(_activity!!.packageName, PackageManager.GET_PERMISSIONS)
     if((info.requestedPermissions!=null) &&
       info.requestedPermissions!!.contains(Manifest.permission.CAMERA))
       permissions.add(Manifest.permission.CAMERA)
@@ -1741,7 +1761,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   }
 
   private fun displayPermissionAlert(permission: String, openAppSettings: Boolean) {
-    if (openAppSettings && permission.equals(Manifest.permission.CAMERA)) return
+    if (openAppSettings && permission == Manifest.permission.CAMERA) return
     val message = when (permission) {
       Manifest.permission.CAMERA -> "Permission 'Camera' is required for video calls."
       Manifest.permission.RECORD_AUDIO -> "Permission 'Record audio' is required to access microphone.\nApplication can't make calls without it."
@@ -1763,7 +1783,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
   private fun requestPermissionAgain(permission: String, openAppSettings: Boolean) {
     if (openAppSettings) {
-      val intent: Intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+      val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
       intent.data = Uri.fromParts("package", _activity!!.packageName, null)
       _activity!!.startActivity(intent)
     } else {
@@ -1783,7 +1803,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   }
 
   private fun handleIntent(method: String, intent: Intent) : Boolean {
-    _core.moduleWriteLog("handleIntent '${method}' ${intent}")
+    _core.moduleWriteLog("handleIntent '$method' $intent")
     _bgService?.handleIncomingCallIntent(intent)
     return raiseIncomingCallEvent(intent)
   }
@@ -1791,8 +1811,11 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   private fun raiseIncomingCallEvent(intent: Intent, addToPendingIfNoAccount: Boolean=true) : Boolean {
     val isCallAcceptAction = (CallNotifService.kActionIncomingCallAccept == intent.action)//tap on 'Accept'
     val isCallIncomingAction = (CallNotifService.kActionIncomingCall == intent.action)//tap on 'Accept'
-    if((intent.extras == null) || (!isCallAcceptAction && !isCallIncomingAction)) return false;
-    Log.i(TAG, "raiseIncomingCallEvent: ${intent}")
+    if((intent.extras == null) || (!isCallAcceptAction && !isCallIncomingAction)) return false
+    Log.i(TAG, "raiseIncomingCallEvent: $intent")
+
+    //Make activity visible on lock screen
+    setActivityShowWhenLocked(true)
 
     //Get accId from intent
     val args = intent.extras!!
@@ -1823,7 +1846,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
   private fun raiseIncomingMsgEvent(args: Bundle) : Boolean {
     val accId = args.getInt(CallNotifService.kExtraAccId)
-    if(!_accountsIds.contains(accId)) return false;
+    if(!_accountsIds.contains(accId)) return false
 
     val messageId = args.getInt(CallNotifService.kExtraMsgId)
     val from = args.getString(CallNotifService.kExtraHdrFrom)
@@ -1854,16 +1877,22 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     }
   }
 
-  private fun setActivityFlags(activity: Activity?, showWhenLocked: Boolean) {
-    if(activity != null) {
-      if (Build.VERSION.SDK_INT < 27) {
-        var flags = WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
-        if(showWhenLocked) flags += WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;
-        activity.window.addFlags(flags)
-      } else {
-        activity.setTurnScreenOn(true)
-        if(showWhenLocked) activity.setShowWhenLocked(true)
-      }
+  private fun setActivityShowWhenLocked(hasCall: Boolean) {
+    if(_dontShowWhenLocked) return
+
+    if (Build.VERSION.SDK_INT < 27) {
+      if(hasCall) _activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+      else        _activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+    } else {
+      _activity?.setShowWhenLocked(hasCall)
+    }
+  }
+
+  private fun setActivityTurnScreenOn() {
+    if (Build.VERSION.SDK_INT < 27) {
+      _activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+    } else {
+      _activity?.setTurnScreenOn(true)
     }
   }
 }
