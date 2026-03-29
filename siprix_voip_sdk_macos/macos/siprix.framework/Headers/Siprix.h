@@ -363,7 +363,7 @@ EXPORT
 - (void)activateSession:(AVAudioSession* _Nonnull)session;
 - (void)deactivateSession:(AVAudioSession* _Nonnull)session;
 - (BOOL)overrideAudioOutputToSpeaker:(BOOL)on;
- -(BOOL)routeAudioToBluetoth;
+ -(BOOL)routeAudioToBluetooth;
  -(BOOL)routeAudioToBuiltIn;
  -(void)handleIncomingPush;
 #endif
