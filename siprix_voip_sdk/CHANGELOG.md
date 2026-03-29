@@ -1,3 +1,15 @@
+## 1.0.36
+- Fixed parsing SDP with wrong attributes order, which could cause to lose codecs settings
+- Filter out special characters from the 'brandName'
+- Android Flutter: Added ongoing call notification
+- Android Flutter: Updated notifications using CallStyle/MessagingStyle and separate channels
+- Android Flutter: Redesigned Activity's lock screen visibility (enable only when call present)
+- iOS Flutter: Updated CallKit implementation
+- iOS Flutter: Added ability to detect and notify Bluetooth device connection
+- Flutter: Implemented Iterator for CallsModel
+- Flutter: Added attribute 'reason' to the CDR model
+  //2026.03.29
+
 ## 1.0.35
 - Fixed bug with losing mute state when switch between calls or make conference
 - Improved handling RtcpMux/BUNDLE options when ICE enabled
