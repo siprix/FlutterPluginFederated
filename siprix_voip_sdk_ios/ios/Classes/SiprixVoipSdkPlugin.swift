@@ -1378,11 +1378,12 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
     func handleMixerSwitchToCall(_ args : ArgsMap, result: @escaping FlutterResult) {
         let callId = args[kArgCallId] as? Int
 
-        if(callId != nil) {
+        if(_callKitProvider == nil || !_callKitProvider!.containsCall(callId!) || !_callKitProvider!.contains2Calls()) {
             let err = _siprixModule.mixerSwitchCall(Int32(callId!))
             sendResult(err, result:result)
         }else{
-            sendBadArguments(result:result)
+            let err = _callKitProvider!.cxActionSwitchToCall(callId!)
+            sendResult(err, result:result)
         }
     }
 
@@ -1875,6 +1876,7 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
             update.supportsGrouping = true
             update.supportsUngrouping = true
             _cxProvider.reportCall(with: call!.uuid, updated: update)
+            _siprixModule.writeLog("CxProvider: onSipConnected callId:\(callId)")
         //}
     }
     
@@ -2046,17 +2048,25 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         }
         return providerConfiguration
     }
-    
-            
+
     func cxActionNewOutgoingCall(_ destData : SiprixDestData) {
+        //Hold existing calls
+        let transaction = CXTransaction()
+        _callsList.forEach { call in
+            if(!call.isHeld) {
+                transaction.addAction(CXSetHeldCallAction(call: call.uuid, onHold: true))
+            }
+        }
+
+        //Add new call
         let call = CallModel(destData)
         _callsList.append(call)
-        
+
         let handle = CXHandle(type: .generic, value: destData.toExt)
-        let action = CXStartCallAction(call: call.uuid, handle: handle)
-        action.isVideo = call.withVideo
-        
-        let transaction = CXTransaction(action: action)
+        let startAction = CXStartCallAction(call: call.uuid, handle: handle)
+        startAction.isVideo = call.withVideo
+        transaction.addAction(startAction)
+
         _cxCallCtrl.request(transaction) { error in self.printResult("CXStart", err:error) }
     }
 
@@ -2125,12 +2135,35 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         _cxCallCtrl.request(transaction) { error in self.printResult("CXEndCall", err:error) }
     } 
 
+    func cxActionSwitchToCall(_ callId:Int) -> Int32 {
+        let callToSwitch = _callsList.first(where: {$0.id == callId})
+        if(callToSwitch != nil) {
+            //Unhold callToSwitch, hold the rest
+            let transaction = CXTransaction()
+            _callsList.forEach { call in
+                let newHoldState = callToSwitch!.uuid != call.uuid
+                if(newHoldState != call.isHeld) {
+                    transaction.addAction(CXSetHeldCallAction(call: call.uuid, onHold: newHoldState))
+                }
+            }
+            _cxCallCtrl.request(transaction) { error in self.printResult("CXSwitchToCallAction", err:error) }
+            return kErrorCodeEOK
+        }
+        return SiprixCxProvider.kECallNotFound
+    }
 
     func cxActionGroupCall() -> Int32 {
         let callsWithSipId = _callsList.filter{ $0.id != 0}
         if(callsWithSipId.count >= 2) {
-            let action = CXSetGroupCallAction(call: callsWithSipId[0].uuid, callUUIDToGroupWith: callsWithSipId[1].uuid)
-            let transaction = CXTransaction(action: action)
+            let groupAction = CXSetGroupCallAction(call: callsWithSipId[0].uuid, callUUIDToGroupWith: callsWithSipId[1].uuid)
+            let transaction = CXTransaction()
+            transaction.addAction(groupAction)
+            
+            _callsList.forEach { call in
+                if(call.isHeld) {
+                    transaction.addAction(CXSetHeldCallAction(call: call.uuid, onHold: false))
+                }
+            }
         
             _cxCallCtrl.request(transaction) { error in self.printResult("CXSetGroupCallAction", err:error) }
             return kErrorCodeEOK;
@@ -2164,16 +2197,13 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
     }
     
     func provider(_: CXProvider, perform action: CXStartCallAction) {
-        _siprixModule.writeLog("CxProvider: CXStartCall uuid:\(action.callUUID)")
-        //TODO Case starting call from NativeUI
-        
         let call = getCallByUUID(action.callUUID)
         if(call != nil) {
-           //if(callsListModel.inviteWithUUID(callee: action.handle.value,
-            //      displayName: action.handle.value, videoCall: action.isVideo, uuid: action.callUUID))  {
             action.fulfill()
+            _siprixModule.writeLog("CxProvider: CXStartCall success uuid:\(action.callUUID)")
         } else {
             action.fail()
+            _siprixModule.writeLog("CxProvider: CXStartCall not found uuid:\(action.callUUID)")
         }
     }
     
@@ -2222,23 +2252,22 @@ class SiprixCxProvider : NSObject, CXProviderDelegate {
         let call = getCallByUUID(action.callUUID)
         if((call != nil) && (_siprixModule.callSendDtmf(Int32(call!.id), dtmfs:action.digits) == kErrorCodeEOK)) {
             action.fulfill()
-        }
-        else {
+        }else{
             action.fail()
         }
     }
 
     func provider(_: CXProvider, perform action: CXSetHeldCallAction) {
-        _siprixModule.writeLog("CxProvider: CXSetHeld uuid:\(action.callUUID) isOnHold:\(action.isOnHold)")
-       
+        var res:Int32 = -1
         let call = getCallByUUID(action.callUUID)
-        if((call != nil) && (_siprixModule.callHold(Int32(call!.id)) == kErrorCodeEOK)) {
+        if((call != nil)&&(call!.isHeld != action.isOnHold)) {
             call!.isHeld = action.isOnHold//TODO check, may be fullfil only when event received
+            res = _siprixModule.callHold(Int32(call!.id))
             action.fulfill()
-        }
-        else {
+        }else{
             action.fail()
         }
+        _siprixModule.writeLog("CxProvider: CXSetHeld uuid:\(action.callUUID) isOnHold:\(action.isOnHold) res:\(res)")
     }
     
     func provider(_: CXProvider, perform action: CXSetMutedCallAction) {
