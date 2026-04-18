@@ -1,3 +1,7 @@
+## 1.0.37
+- Fixed decoding H264 bitstream contaning SPS/PPS as separate packets with marker flags
+  //2026.04.18
+
 ## 1.0.23
 - Fixed parsing SDP with wrong attributes order, which could cause to lose codecs settings
 - Filter out special characters from the 'brandName'
