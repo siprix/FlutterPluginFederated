@@ -35,8 +35,7 @@ class _CallsListPageState extends State<CallsListPage> {
     if(calls.isEmpty) {
       _callDurationTimer?.cancel();
       _callDurationTimer = null;
-    } else {
-      if(_callDurationTimer != null) return;
+    } else if(_callDurationTimer == null) {
       _callDurationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         calls.calcDuration();
       });
@@ -49,6 +48,12 @@ class _CallsListPageState extends State<CallsListPage> {
     context.read<AppCallsModel>().onSwitchedCall = (int callId) {
       CallActionDialog.popOnSwitchedCall(context);
     };
+  }
+
+  @override
+  void dispose() {
+    _callDurationTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -153,7 +158,8 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
                   ... _buildCallControls(),
                   const Spacer(),
                   if(widget.myCall.state==CallState.ringing) _buildIncomingCallAcceptReject(),
-                  if(widget.myCall.state!=CallState.ringing) _buildHangupButton(),
+                  if((widget.myCall.state!=CallState.ringing)&&
+                     (widget.myCall.state!=CallState.terminated)) _buildHangupButton(),
                   const Spacer(),
                 ])
               )

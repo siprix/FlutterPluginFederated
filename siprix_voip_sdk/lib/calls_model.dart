@@ -63,7 +63,10 @@ enum CallState{
   /// Call held, RTP is NOT flowing
   held(8, "Held"),
   /// Call transferring
-  transferring(9, "Transferring");
+  transferring(9, "Transferring"),
+
+  /// Call terminated
+  terminated(10, "Terminated");
 
   const CallState(this.id, this.name);
   /// Call state id
@@ -586,6 +589,13 @@ class CallModel extends ChangeNotifier implements ISiprixData {
     notifyListeners();
   }
 
+  /// Handle terminated state, allows to display reason of call end during short time
+  void onTerminated(int statusCode, String reason) {
+    _response = reason.isNotEmpty ? reason : statusCode.toString();
+    _state = CallState.terminated;
+    notifyListeners();
+  }
+
   /// Handle player state changes
   bool onPlayerStateChanged(int playerId, PlayerState state) {
     if(_playerId != playerId) return false;//player doesn't belong to this call
@@ -708,10 +718,6 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
       _postResolveContactName(newCall);
       _logs?.print('Added new call $callId');
 
-      if(_switchedCallId == kEmptyCallId) {
-         _switchedCallId = callId;
-      }
-
       notifyListeners();
 
     } on PlatformException catch (err) {
@@ -809,24 +815,25 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
     notifyListeners();
   }
 
-  /// Handle teminated call event raised by library (removes call instance from list and notifies UI)
+  /// Handle terminated call event raised by library (removes call instance from list and notifies UI)
   void onTerminated(int callId, int statusCode) async {
     _logs?.print('onTerminated callId:$callId statusCode:$statusCode');
 
     CallModel? call = _findCall(callId);
-    if(call != null) {
-      String reason = await SiprixVoipSdk().getSipHeader(callId, "Reason") ?? "-";
-      _cdrs?.setTerminated(callId, statusCode, reason, call.displName, call.durationStr);
+    if(call == null) return;
 
-      _callItems.remove(call);
-      _logs?.print('Removed call: $callId');
+    String reason = await SiprixVoipSdk().getSipHeader(callId, "Reason") ?? "";
+    _cdrs?.setTerminated(callId, statusCode, reason, call.displName, call.durationStr);
+    call.onTerminated(statusCode, reason);
 
-      if(_confModeStarted && !hasConnectedFewCalls()) {
-        _confModeStarted = false;
-      }
+    _callItems.remove(call);
+    _logs?.print('Removed call: $callId');
 
-      notifyListeners();
+    if(_confModeStarted && !hasConnectedFewCalls()) {
+      _confModeStarted = false;
     }
+
+    notifyListeners();
   }
 
   /// Handle transfer response event raised by library and route it to matched call instance
