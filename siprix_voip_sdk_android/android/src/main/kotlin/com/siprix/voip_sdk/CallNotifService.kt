@@ -34,7 +34,6 @@ import com.siprix.SiprixRinger
 open class CallNotifService : Service() {
     private lateinit var _ringer: ISiprixRinger
     private lateinit var _appResources: LabelResources
-    private lateinit var _eventsListener: CoreEventsListener
     private lateinit var _context: Context
 
     private var _actionReceiver: NotifActionReceiver? = null
@@ -65,11 +64,7 @@ open class CallNotifService : Service() {
         core = createSiprixCore(context)
         _context = context
 
-        //Create and set event listener
-        _eventsListener = CoreEventsListener(this)
-        core?.setServiceListener(_eventsListener)
-
-        //Get app resources
+        core?.setServiceListener(CoreEventsListener(this))
         _appResources = LabelResources(context)
         _ringer = SiprixRinger(context)
 
@@ -445,47 +440,70 @@ open class CallNotifService : Service() {
     //Handle core events
     class CoreEventsListener(service : CallNotifService) : ISiprixServiceListener {
         private val _service = service
-
         override fun onRingerState(start: Boolean) {
-            try {
-                if (start) _service._ringer.start()
-                else       _service._ringer.stop()
-            } catch (ex: Exception) {
-                core?.moduleWriteLog("Ringer error: '${ex}")
-            }
+            _service.onRingerState(start)
         }
-
         override fun onCallTerminated(callId: Int, statusCode: Int) {
-            _service.removeCallFromSavedState(callId)
-            _service.removeOngoingNotification(callId)
+            _service.onCallTerminated(callId, statusCode)
         }
-
         override fun onCallConnected(callId: Int, hdrFrom: String?, hdrTo: String?, withVideo:Boolean) {
-            if (_service.shouldShowOngoinCallNotif()) {
-                _service.displayOngoingCallNotification(callId, hdrFrom, hdrTo, withVideo)
-            }
+            _service.onCallConnected(callId, hdrFrom, hdrTo, withVideo)
         }
-
-        override fun onCallIncoming(
-            callId: Int, accId: Int, withVideo: Boolean,
-            hdrFrom: String, hdrTo: String
-        ) {
-            Log.i(TAG, "onCallIncoming $callId")
-            if (_service.shouldShowNotificationWhenInForeground() || !_service.isAppInForeground()) {
-                _service.displayIncomingCallNotification(callId, accId, withVideo, hdrFrom, hdrTo)
-            }
+        override fun onCallIncoming(callId: Int, accId: Int, withVideo: Boolean,
+                                    hdrFrom: String, hdrTo: String) {
+            _service.onCallIncoming(callId, accId, withVideo, hdrFrom, hdrTo)
         }
-
         override fun onMessageIncoming(messageId: Int, accId: Int,
                                        hdrFrom: String?, body: String?) {
-            Log.i(TAG, "onMessageIncoming $messageId")
-            if (_service.shouldShowNotificationWhenInForeground() || !_service.isAppInForeground()) {
-                _service.displayIncomingMessageNotification(messageId, accId, hdrFrom, body)
-            }
+            _service.onMessageIncoming(messageId, accId, hdrFrom, body)
         }
     }
 
-    private fun isAppInForeground(): Boolean {
+    open fun onRingerState(start: Boolean) {
+        try {
+            if (start) _ringer.start()
+            else       _ringer.stop()
+        } catch (ex: Exception) {
+            core?.moduleWriteLog("Ringer error: '${ex}")
+        }
+    }
+
+    open fun onCallTerminated(callId: Int, statusCode: Int) {
+        removeCallFromSavedState(callId)
+        removeOngoingNotification(callId)
+    }
+
+    open fun onCallConnected(callId: Int, hdrFrom: String?, hdrTo: String?, withVideo:Boolean) {
+        if (shouldShowOngoinCallNotif()) {
+            displayOngoingCallNotification(callId, hdrFrom, hdrTo, withVideo)
+        }
+    }
+
+    open fun onCallIncoming(callId: Int, accId: Int, withVideo: Boolean,
+                            hdrFrom: String, hdrTo: String) {
+        Log.i(TAG, "onCallIncoming $callId")
+        if (shouldShowNotificationWhenInForeground() || !isAppInForeground()) {
+            displayIncomingCallNotification(callId, accId, withVideo, hdrFrom, hdrTo)
+        }
+    }
+
+    open fun onMessageIncoming(messageId: Int, accId: Int,
+                                   hdrFrom: String?, body: String?) {
+        Log.i(TAG, "onMessageIncoming $messageId")
+        if (shouldShowNotificationWhenInForeground() || !isAppInForeground()) {
+            displayIncomingMessageNotification(messageId, accId, hdrFrom, body)
+        }
+    }
+
+    protected fun accountUnregister(accountId: Int) {
+        core?.accountUnregister(accountId)
+    }
+
+    protected fun accountDelete(accountId: Int) {
+        core?.accountDelete(accountId)
+    }
+
+    protected fun isAppInForeground(): Boolean {
         val am = _context.getSystemService(ACTIVITY_SERVICE) as ActivityManager
         val appProcs = am.runningAppProcesses
         for (app in appProcs) {
@@ -499,12 +517,13 @@ open class CallNotifService : Service() {
 
     protected fun buildContentString(hdrFrom: String?) : String {
         //hdrFrom has format: "displName" <sip:ext@domain:port>
-        if(hdrFrom==null) return "???"
+        val unknown = "Unknown"
+        if(hdrFrom==null) return unknown
 
         val displName = hdrFrom.substringAfter("\"", missingDelimiterValue = "")
                                 .substringBefore("\"", missingDelimiterValue = "")
-        val sipExt = hdrFrom.substringAfter(":", missingDelimiterValue = "?")
-                            .substringBefore("@", missingDelimiterValue = "?")
+        val sipExt = hdrFrom.substringAfter(":", missingDelimiterValue = unknown)
+                            .substringBefore("@", missingDelimiterValue = unknown)
 
         //Return same value as Flutter app in 'CallModel.nameAndExt'
         return if(displName.isEmpty()) sipExt else "$displName ($sipExt)"
