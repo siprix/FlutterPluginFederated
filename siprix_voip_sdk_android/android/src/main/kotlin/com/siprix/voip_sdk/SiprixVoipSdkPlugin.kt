@@ -14,7 +14,6 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.graphics.SurfaceTexture
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -34,7 +33,6 @@ import com.siprix.SiprixCore
 import com.siprix.SiprixEglBase
 import com.siprix.SubscrData
 import com.siprix.VideoData
-
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -45,6 +43,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.view.TextureRegistry
+import io.flutter.view.TextureRegistry.SurfaceProducer
 import org.webrtc.EglBase
 import org.webrtc.EglRenderer
 import org.webrtc.GlRectDrawer
@@ -394,11 +393,10 @@ class SurfaceTextureRenderer
   private var rotatedFrameHeight = 0
   private var frameRotation = 0
 
-  private var texture: SurfaceTexture? = null
+  private var surface: android.view.Surface? = null
+  private var producer: SurfaceProducer? = null
 
-  fun init(sharedContext: EglBase.Context?,
-    rendererEvents: RendererCommon.RendererEvents?
-  ) {
+  fun init(sharedContext: EglBase.Context?, rendererEvents: RendererCommon.RendererEvents?) {
     init(sharedContext, rendererEvents, EglBase.CONFIG_PLAIN, GlRectDrawer())
   }
 
@@ -446,14 +444,25 @@ class SurfaceTextureRenderer
 
   // VideoSink interface.
   override fun onFrame(frame: org.webrtc.VideoFrame) {
+    if(surface == null) {
+      producer?.setSize(frame.getRotatedWidth(),frame.getRotatedHeight())
+      surface = producer?.getSurface()
+      createEglSurface(surface)
+    }
     updateFrameDimensionsAndReportEvents(frame)
     super.onFrame(frame)
   }
 
-  fun surfaceCreated(texture: SurfaceTexture?) {
+  fun surfaceCreated(producer: SurfaceProducer) {
     ThreadUtils.checkIsOnMainThread()
-    this.texture = texture
-    createEglSurface(texture)
+    this.producer = producer
+    this.producer!!.setCallback(
+      object : SurfaceProducer.Callback {
+        override fun onSurfaceAvailable() {}
+
+        override fun onSurfaceCleanup() { surfaceDestroyed() }
+      }
+    )
   }
 
   fun surfaceDestroyed() {
@@ -461,6 +470,7 @@ class SurfaceTextureRenderer
     val completionLatch = CountDownLatch(1)
     releaseEglSurface(completionLatch::countDown)
     ThreadUtils.awaitUninterruptibly(completionLatch)
+    surface = null
   }
 
   // Update frame dimensions and report any changes to |rendererEvents|.
@@ -477,7 +487,6 @@ class SurfaceTextureRenderer
         )
         rotatedFrameWidth = frame.rotatedWidth
         rotatedFrameHeight = frame.rotatedHeight
-        texture?.setDefaultBufferSize(rotatedFrameWidth, rotatedFrameHeight)
         frameRotation = frame.rotation
       }
     }
@@ -490,23 +499,22 @@ class SurfaceTextureRenderer
 
 class FlutterRendererAdapter(texturesRegistry: TextureRegistry,
                              messenger: BinaryMessenger) : EventChannel.StreamHandler {
-  private val textureEntry: TextureRegistry.SurfaceTextureEntry
   private val surfaceTextureRenderer: SurfaceTextureRenderer
   private val rendererEvents: RendererCommon.RendererEvents
+  private val producer: SurfaceProducer
   private val eventChannel: EventChannel
   private var eventSink: EventSink? = null
   var srcCallId: Int = -1
 
   init {
-    textureEntry = texturesRegistry.createSurfaceTexture()//create and register texture
-
-    rendererEvents = RendererEventsListener(this)//createRendererEventsListener()
+    producer = texturesRegistry.createSurfaceProducer()
+    rendererEvents = RendererEventsListener(this)
 
     surfaceTextureRenderer = SurfaceTextureRenderer("")
     surfaceTextureRenderer.init(SiprixEglBase.getInstance().context, rendererEvents)
-    surfaceTextureRenderer.surfaceCreated(textureEntry.surfaceTexture())
+    surfaceTextureRenderer.surfaceCreated(producer)
 
-    this.eventChannel = EventChannel(messenger, "Siprix/Texture" + textureEntry.id())
+    this.eventChannel = EventChannel(messenger, "Siprix/Texture" + producer.id())
     this.eventChannel.setStreamHandler(this)
   }
 
@@ -515,7 +523,7 @@ class FlutterRendererAdapter(texturesRegistry: TextureRegistry,
   }
 
   fun getTextureId(): Long {
-    return textureEntry.id()
+    return producer.id()
   }
 
   fun dispose() {
@@ -524,7 +532,7 @@ class FlutterRendererAdapter(texturesRegistry: TextureRegistry,
     eventChannel.setStreamHandler(null)
 
     eventSink = null
-    textureEntry.release()
+    producer.release()
   }
 
   override fun onListen(o: Any?, sink: EventSink?) {
@@ -545,7 +553,7 @@ class FlutterRendererAdapter(texturesRegistry: TextureRegistry,
         if (_width != videoWidth || _height != videoHeight) {
           val params = HashMap<String, Any?>()
           params["event"] = "didTextureChangeVideoSize"
-          params["id"] = adapter.textureEntry.id()
+          params["id"] = adapter.getTextureId()
           params["width"] = videoWidth.toDouble()
           params["height"] = videoHeight.toDouble()
           _width = videoWidth
@@ -556,7 +564,7 @@ class FlutterRendererAdapter(texturesRegistry: TextureRegistry,
         if (_rotation != rotation) {
           val params2 = HashMap<String, Any?>()
           params2["event"] = "didTextureChangeRotation"
-          params2["id"] = adapter.textureEntry.id()
+          params2["id"] = adapter.getTextureId()
           params2["rotation"] = rotation
           _rotation = rotation
           adapter.eventSink!!.success(params2.toMap())
