@@ -1,3 +1,8 @@
+## 1.0.38
+- Fixed restoring media streams after hold longer than 30sec
+- Allowed to delete account when it has subscriptions
+  //2026.05.08
+
 ## 1.0.37
 - Fixed decoding H264 bitstream contaning SPS/PPS as separate packets with marker flags
   //2026.04.18
