@@ -1,3 +1,9 @@
+## 1.0.39
+- Added selected codec details to the call stats data returned by `Call_GetStats`
+- Fixed bug with audio mixer (remote clients joined into conference can't hear each other when using different codecs)
+- Fixed retrieving guid value of the audio devices
+  //2026.05.29
+
 ## 1.0.38
 - Fixed restoring media streams after hold longer than 30sec
 - Allowed to delete account when it has subscriptions
