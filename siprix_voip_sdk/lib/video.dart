@@ -151,20 +151,16 @@ class SiprixVideoRenderer extends ValueNotifier<RTCVideoValue> {
 
 /// SiprixVideoView - widget which displays specified renderer
 class SiprixVideoView extends StatelessWidget {
-  /// Constructor
-  const SiprixVideoView(this._renderer, {Key? key,}) : super(key: key);
-
+  SiprixVideoView(this._renderer, {Key? key,}) : super(key: key);
   final SiprixVideoRenderer _renderer;
-
-  /// Set texture quality
-  final FilterQuality filterQuality = FilterQuality.low;
 
   @override
   Widget build(BuildContext context) {
-    return _renderer.hasTexture
-                    ? AspectRatio(aspectRatio: _renderer.aspectRatio,
-                        child: Texture(textureId: _renderer.textureId, filterQuality: filterQuality))
-                    : const SizedBox.shrink();
+    return
+      _renderer.hasTexture && (_renderer.videoWidth > 0)
+        ? AspectRatio(aspectRatio: _renderer.aspectRatio,
+          child: Texture(textureId: _renderer.textureId, filterQuality: FilterQuality.low))
+        : const SizedBox.shrink();
   }
 
   //Widget buildWithText(BuildContext context) {

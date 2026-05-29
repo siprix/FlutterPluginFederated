@@ -6,40 +6,89 @@ import 'package:flutter/services.dart';
 import 'siprix_voip_sdk.dart';
 
 
-/// Devices list model (contains list of avaialable audio/video devices)
-class DevicesModel extends ChangeNotifier {
-  final List<MediaDevice> _playout = [];
-  final List<MediaDevice> _recording = [];
-  final List<MediaDevice> _video = [];
+class _DevicesList {
+  _DevicesList(this._listName, [this._logs]);
+  final List<MediaDevice> _dvcs = [];
+  final ILogsModel? _logs;
+  final String _listName;
+  String _selGuid="";
+  int _selIndex=-1;
 
-  int _selPlayoutIndex=-1;
-  int _selRecordingIndex=-1;
-  int _selVideoIndex=-1;
+  List<MediaDevice> get list => List.unmodifiable(_dvcs);
+  int get selIndex   => _selIndex;
+
+  void _load(Future<int?> Function() getDevicesNumber, Future<MediaDevice?> Function(int) getDevice) async {
+    try {
+      _dvcs.clear();
+      bool selDevFound=false;
+      int dvcsNumber = await getDevicesNumber() ?? 0;
+      for(int index=0; index < dvcsNumber; ++index) {
+        MediaDevice? dev = await getDevice(index);
+        if(dev == null) continue;
+
+        if(_dvcs.indexWhere((p) => p.guid==dev.guid) == -1) _dvcs.add(dev);
+        if(_selGuid == dev.guid) { _selIndex = index; selDevFound=true; }
+      }
+
+      if(!selDevFound) {
+        _selIndex = -1;
+        _selGuid = "";
+      }
+    } on PlatformException catch (err) {
+      _logs?.print('Can\'t load ${_listName}Devices. Err: ${err.code} ${err.message}');
+    }
+  }
+
+  Future<void> set(int? index, Future<void> Function(int) setDevice) async{
+    if(index==null) return;
+    _logs?.print('set ${_listName}Device - $index');
+
+    try {
+      await setDevice(index);
+      _selGuid = ((index >= 0)&&(index < _dvcs.length)) ? _dvcs[index].guid : "";
+      _selIndex = index;
+    } on PlatformException catch (err) {
+      _logs?.print('Can\'t set ${_listName}Device. Err: ${err.code} ${err.message}');
+      return Future.error((err.message==null) ? err.code : err.message!);
+    }
+  }
+}//_DevicesList
+
+
+/// Devices model (contains list of avaialable audio/video devices and status of foreground mode)
+class DevicesModel extends ChangeNotifier {
+  final _DevicesList _playout;
+  final _DevicesList _recording;
+  final _DevicesList _video;
+
   bool _foregroundModeEnabled = false;
 
   final ILogsModel? _logs;
   bool _loaded = false;
 
   /// Create instance and set event handler
-  DevicesModel([this._logs]) {
+  DevicesModel([this._logs])
+    : _playout = _DevicesList("playout", _logs),
+      _recording = _DevicesList("recording", _logs),
+      _video = _DevicesList("video", _logs) {
     SiprixVoipSdk().dvcListener = DevicesStateListener(
       devicesChanged : onAudioDevicesChanged
     );
   }
 
   /// List of audio speaker devices
-  List<MediaDevice> get playout   => List.unmodifiable(_playout);
+  List<MediaDevice> get playout   => _playout.list;
   /// List of audio microphone devices
-  List<MediaDevice> get recording => List.unmodifiable(_recording);
+  List<MediaDevice> get recording => _recording.list;
   /// List of audio camera devices
-  List<MediaDevice> get video     => List.unmodifiable(_video);
+  List<MediaDevice> get video     => _video.list;
 
   /// Index of selected speaker device
-  int get playoutIndex   => _selPlayoutIndex;
+  int get playoutIndex   => _playout.selIndex;
   /// Index of selected microphone device
-  int get recordingIndex => _selRecordingIndex;
+  int get recordingIndex => _recording.selIndex;
   /// Index of selected camera device
-  int get videoIndex     => _selVideoIndex;
+  int get videoIndex     => _video.selIndex;
 
   /// Returns true if android service works in foreground mode (Android only!)
   bool get foregroundModeEnabled => _foregroundModeEnabled;
@@ -55,47 +104,18 @@ class DevicesModel extends ChangeNotifier {
   }
 
   void _loadPlayoutDevices() async {
-    try {
-      _playout.clear();
-      int dvcsNumber = await SiprixVoipSdk().getPlayoutDevices() ?? 0;
-      for(int index=0; index < dvcsNumber; ++index) {
-        MediaDevice? dvc = await SiprixVoipSdk().getPlayoutDevice(index);
-        if((dvc != null) && (_playout.indexWhere((p) => p.guid==dvc.guid) ==-1))   _playout.add(dvc);
-      }
-      _selPlayoutIndex = -1;
-      notifyListeners();
-    } on PlatformException catch (err) {
-      _logs?.print('Can\'t load playoutDevices. Err: ${err.code} ${err.message}');
-    }
+    _playout._load(SiprixVoipSdk().getPlayoutDevices, SiprixVoipSdk().getPlayoutDevice);
+    notifyListeners();
   }
 
   void _loadRecordingDevices() async {
-    try {
-      _recording.clear();
-      int dvcsNumber = await SiprixVoipSdk().getRecordingDevices() ?? 0;
-      for(int index=0; index < dvcsNumber; ++index) {
-        MediaDevice? dvc = await SiprixVoipSdk().getRecordingDevice(index);
-        if((dvc != null) && (_recording.indexWhere((p) => p.guid==dvc.guid) ==-1))   _recording.add(dvc);
-      }
-      _selRecordingIndex = -1;
-      notifyListeners();
-    } on PlatformException catch (err) {
-      _logs?.print('Can\'t load recordingDevices. Err: ${err.code} ${err.message}');
-    }
+    _recording._load(SiprixVoipSdk().getRecordingDevices, SiprixVoipSdk().getRecordingDevice);
+    notifyListeners();
   }
 
   void _loadVideoDevices() async {
-    try {
-      _video.clear();
-      int dvcsNumber = await SiprixVoipSdk().getVideoDevices() ?? 0;
-      for(int index=0; index < dvcsNumber; ++index) {
-        MediaDevice? dvc = await SiprixVoipSdk().getVideoDevice(index);
-        if((dvc != null) && (_video.indexWhere((p) => p.guid==dvc.guid) ==-1))   _video.add(dvc);
-      }
-      notifyListeners();
-    } on PlatformException catch (err) {
-      _logs?.print('Can\'t load videoDevices. Err: ${err.code} ${err.message}');
-    }
+    _video._load(SiprixVoipSdk().getVideoDevices, SiprixVoipSdk().getVideoDevice);
+    notifyListeners();
   }
 
   /// Handle event raised by library (notifies that list of audio devices has changed)
@@ -107,44 +127,29 @@ class DevicesModel extends ChangeNotifier {
 
   /// Set current speaker device by its index
   Future<void> setPlayoutDevice(int? index) async{
-    if(index==null) return;
-    _logs?.print('set playoutDevice - $index');
+    return _playout.set(index, SiprixVoipSdk().setPlayoutDevice);
+  }
 
-    try {
-      await SiprixVoipSdk().setPlayoutDevice(index);
-      _selPlayoutIndex = index;
-    } on PlatformException catch (err) {
-      _logs?.print('Can\'t set playoutDevice. Err: ${err.code} ${err.message}');
-      return Future.error((err.message==null) ? err.code : err.message!);
-    }
+  /// Set current speaker as system's default device (Windows only)
+  Future<void> setPlayoutDeviceSysDef() async{
+    if(Platform.isWindows)
+      return _playout.set(-1, SiprixVoipSdk().setPlayoutDevice);
   }
 
   /// Set current microphone device by its index
   Future<void> setRecordingDevice(int? index) async{
-    if(index==null) return;
-    _logs?.print('set recordingDevice - $index');
+    return _recording.set(index, SiprixVoipSdk().setRecordingDevice);
+  }
 
-    try {
-      await SiprixVoipSdk().setRecordingDevice(index);
-      _selRecordingIndex = index;
-    } on PlatformException catch (err) {
-      _logs?.print('Can\'t set recordingDevice. Err: ${err.code} ${err.message}');
-      return Future.error((err.message==null) ? err.code : err.message!);
-    }
+/// Set current microphone device as system's default device (Windows only)
+  Future<void> setRecordingDeviceSysDef() async{
+    if(Platform.isWindows)
+      return _recording.set(-1, SiprixVoipSdk().setRecordingDevice);
   }
 
   /// Set current camera device by its index
   Future<void> setVideoDevice(int? index) async{
-    if(index==null) return;
-    _logs?.print('set videoDevice - $index');
-
-    try {
-      await SiprixVoipSdk().setVideoDevice(index);
-      _selVideoIndex = index;
-    } on PlatformException catch (err) {
-      _logs?.print('Can\'t set videoDevice. Err: ${err.code} ${err.message}');
-      return Future.error((err.message==null) ? err.code : err.message!);
-    }
+    return _video.set(index, SiprixVoipSdk().setVideoDevice);
   }
 
   /// Set foreground mode of the CallNotifService service (Android only)

@@ -47,7 +47,7 @@ class LogsModel extends ChangeNotifier implements ILogsModel {
 
     if(_uiLog) {
       DateTime now = DateTime.now();
-      _logStr += DateFormat('kk:mm:ss ').format(now);
+      _logStr += DateFormat('HH:mm:ss ').format(now);
       _logStr += str;
       _logStr += '\n';
       notifyListeners();

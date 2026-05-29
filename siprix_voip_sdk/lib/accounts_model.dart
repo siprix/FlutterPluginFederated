@@ -85,6 +85,9 @@ class InitData implements ISiprixData {
   /// Folder where to store log files
   String? homeFolder;
 
+  /// Android only. Trigger 'onIncomingCall' event only when user taps notification (when enabled requires also adding own service impl and override `shouldShowNotificationWhenInForeground`)
+  bool? triggerOnIncomingCallByNotifOnly;
+
   @override
   Map<String, dynamic> toJson() {
     Map<String, dynamic> ret = {};
@@ -102,6 +105,7 @@ class InitData implements ISiprixData {
     if(enableCallKit!=null)     ret['enableCallKit'] = enableCallKit;
     if(enableCallKitMute!=null) ret['enableCallKitMute'] = enableCallKitMute;
     if(enableCallKitReportCallAsVideo!=null) ret['enableCallKitReportCallAsVideo'] = enableCallKitReportCallAsVideo;
+    if(triggerOnIncomingCallByNotifOnly!=null) ret['triggerOnIncomingCallByNotifOnly'] = triggerOnIncomingCallByNotifOnly;
     if(enableCallKitRecents!=null) ret['enableCallKitRecents'] = enableCallKitRecents;
     if(serviceClassName!=null)  ret['serviceClassName'] = serviceClassName;
     if(unregOnDestroy!=null)    ret['unregOnDestroy'] = unregOnDestroy;
