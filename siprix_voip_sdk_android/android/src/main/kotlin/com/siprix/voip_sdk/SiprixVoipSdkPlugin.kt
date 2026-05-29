@@ -198,12 +198,16 @@ interface ICallTerminated {
 class EventListener: ISiprixModelListener {
   private var channel: MethodChannel? = null
   private var callTerminatedHandler : ICallTerminated? = null
+  private var triggerIncomingCallByNotifOnly = false
 
   fun setMethodChannel(c : MethodChannel?) {
     channel = c
   }
   fun setCallTerminatedHandler(c : ICallTerminated?) {
     callTerminatedHandler = c
+  }
+  fun setTriggerIncomingCall(t: Boolean?) {
+    if(t!=null) triggerIncomingCallByNotifOnly = t
   }
 
   override fun onTrialModeNotified() {
@@ -274,6 +278,13 @@ class EventListener: ISiprixModelListener {
   }
 
   override fun onCallIncoming(
+    callId: Int, accId: Int, withVideo: Boolean,
+    hdrFrom: String?, hdrTo: String?) {
+    if(!triggerIncomingCallByNotifOnly)
+      onCallIncomingNotif(callId, accId, withVideo, hdrFrom, hdrTo)
+  }
+
+  fun onCallIncomingNotif(
     callId: Int, accId: Int, withVideo: Boolean,
     hdrFrom: String?, hdrTo: String?
   ) {
@@ -902,6 +913,8 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     val err = _core.initialize(iniData)
     sendResult(err, result)
     Log.i(TAG, "handleModuleInitialize err:${err}")
+
+    _eventListener.setTriggerIncomingCall(args["triggerOnIncomingCallByNotifOnly"] as? Boolean)
 
     //Bind and start service
     startAndBindNotifService(args["serviceClassName"] as? String)
@@ -1843,7 +1856,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     val to = args.getString(CallNotifService.kExtraHdrTo)
 
     Log.i(TAG, "raise onCallIncoming $callId")
-    _eventListener.onCallIncoming(callId, accId, video, from, to)
+    _eventListener.onCallIncomingNotif(callId, accId, video, from, to)
 
     if(isCallAcceptAction) {
       Log.i(TAG, "raise onCallAcceptNotif $callId")
