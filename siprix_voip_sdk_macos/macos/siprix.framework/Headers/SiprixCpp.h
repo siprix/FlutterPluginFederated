@@ -84,6 +84,7 @@ enum ErrorCode : int32_t
     ERndrAlreadyAssigned = -1057,
     ESipHeaderNotFound   = -1058,
     EToneNameInvalid     = -1059,
+    ECallAlreadyHasVideo = -1060,
 
     EBadDeviceIndex      = -1070,
 
