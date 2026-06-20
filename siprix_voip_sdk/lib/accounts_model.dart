@@ -88,6 +88,9 @@ class InitData implements ISiprixData {
   /// Android only. Trigger 'onIncomingCall' event only when user taps notification (when enabled requires also adding own service impl and override `shouldShowNotificationWhenInForeground`)
   bool? triggerOnIncomingCallByNotifOnly;
 
+  /// Android only. Use 16kHz samplerate for audio (fixes increasing latency on Bluetoth devices)
+  bool? use16kHzAudio;
+
   @override
   Map<String, dynamic> toJson() {
     Map<String, dynamic> ret = {};
@@ -114,6 +117,7 @@ class InitData implements ISiprixData {
     if(enableVideoCall!=null)   ret['enableVideoCall'] = enableVideoCall;
     if(transpForceIPv4!=null)   ret['transpForceIPv4'] = transpForceIPv4;
     if(enableAes128Sha32!=null) ret['enableAes128Sha32'] = enableAes128Sha32;
+    if(use16kHzAudio!=null)     ret['use16kHzAudio'] = use16kHzAudio;
     if(enableVUmeter!=null)     ret['enableVUmeter'] = enableVUmeter;
     if(homeFolder!=null)        ret['homeFolder'] = homeFolder;
     return ret;

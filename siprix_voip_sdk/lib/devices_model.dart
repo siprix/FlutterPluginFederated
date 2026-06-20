@@ -27,7 +27,7 @@ class _DevicesList {
         if(dev == null) continue;
 
         if(_dvcs.indexWhere((p) => p.guid==dev.guid) == -1) _dvcs.add(dev);
-        if(_selGuid == dev.guid) { _selIndex = index; selDevFound=true; }
+        if((_selGuid == dev.guid)||dev.isSelected) { _selIndex = index; _selGuid = dev.guid; selDevFound=true; }
       }
 
       if(!selDevFound) {
@@ -96,26 +96,26 @@ class DevicesModel extends ChangeNotifier {
   /// Load list of available devices
   void load() {
     if(_loaded) return;
+    _loaded = true;
+
     _loadPlayoutDevices();
     _loadRecordingDevices();
     _loadVideoDevices();
     _loadForegroundMode();
-    _loaded = true;
+
+    notifyListeners();
   }
 
   void _loadPlayoutDevices() async {
     _playout._load(SiprixVoipSdk().getPlayoutDevices, SiprixVoipSdk().getPlayoutDevice);
-    notifyListeners();
   }
 
   void _loadRecordingDevices() async {
     _recording._load(SiprixVoipSdk().getRecordingDevices, SiprixVoipSdk().getRecordingDevice);
-    notifyListeners();
   }
 
   void _loadVideoDevices() async {
     _video._load(SiprixVoipSdk().getVideoDevices, SiprixVoipSdk().getVideoDevice);
-    notifyListeners();
   }
 
   /// Handle event raised by library (notifies that list of audio devices has changed)
@@ -123,6 +123,8 @@ class DevicesModel extends ChangeNotifier {
     _logs?.print('onAudioDevicesChanged');
     _loadPlayoutDevices();
     _loadRecordingDevices();
+
+    notifyListeners();
   }
 
   /// Set current speaker device by its index
@@ -179,7 +181,6 @@ class DevicesModel extends ChangeNotifier {
         bool? mode = await SiprixVoipSdk().isForegroundMode();
         if(mode != null) {
           _foregroundModeEnabled = mode;
-          notifyListeners();
         }
       } on PlatformException catch (err) {
         _logs?.print('Can\'t load foreground mode. Err: ${err.code} ${err.message}');

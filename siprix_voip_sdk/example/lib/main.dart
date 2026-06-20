@@ -214,10 +214,12 @@ class _MyAppState extends State<MyApp> {
     //  iniData.unregOnDestroy = false;
     //}
     //if(Platform.isAndroid) {
+    //  iniData.use16kHzAudio = true;
     //  iniData.listenTelState = true;
     //  iniData.listenVolChange = true;
     //  iniData.serviceClassName = "com.siprix.voip_sdk_example.MyNotifService";
     //}
+    //iniData.recordStereo=true;//Record sent/receive audio as seprate channels
     await SiprixVoipSdk().initialize(iniData, logsModel);
 
     //Set video params (if required)

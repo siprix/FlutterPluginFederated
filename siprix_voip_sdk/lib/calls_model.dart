@@ -349,7 +349,7 @@ class CallModel extends ChangeNotifier implements ISiprixData {
 
   /// Mute microphone for this call
   Future<void> muteMic(bool mute) async{
-    _logs?.print('Muting $mute mic of call $myCallId');
+    _logs?.print('Mute mic of call $myCallId = $mute');
 
     try {
       await SiprixVoipSdk().muteMic(myCallId, mute);
@@ -363,7 +363,7 @@ class CallModel extends ChangeNotifier implements ISiprixData {
 
   /// Mute camera for this call
   Future<void> muteCam(bool mute) async{
-    _logs?.print('Muting $mute camera of call $myCallId');
+    _logs?.print('Mute camera of call $myCallId = $mute');
 
     try {
       await SiprixVoipSdk().muteCam(myCallId, mute);

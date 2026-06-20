@@ -374,16 +374,19 @@ class VuMeterArg {
 
 /// Helper class for managing audio/video devices
 class MediaDevice {
-  MediaDevice(this.index);
+  MediaDevice([this.index=0]);
   String  name="";
   String  guid="";
-  int index = 0;
+  bool isSelected=false;
+  final int index;
+  static const String _kArgDvcIsSel = "dvcIsSel";
 
   bool fromMap(Map<dynamic, dynamic> argsMap) {
     int argsCounter=0;
     argsMap.forEach((key, value) {
       if((key == SiprixVoipSdkPlatform.kArgDvcName)&&(value is String)) { name = value; argsCounter+=1; }
       if((key == SiprixVoipSdkPlatform.kArgDvcGuid)&&(value is String)) { guid = value; argsCounter+=1; }
+      if((key == _kArgDvcIsSel)&&(value is bool)) { isSelected = value; }
     });
     return (argsCounter==2);
   }
