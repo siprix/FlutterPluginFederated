@@ -1,3 +1,9 @@
+## 1.0.40
+- Updated recorder implementation
+  = Fixed bug with resampling which happens when app started recording just after call start
+  = Set bitrate 128kbps
+  //2026.06.20
+
 ## 1.0.39
 - Added selected codec details to the call stats data returned by `Call_GetStats`
 - Fixed bug with audio mixer (remote clients joined into conference can't hear each other when using different codecs)
