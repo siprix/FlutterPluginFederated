@@ -340,15 +340,23 @@ open class CallNotifService : Service() {
         if (ContextCompat.checkSelfPermission(_context, Manifest.permission.FOREGROUND_SERVICE)
             != PackageManager.PERMISSION_GRANTED) return false
 
-        acquireWakelock()
+        if(!isAppInForeground())
+            Log.w(TAG, "App is not in foreground, start service may fail")
 
-        if (Build.VERSION.SDK_INT >= 30) {
-            startForeground(kForegroundId, buildForegroundNotif(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            )
-        } else {
-            startForeground(kForegroundId, buildForegroundNotif())
+        try {
+            if (Build.VERSION.SDK_INT >= 30) {
+                startForeground(kForegroundId, buildForegroundNotif(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
+                )
+            } else {
+                startForeground(kForegroundId, buildForegroundNotif())
+            }
+        } catch (ex: Exception) {
+            core?.moduleWriteLog("Can't start ongoing notif: '${ex}")
+            return false
         }
+        acquireWakelock()
 
         _isForegroundModeStarted = true
         if(hasOngoingCall) _isForegroundModeStartedByCall=true

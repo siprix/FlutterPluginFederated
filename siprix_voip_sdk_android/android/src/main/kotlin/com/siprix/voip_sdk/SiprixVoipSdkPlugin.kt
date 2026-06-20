@@ -160,6 +160,7 @@ const val kArgDurationMs = "durationMs"
 const val kArgDvcIndex = "dvcIndex"
 const val kArgDvcName  = "dvcName"
 const val kArgDvcGuid  = "dvcGuid"
+const val kArgDvcIsSel = "dvcIsSel"
 
 const val kArgCallId     = "callId"
 const val kArgFromCallId = "fromCallId"
@@ -196,28 +197,36 @@ interface ICallTerminated {
 //EventListener
 
 class EventListener: ISiprixModelListener {
-  private var channel: MethodChannel? = null
-  private var callTerminatedHandler : ICallTerminated? = null
-  private var triggerIncomingCallByNotifOnly = false
+  private var _channel: MethodChannel? = null
+  private var _callTerminatedHandler : ICallTerminated? = null
+  private var _triggerIncomingCallByNotifOnly = false
 
-  fun setMethodChannel(c : MethodChannel?) {
-    channel = c
+  fun subscribe(core : SiprixCore, channel : MethodChannel) {
+    _channel = channel
+    core.setModelListener(this)
   }
+
+  fun unsubscribe(core : SiprixCore) {
+    core.setModelListener(null)
+    _channel = null
+  }
+
   fun setCallTerminatedHandler(c : ICallTerminated?) {
-    callTerminatedHandler = c
+    _callTerminatedHandler = c
   }
+
   fun setTriggerIncomingCall(t: Boolean?) {
-    if(t!=null) triggerIncomingCallByNotifOnly = t
+    if(t!=null) _triggerIncomingCallByNotifOnly = t
   }
 
   override fun onTrialModeNotified() {
     val argsMap = HashMap<String, Any> ()
-    channel?.invokeMethod(kOnTrialModeNotif, argsMap)
+    _channel?.invokeMethod(kOnTrialModeNotif, argsMap)
   }
 
   override fun onDevicesAudioChanged() {
     val argsMap = HashMap<String, Any> ()
-    channel?.invokeMethod(kOnDevicesChanged, argsMap)
+    _channel?.invokeMethod(kOnDevicesChanged, argsMap)
   }
 
   override fun onAccountRegState(accId: Int, regState: AccData.RegState, response: String?) {
@@ -225,7 +234,7 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgAccId] = accId
     argsMap[kRegState] = regState.value
     argsMap[kResponse] = response
-    channel?.invokeMethod(kOnAccountRegState, argsMap)
+    _channel?.invokeMethod(kOnAccountRegState, argsMap)
   }
 
   override fun onSubscriptionState(subscrId: Int, state: SubscrData.SubscrState, response: String?) {
@@ -233,38 +242,38 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgSubscrId] = subscrId
     argsMap[kSubscrState] = state.value
     argsMap[kResponse] = response
-    channel?.invokeMethod(kOnSubscriptionState, argsMap)
+    _channel?.invokeMethod(kOnSubscriptionState, argsMap)
   }
 
   override fun onNetworkState(name: String?, state: SiprixCore.NetworkState?) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgName] = name
     argsMap[kNetState] = state?.value
-    channel?.invokeMethod(kOnNetworkState, argsMap)
+    _channel?.invokeMethod(kOnNetworkState, argsMap)
   }
 
   override fun onPlayerState(playerId: Int, state: SiprixCore.PlayerState?) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgPlayerId] = playerId
     argsMap[kPlayerState] = state?.value
-    channel?.invokeMethod(kOnPlayerState, argsMap)
+    _channel?.invokeMethod(kOnPlayerState, argsMap)
   }
 
   override fun onCallProceeding(callId: Int, response: String?) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgCallId] = callId
     argsMap[kResponse] = response
-    channel?.invokeMethod(kOnCallProceeding, argsMap)
+    _channel?.invokeMethod(kOnCallProceeding, argsMap)
   }
 
   override fun onCallTerminated(callId: Int, statusCode: Int) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgCallId] = callId
     argsMap[kArgStatusCode] = statusCode
-    channel?.invokeMethod(kOnCallTerminated, argsMap)
+    _channel?.invokeMethod(kOnCallTerminated, argsMap)
 
     Handler(Looper.getMainLooper()).post {
-      callTerminatedHandler?.onCallTerminated()
+      _callTerminatedHandler?.onCallTerminated()
     }
   }
 
@@ -274,13 +283,13 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgCallId] = callId
     argsMap[kFrom] = hdrFrom
     argsMap[kTo] = hdrTo
-    channel?.invokeMethod(kOnCallConnected, argsMap)
+    _channel?.invokeMethod(kOnCallConnected, argsMap)
   }
 
   override fun onCallIncoming(
     callId: Int, accId: Int, withVideo: Boolean,
     hdrFrom: String?, hdrTo: String?) {
-    if(!triggerIncomingCallByNotifOnly)
+    if(!_triggerIncomingCallByNotifOnly)
       onCallIncomingNotif(callId, accId, withVideo, hdrFrom, hdrTo)
   }
 
@@ -294,32 +303,32 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgAccId] = accId
     argsMap[kFrom]  = hdrFrom
     argsMap[kTo] = hdrTo
-    channel?.invokeMethod(kOnCallIncoming, argsMap)
+    _channel?.invokeMethod(kOnCallIncoming, argsMap)
   }
 
   fun onCallAcceptNotif(callId: Int, withVideo: Boolean) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgWithVideo] = withVideo
     argsMap[kArgCallId] = callId
-    channel?.invokeMethod(kOnCallAcceptNotif, argsMap)
+    _channel?.invokeMethod(kOnCallAcceptNotif, argsMap)
   }
 
   fun onCallsSyncState(argsMap : HashMap<String, Any?>) {
-    channel?.invokeMethod(kOnCallsSyncState, argsMap)
+    _channel?.invokeMethod(kOnCallsSyncState, argsMap)
   }
 
   override fun onCallDtmfReceived(callId: Int, tone: Int) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgCallId] = callId
     argsMap[kArgTone] = tone
-    channel?.invokeMethod(kOnCallDtmfReceived, argsMap)
+    _channel?.invokeMethod(kOnCallDtmfReceived, argsMap)
   }
 
   override fun onCallTransferred(callId: Int, statusCode: Int) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgCallId] = callId
     argsMap[kArgStatusCode] = statusCode
-    channel?.invokeMethod(kOnCallTransferred, argsMap)
+    _channel?.invokeMethod(kOnCallTransferred, argsMap)
   }
 
   override fun onCallRedirected(origCallId: Int, relatedCallId: Int, referTo: String?) {
@@ -327,33 +336,33 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgFromCallId] = origCallId
     argsMap[kArgToCallId] = relatedCallId
     argsMap[kArgToExt] = referTo
-    channel?.invokeMethod(kOnCallRedirected, argsMap)
+    _channel?.invokeMethod(kOnCallRedirected, argsMap)
   }
 
   override fun onCallVideoUpgraded(callId: Int, withVideo: Boolean) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgWithVideo] = withVideo
     argsMap[kArgCallId] = callId
-    channel?.invokeMethod(kOnCallVideoUpgraded, argsMap)
+    _channel?.invokeMethod(kOnCallVideoUpgraded, argsMap)
   }
 
   override fun onCallVideoUpgradeRequested(callId: Int) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgCallId] = callId
-    channel?.invokeMethod(kOnCallVideoUpgradeRequested, argsMap)
+    _channel?.invokeMethod(kOnCallVideoUpgradeRequested, argsMap)
   }
 
   override fun onCallHeld(callId: Int, state: SiprixCore.HoldState?) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgCallId] = callId
     argsMap[kHoldState] = state?.value
-    channel?.invokeMethod(kOnCallHeld, argsMap)
+    _channel?.invokeMethod(kOnCallHeld, argsMap)
   }
 
   override fun onCallSwitched(callId: Int) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgCallId] = callId
-    channel?.invokeMethod(kOnCallSwitched, argsMap)
+    _channel?.invokeMethod(kOnCallSwitched, argsMap)
   }
 
   override fun onMessageSentState(messageId: Int, success: Boolean, response: String?) {
@@ -361,7 +370,7 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgMsgId] = messageId
     argsMap[kSuccess] = success
     argsMap[kResponse] = response
-    channel?.invokeMethod(kOnMessageSentState, argsMap)
+    _channel?.invokeMethod(kOnMessageSentState, argsMap)
 }
 
   override fun onMessageIncoming(messageId: Int, accId: Int, hdrFrom: String?, body: String?) {
@@ -370,7 +379,7 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgAccId] = accId
     argsMap[kFrom] = hdrFrom
     argsMap[kBody] = body
-    channel?.invokeMethod(kOnMessageIncoming, argsMap)
+    _channel?.invokeMethod(kOnMessageIncoming, argsMap)
   }
 
   override fun onSipNotify(accId: Int, hdrEvent: String?, body: String?) {
@@ -378,16 +387,15 @@ class EventListener: ISiprixModelListener {
     argsMap[kArgAccId] = accId
     argsMap[kEvent] = hdrEvent
     argsMap[kBody] = body
-    channel?.invokeMethod(kOnSipNotify, argsMap)
+    _channel?.invokeMethod(kOnSipNotify, argsMap)
   }
 
   override fun onVuMeterLevel(micLevel: Int, spkLevel: Int) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kMicLevel] = micLevel
     argsMap[kSpkLevel] = spkLevel
-    channel?.invokeMethod(kOnVuMeterLevel, argsMap)
+    _channel?.invokeMethod(kOnVuMeterLevel, argsMap)
   }
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -651,7 +659,6 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
     _eventListener = EventListener()
     _eventListener.setCallTerminatedHandler(this)
-    _eventListener.setMethodChannel(_channel)
 
     //Get core instance (create when hasn't created yet)
     _core = CallNotifService.createSiprixCore(_appContext)
@@ -659,12 +666,10 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     Log.i(TAG, "onDetachedFromEngine this:${this.hashCode()} binding:${binding.hashCode()}")
-    _eventListener.setMethodChannel(null)
+    _eventListener.unsubscribe(_core)
     _channel.setMethodCallHandler(null)
 
     if (_bgService != null) {
-      _core.setModelListener(null)
-
       if(_bgService!!.isDetached()) _bgService?.destroyInternal()
       else _activity?.unbindService(_serviceConnection)
       _bgService = null
@@ -675,7 +680,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     Log.i(TAG, "onAttachedToActivity this:${this.hashCode()}")
     binding.addOnNewIntentListener(this)
     _activity = binding.activity
-    _core.setModelListener(_eventListener)
+    _eventListener.subscribe(_core, _channel)
 
     //Get metadata
     val appInfo = _activity!!.packageManager.getApplicationInfo(_activity!!.packageName, PackageManager.GET_META_DATA)
@@ -700,7 +705,6 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     Log.i(TAG, "onReattachedToActivityForConfigChanges this:${this.hashCode()}")
     binding.addOnNewIntentListener(this)
     _activity = binding.activity
-    _core.setModelListener(_eventListener)
   }
 
   override fun onCallTerminated() {
@@ -907,6 +911,9 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
     val listenVolChange : Boolean? = args["listenVolChange"] as? Boolean
     if(listenVolChange != null) { iniData.setUseVolChange(listenVolChange); }
+
+    val use16kHzAudio : Boolean? = args["use16kHzAudio"] as? Boolean
+    if(use16kHzAudio != null) { iniData.setUse16kHzAudio(use16kHzAudio); }
 
     //Init core
     iniData.setUseExternalRinger(true)
@@ -1584,8 +1591,10 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
     if(dvcIndex != null) {
       val argsMap = HashMap<String, Any?> ()
-      argsMap[kArgDvcName] = _core.dvcGetAudioDevice(dvcIndex).name
-      argsMap[kArgDvcGuid] = dvcIndex.toString()
+      val dvc = _core.dvcGetAudioDevice(dvcIndex)
+      argsMap[kArgDvcName] = dvc.name
+      argsMap[kArgDvcGuid] = dvc.ordinal.toString()
+      argsMap[kArgDvcIsSel] = dvc==_core!!.dvcGetSelAudioDevice()
       result.success(argsMap)
     }else{
       sendBadArguments(result)
