@@ -1,3 +1,9 @@
+## 1.1.0
+ - Updated handling transport errors
+ - Modified triggering registration events (now triggered after each dialog with server)
+ - Modified verify TLS cert with support wildcard and SAN
+   //2026.09.05
+
 ## 1.0.42
  - Added new method 'Acc_SetTranspTlsClientCert', 
    allows to specify client's cert/key files for mutual TLS client authentication
