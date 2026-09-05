@@ -44,11 +44,11 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.view.TextureRegistry
 import io.flutter.view.TextureRegistry.SurfaceProducer
-import org.webrtc.EglBase
-import org.webrtc.EglRenderer
-import org.webrtc.GlRectDrawer
-import org.webrtc.RendererCommon
-import org.webrtc.ThreadUtils
+import com.siprix.webrtc.EglBase
+import com.siprix.webrtc.EglRenderer
+import com.siprix.webrtc.GlRectDrawer
+import com.siprix.webrtc.RendererCommon
+import com.siprix.webrtc.ThreadUtils
 import java.util.concurrent.CountDownLatch
 
 
@@ -462,7 +462,7 @@ class SurfaceTextureRenderer
   }
 
   // VideoSink interface.
-  override fun onFrame(frame: org.webrtc.VideoFrame) {
+  override fun onFrame(frame: com.siprix.webrtc.VideoFrame) {
     if(surface == null) {
       producer?.setSize(frame.getRotatedWidth(),frame.getRotatedHeight())
       surface = producer?.getSurface()
@@ -493,7 +493,7 @@ class SurfaceTextureRenderer
   }
 
   // Update frame dimensions and report any changes to |rendererEvents|.
-  private fun updateFrameDimensionsAndReportEvents(frame: org.webrtc.VideoFrame) {
+  private fun updateFrameDimensionsAndReportEvents(frame: com.siprix.webrtc.VideoFrame) {
     synchronized(layoutLock) {
       if (isRenderingPaused) return
 
@@ -861,65 +861,30 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     //Get arguments from map
     val iniData = IniData()
 
-    val license : String? = args["license"] as? String
-    if(license != null) { iniData.setLicense(license) }
+    (args["license"] as? String)?.let { iniData.setLicense(it) }
+    (args["brandName"] as? String)?.let { iniData.setBrandName(it) }
 
-    val brandName : String? = args["brandName"] as? String
-    if(brandName != null) { iniData.setBrandName(brandName) }
+    (args["logLevelFile"] as? Int)?.let { iniData.setLogLevelFile(IniData.LogLevel.fromInt(it)) }
+    (args["logLevelIde"] as? Int)?.let  { iniData.setLogLevelIde(IniData.LogLevel.fromInt(it)) }
+    (args["rtpStartPort"] as? Int)?.let { iniData.setRtpStartPort(it) }
 
-    val logLevelFile : Int? = args["logLevelFile"] as? Int
-    if(logLevelFile != null) { iniData.setLogLevelFile(IniData.LogLevel.fromInt(logLevelFile)); }
+    (args["tlsVerifyServer"] as? Boolean)?.let    { iniData.setTlsVerifyServer(it) }
+    (args["singleCallMode"] as? Boolean)?.let     { iniData.setSingleCallMode(it) }
+    (args["shareUdpTransport"] as? Boolean)?.let  { iniData.setShareUdpTransport(it) }
+    (args["unregOnDestroy"] as? Boolean)?.let     { iniData.setUnregOnDestroy(it) }
+    (args["useDnsSrv"] as? Boolean)?.let          { iniData.setUseDnsSrv(it) }
+    (args["useProximity"] as? Boolean)?.let       { iniData.setUseProximity(it) }
+    (args["dnsServers"] as? String)?.let          { iniData.addDnsServer(it) }
+    (args["recordStereo"] as? Boolean)?.let       { iniData.setRecordStereo(it) }
+    (args["enableVideoCall"] as? Boolean)?.let    { iniData.setEnableVideoCall(it) }
+    (args["transpForceIPv4"] as? Boolean)?.let    { iniData.setTranspForceIPv4(it) }
+    (args["enableAes128Sha32"] as? Boolean)?.let  { iniData.setEnableAes128Sha32(it) }
 
-    val logLevelIde : Int? = args["logLevelIde"] as? Int
-    if(logLevelIde != null) { iniData.setLogLevelIde(IniData.LogLevel.fromInt(logLevelIde)); }
-
-    val rtpStartPort : Int? = args["rtpStartPort"] as? Int
-    if(rtpStartPort != null) { iniData.setRtpStartPort(rtpStartPort); }
-
-    val tlsVerifyServer : Boolean? = args["tlsVerifyServer"] as? Boolean
-    if(tlsVerifyServer != null) { iniData.setTlsVerifyServer(tlsVerifyServer); }
-
-    val singleCallMode : Boolean? = args["singleCallMode"] as? Boolean
-    if(singleCallMode != null) { iniData.setSingleCallMode(singleCallMode); }
-
-    val shareUdpTransport : Boolean? = args["shareUdpTransport"] as? Boolean
-    if(shareUdpTransport != null) { iniData.setShareUdpTransport(shareUdpTransport); }
-
-    val unregOnDestroy : Boolean? = args["unregOnDestroy"] as? Boolean
-    if(unregOnDestroy != null) { iniData.setUnregOnDestroy(unregOnDestroy); }
-
-    val useDnsSrv : Boolean? = args["useDnsSrv"] as? Boolean
-    if(useDnsSrv != null) { iniData.setUseDnsSrv(useDnsSrv); }
-
-    val useProximity : Boolean? = args["useProximity"] as? Boolean
-    if(useProximity != null) { iniData.setUseProximity(useProximity); }
-
-    val dnsServers : String? = args["dnsServers"] as? String
-    if(dnsServers != null) { iniData.addDnsServer(dnsServers); }
-
-    val recordStereo : Boolean? = args["recordStereo"] as? Boolean
-    if(recordStereo != null) { iniData.setRecordStereo(recordStereo); }
-
-    val enableVideoCall : Boolean? = args["enableVideoCall"] as? Boolean
-    if(enableVideoCall != null) { iniData.setEnableVideoCall(enableVideoCall); }
-
-    val transpForceIPv4 : Boolean? = args["transpForceIPv4"] as? Boolean
-    if(transpForceIPv4 != null) { iniData.setTranspForceIPv4(transpForceIPv4); }
-
-    val enableAes128Sha32 : Boolean? = args["enableAes128Sha32"] as? Boolean
-    if(enableAes128Sha32 != null) { iniData.setEnableAes128Sha32(enableAes128Sha32); }
-
-    val enableVUmeter : Boolean? = args["enableVUmeter"] as? Boolean
-    if(enableVUmeter != null) { iniData.setEnableVUmeter(enableVUmeter); }
-
-    val listenTelState : Boolean? = args["listenTelState"] as? Boolean
-    if(listenTelState != null) { iniData.setUseTelState(listenTelState); }
-
-    val listenVolChange : Boolean? = args["listenVolChange"] as? Boolean
-    if(listenVolChange != null) { iniData.setUseVolChange(listenVolChange); }
-
-    val use16kHzAudio : Boolean? = args["use16kHzAudio"] as? Boolean
-    if(use16kHzAudio != null) { iniData.setUse16kHzAudio(use16kHzAudio); }
+    (args["enableVUmeter"] as? Boolean)?.let      { iniData.setEnableVUmeter(it) }
+    (args["updRegOnResume"] as? Boolean)?.let     { iniData.setUpdRegOnResume(it) }
+    (args["listenTelState"] as? Boolean)?.let     { iniData.setUseTelState(it) }
+    (args["listenVolChange"] as? Boolean)?.let    { iniData.setUseVolChange(it) }
+    (args["use16kHzAudio"] as? Boolean)?.let      { iniData.setUse16kHzAudio(it) }
 
     //Init core
     iniData.setUseExternalRinger(true)
@@ -960,125 +925,69 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     //Get arguments from map
     val accData = AccData()
 
-    val sipServer : String? = args["sipServer"] as? String
-    if(sipServer != null) { accData.setSipServer(sipServer); }
+    (args["sipServer"] as? String)?.let { accData.setSipServer(it) }
+    (args["sipExtension"] as? String)?.let { accData.setSipExtension(it) }
+    (args["sipPassword"] as? String)?.let { accData.setSipPassword(it) }
+    (args["sipAuthId"] as? String)?.let { accData.setSipAuthId(it) }
+    (args["sipProxy"] as? String)?.let { accData.setSipProxyServer(it) }
 
-    val sipExtension : String? = args["sipExtension"] as? String
-    if(sipExtension != null) { accData.setSipExtension(sipExtension); }
+    (args["displName"] as? String)?.let { accData.setDisplayName(it) }
+    (args["userAgent"] as? String)?.let { accData.setUserAgent(it) }
 
-    val sipPassword : String? = args["sipPassword"] as? String
-    if(sipPassword != null) { accData.setSipPassword(sipPassword); }
+    (args["expireTime"] as? Int)?.let { accData.setExpireTime(it) }
+    (args["transport"] as? Int)?.let { accData.setTranspProtocol(AccData.SipTransport.fromInt(it)) }
+    (args["port"] as? Int)?.let { accData.setTranspPort(it) }
+    (args["preferIPv6"] as? Boolean)?.let { accData.setTranspPreferIPv6(it) }
 
-    val sipAuthId : String? = args["sipAuthId"] as? String
-    if(sipAuthId != null) { accData.setSipAuthId(sipAuthId); }
-
-    val sipProxy : String? = args["sipProxy"] as? String
-    if(sipProxy != null) { accData.setSipProxyServer(sipProxy); }
-
-    val displName : String? = args["displName"] as? String
-    if(displName != null) { accData.setDisplayName(displName); }
-
-    val userAgent : String? = args["userAgent"] as? String
-    if(userAgent != null) { accData.setUserAgent(userAgent); }
-
-    val expireTime : Int? = args["expireTime"] as? Int
-    if(expireTime != null) { accData.setExpireTime(expireTime); }
-
-    val transport : Int? = args["transport"] as? Int
-    if(transport != null) { accData.setTranspProtocol(AccData.SipTransport.fromInt(transport)); }
-
-    val port : Int? = args["port"] as? Int
-    if(port != null) { accData.setTranspPort(port); }
-
-    val preferIPv6 : Boolean? = args["preferIPv6"] as? Boolean
-    if(preferIPv6 != null) { accData.setTranspPreferIPv6(preferIPv6); }
-
-    val tlsCaCertPath : String? = args["tlsCaCertPath"] as? String
-    if(tlsCaCertPath != null) { accData.setTranspTlsCaCert(tlsCaCertPath); }
-
-    val tlsClientCertPath : String? = args["tlsClientCertPath"] as? String
-    val tlsClientKeyPath : String? = args["tlsClientKeyPath"] as? String
-    val tlsClientKeyPassword : String? = args["tlsClientKeyPassword"] as? String
-    if((tlsClientCertPath != null)&&(tlsClientKeyPath != null)) {
-      accData.setTranspTlsClientCert(tlsClientCertPath, tlsClientKeyPath, tlsClientKeyPassword ?: "");
+    (args["tlsCaCertPath"] as? String)?.let { accData.setTranspTlsCaCert(it) }
+    (args["tlsUseSipScheme"] as? Boolean)?.let { accData.setUseSipSchemeForTls(it); }
+    (args["tlsClientCertPath"] as? String)?.let {
+      accData.setTranspTlsClientCert(it,
+        (args["tlsClientKeyPath"] as? String)?: "",
+        (args["tlsClientKeyPassword"] as? String) ?: "");
     }
 
-    val tlsUseSipScheme : Boolean? = args["tlsUseSipScheme"] as? Boolean
-    if(tlsUseSipScheme != null) { accData.setUseSipSchemeForTls(tlsUseSipScheme); }
+    (args["rtcpMuxEnabled"] as? Boolean)?.let { accData.setRtcpMuxEnabled(it) }
+    (args["iceEnabled"] as? Boolean)?.let { accData.setIceEnabled(it) }
+    (args["instanceId"] as? String)?.let { accData.setInstanceId(it) }
+    (args["ringTonePath"] as? String)?.let { accData.setRingToneFile(it) }
+    (args["keepAliveTime"] as? Int)?.let { accData.setKeepAliveTime(it) }
 
-    val rtcpMuxEnabled : Boolean? = args["rtcpMuxEnabled"] as? Boolean
-    if(rtcpMuxEnabled != null) { accData.setRtcpMuxEnabled(rtcpMuxEnabled); }
+    (args["rewriteContactIp"] as? Boolean)?.let { accData.setRewriteContactIp(it) }
+    (args["verifyIncomingCall"] as? Boolean)?.let { accData.setVerifyIncomingCall(it) }
+    (args["forceSipProxy"] as? Boolean)?.let { accData.setForceSipProxy(it) }
+    (args["secureMedia"] as? Int)?.let { accData.setSecureMediaMode(AccData.SecureMediaMode.fromInt(it)) }
+    (args["upgradeToVideo"] as? Int)?.let { accData.setUpgradeToVideoMode(AccData.UpgradeToVideoMode.fromInt(it)) }
 
-    val iceEnabled : Boolean? = args["iceEnabled"] as? Boolean
-    if(iceEnabled != null) { accData.setIceEnabled(iceEnabled); }
+    (args["stunServer"] as? String)?.let { accData.setStunServer(it) }
+    (args["turnServer"] as? String)?.let { accData.setTurnServer(it) }
+    (args["turnUser"] as? String)?.let { accData.setTurnUser(it) }
+    (args["turnPassword"] as? String)?.let { accData.setTurnPassword(it) }
 
-    val instanceId : String? = args["instanceId"] as? String
-    if(instanceId != null) { accData.setInstanceId(instanceId); }
-
-    val ringTonePath : String? = args["ringTonePath"] as? String
-    if(ringTonePath != null) { accData.setRingToneFile(ringTonePath); }
-    
-    val keepAliveTime : Int? = args["keepAliveTime"] as? Int
-    if(keepAliveTime != null) { accData.setKeepAliveTime(keepAliveTime); }
-    
-    val rewriteContactIp : Boolean? = args["rewriteContactIp"] as? Boolean
-    if(rewriteContactIp != null) { accData.setRewriteContactIp(rewriteContactIp); }
-
-    val verifyIncomingCall : Boolean? = args["verifyIncomingCall"] as? Boolean
-    if(verifyIncomingCall != null) { accData.setVerifyIncomingCall(verifyIncomingCall); }
-
-    val forceSipProxy : Boolean? = args["forceSipProxy"] as? Boolean
-    if(forceSipProxy != null) { accData.setForceSipProxy(forceSipProxy); }
-
-    val secureMedia : Int? = args["secureMedia"] as? Int
-    if(secureMedia != null) { accData.setSecureMediaMode(AccData.SecureMediaMode.fromInt(secureMedia)); }
-
-    val upgradeToVideo : Int? = args["upgradeToVideo"] as? Int
-    if(upgradeToVideo != null) { accData.setUpgradeToVideoMode(AccData.UpgradeToVideoMode.fromInt(upgradeToVideo)); }
-
-    val stunServer : String? = args["stunServer"] as? String
-    if(stunServer != null) { accData.setStunServer(stunServer); }
-
-    val turnServer : String? = args["turnServer"] as? String
-    if(turnServer != null) { accData.setTurnServer(turnServer); }
-
-    val turnUser : String? = args["turnUser"] as? String
-    if(turnUser != null) { accData.setTurnUser(turnUser); }
-
-    val turnPassword : String? = args["turnPassword"] as? String
-    if(turnPassword != null) { accData.setTurnPassword(turnPassword); }
-
-    val xheaders: HashMap<String, Any?>? = args["xheaders"] as? HashMap<String, Any?>?
-    if(xheaders != null) {
-      for ((hdrName, hdrVal) in xheaders) {
+    (args["xheaders"] as? HashMap<String, Any?>?)?.let {
+      for ((hdrName, hdrVal) in it) {
         val hdrStrVal : String? = hdrVal as? String
         if(hdrStrVal != null)
           accData.addXHeader(hdrName, hdrStrVal)
       }
     }
 
-    val xContactUriParams: HashMap<String, Any?>? = args["xContactUriParams"] as? HashMap<String, Any?>?
-    if(xContactUriParams != null) {
-      for ((paramName, paramVal) in xContactUriParams) {
+    (args["xContactUriParams"] as? HashMap<String, Any?>?)?.let {
+      for ((paramName, paramVal) in it) {
         val paramStrVal : String? = paramVal as? String
         if(paramStrVal != null)
           accData.addXContactUriParam(paramName, paramStrVal)
       }
     }
 
-    val aCodecs: ArrayList<Int?>? = args["aCodecs"] as? ArrayList<Int?>?
-    if(aCodecs != null) {
+    (args["aCodecs"] as? ArrayList<Int?>?)?.let {
       accData.resetAudioCodecs()
-      for (c in aCodecs)
-        if(c != null)
-          accData.addAudioCodec(AccData.AudioCodec.fromInt(c))
+      it.filterNotNull().forEach { c -> accData.addAudioCodec(AccData.AudioCodec.fromInt(c)) }
     }
-    val vCodecs: ArrayList<Int?>? = args["vCodecs"] as? ArrayList<Int?>?
-    if(vCodecs != null) {
+
+    (args["vCodecs"] as? ArrayList<Int?>?)?.let {
       accData.resetVideoCodecs()
-      for (c in vCodecs)
-        if(c != null)
-          accData.addVideoCodec(AccData.VideoCodec.fromInt(c))
+      it.filterNotNull().forEach { c -> accData.addVideoCodec(AccData.VideoCodec.fromInt(c)) }
     }
 
     return accData
@@ -1165,25 +1074,13 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
     //Get arguments from map
     val destData = DestData()
-
-    val toExt : String? = args["extension"] as? String
-    if(toExt != null) { destData.setExtension(toExt); }
-
-    val fromAccId : Int? = args[kArgAccId] as? Int
-    if(fromAccId != null) { destData.setAccountId(fromAccId); }
-
-    val inviteTimeout : Int? = args["inviteTimeout"] as? Int
-    if(inviteTimeout != null) { destData.setInviteTimeout(inviteTimeout); }
-
-    val withVideo : Boolean? = args[kArgWithVideo] as? Boolean
-    if(withVideo != null) { destData.setVideoCall(withVideo); }
-
-    val displName : String? = args["displName"] as? String
-    if(displName != null) { destData.setDisplayName(displName); }
-
-    val xheaders: HashMap<String, Any?>? = args["xheaders"] as? HashMap<String, Any?>?
-    if(xheaders != null) {
-      for ((hdrName, hdrVal) in xheaders) {
+    (args["extension"] as? String)?.let    { destData.setExtension(it) }
+    (args[kArgAccId] as? Int)?.let         { destData.setAccountId(it) }
+    (args["inviteTimeout"] as? Int)?.let   { destData.setInviteTimeout(it) }
+    (args[kArgWithVideo] as? Boolean)?.let { destData.setVideoCall(it) }
+    (args["displName"] as? String)?.let    { destData.setDisplayName(it) }
+    (args["xheaders"] as? HashMap<String, Any?>?)?.let {
+      for ((hdrName, hdrVal) in it) {
         val hdrStrVal : String? = hdrVal as? String
         if(hdrStrVal != null)
           destData.addXHeader(hdrName, hdrStrVal)
@@ -1479,20 +1376,11 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   //Siprix message
 
   private fun handleMessageSend(args : HashMap<String, Any?>, result: MethodChannel.Result) {
-    //Get arguments from map
     val msgData = MsgData()
-
-    val toExt : String? = args["extension"] as? String
-    if(toExt != null) { msgData.setExtension(toExt); }
-
-    val fromAccId : Int? = args[kArgAccId] as? Int
-    if(fromAccId != null) { msgData.setAccountId(fromAccId); }
-
-    val body : String? = args[kBody] as? String
-    if(body != null) { msgData.setBody(body); }
-
-    val contentType : String? = args["contentType"] as? String
-    if(contentType != null) { msgData.setContentType(contentType); }
+    (args["extension"] as? String)?.let   { msgData.setExtension(it) }
+    (args[kArgAccId] as? Int)?.let        { msgData.setAccountId(it) }
+    (args[kBody] as? String)?.let         { msgData.setBody(it) }
+    (args["contentType"] as? String)?.let { msgData.setContentType(it) }
 
     val msgIdArg = SiprixCore.IdOutArg()
     val err = _core.messageSend(msgData, msgIdArg)
@@ -1508,26 +1396,13 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   //Siprix subscriptions
 
   private fun handleSubscriptionAdd(args : HashMap<String, Any?>, result: MethodChannel.Result) {
-    //Get arguments from map
     val subscrData = SubscrData()
-
-    val toExt : String? = args["extension"] as? String
-    if(toExt != null) { subscrData.setExtension(toExt); }
-
-    val fromAccId : Int? = args[kArgAccId] as? Int
-    if(fromAccId != null) { subscrData.setAccountId(fromAccId); }
-
-    val expireTime : Int? = args["expireTime"] as? Int
-    if(expireTime != null) { subscrData.setExpireTime(expireTime); }
-
-    val mimeSubType : String? = args["mimeSubType"] as? String
-    if(mimeSubType != null) { subscrData.setMimeSubtype(mimeSubType); }
-
-    val eventType : String? = args["eventType"] as? String
-    if(eventType != null) { subscrData.setEventType(eventType); }
-
-    val body : String? = args["body"] as? String
-    if(body != null) { subscrData.setBody(body); }
+    (args["extension"] as? String)?.let   { subscrData.setExtension(it) }
+    (args[kArgAccId] as? Int)?.let        { subscrData.setAccountId(it) }
+    (args["expireTime"] as? Int)?.let     { subscrData.setExpireTime(it) }
+    (args["mimeSubType"] as? String)?.let { subscrData.setMimeSubtype(it) }
+    (args["eventType"] as? String)?.let   { subscrData.setEventType(it) }
+    (args["body"] as? String)?.let        { subscrData.setBody(it) }
 
     val subscrIdArg = SiprixCore.IdOutArg()
     val err = _core.subscrCreate(subscrData, subscrIdArg)
