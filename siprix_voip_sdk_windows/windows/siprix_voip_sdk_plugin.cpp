@@ -389,7 +389,8 @@ void SiprixVoipSdkPlugin::handleModuleInitialize(const flutter::EncodableMap& ar
           if(valName->compare("enableVideoCall") == 0)   Siprix::Ini_SetVideoCallEnabled(iniData, *boolVal); else
           if(valName->compare("transpForceIPv4") == 0)   Siprix::Ini_SetTranspForceIPv4(iniData, *boolVal); else
           if(valName->compare("enableAes128Sha32") == 0) Siprix::Ini_SetAes128Sha32Enabled(iniData, *boolVal); else
-          if(valName->compare("enableVUmeter") == 0)     Siprix::Ini_SetVUmeterEnabled(iniData, *boolVal);
+          if(valName->compare("enableVUmeter") == 0)     Siprix::Ini_SetVUmeterEnabled(iniData, *boolVal); else
+          if(valName->compare("updRegOnResume") == 0)    Siprix::Ini_SetUpdRegOnResume(iniData, *boolVal);
           continue;
         }
     

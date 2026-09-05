@@ -1,3 +1,11 @@
+## 1.1.0
+ - Updated handling transport errors
+ - Modified triggering registration events (now triggered after each dialog with server)
+ - Modified verify TLS cert with support wildcard and SAN
+ - Windows: added ability to handle power notifications (refresh registration on resume)
+ - Windows: created ARM64 build. Available by separate request.
+   //2026.09.05
+
 ## 1.0.42
  - Added new method 'Acc_SetTranspTlsClientCert', 
    allows to specify client's cert/key files for mutual TLS client authentication
