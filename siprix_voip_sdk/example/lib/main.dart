@@ -112,16 +112,20 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
   static String _ringtonePath="";
+  static String _caCertPath="";
 
   @override
   State<MyApp> createState() => _MyAppState();
 
   /// Returns ringtone's path saved on device
   static String getRingtonePath() => _ringtonePath;
+  /// Returns CA cert file path saved on device
+  static String getCaCertPath() => _caCertPath;
 
   /// Write ringtone file from asset to device
   void writeRingtoneAsset() async {
     _ringtonePath = await writeAssetAndGetFilePath("ringtone.mp3");
+    _caCertPath = await writeAssetAndGetFilePath("isrgrootx1.pem");
   }
 
   /// Write file from assest to device and returns path to it

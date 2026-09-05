@@ -98,6 +98,9 @@ class InitData implements ISiprixData {
   /// Android only. Use 16kHz samplerate for audio (fixes increasing latency on Bluetoth devices)
   bool? use16kHzAudio;
 
+  /// Enable update registration when app resumed. Valid for Windows (when machine resumed after sleep, by default true) and Android (when got LifecycleObserver::onStart, by default false)
+  bool? updRegOnResume;
+
   @override
   Map<String, dynamic> toJson() {
     Map<String, dynamic> ret = {};
@@ -117,6 +120,7 @@ class InitData implements ISiprixData {
     if(enableCallKitReportCallAsVideo!=null) ret['enableCallKitReportCallAsVideo'] = enableCallKitReportCallAsVideo;
     if(triggerOnIncomingCallByNotifOnly!=null) ret['triggerOnIncomingCallByNotifOnly'] = triggerOnIncomingCallByNotifOnly;
     if(enableCallKitRecents!=null) ret['enableCallKitRecents'] = enableCallKitRecents;
+    if(updRegOnResume!=null)    ret['updRegOnResume'] = updRegOnResume;
     if(serviceClassName!=null)  ret['serviceClassName'] = serviceClassName;
     if(unregOnDestroy!=null)    ret['unregOnDestroy'] = unregOnDestroy;
     if(useDnsSrv!=null)         ret['useDnsSrv'] = useDnsSrv;

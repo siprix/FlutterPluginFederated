@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:siprix_voip_sdk/accounts_model.dart';
 import 'package:siprix_voip_sdk/network_model.dart';
+import 'package:siprix_voip_sdk/siprix_voip_sdk.dart';
 
 import 'accouns_model_app.dart';
 import 'main.dart';
@@ -21,6 +22,8 @@ class AccountPage extends StatefulWidget {
 
 class AccountPageState extends State<AccountPage> {
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _instIdController = TextEditingController();
+  final TextEditingController _tlsCaCertController = TextEditingController();
   late AccountModel _account;
   bool _passwordVisible = false;
   bool _advancedMode = false;
@@ -40,6 +43,8 @@ class AccountPageState extends State<AccountPage> {
       _account = AccountModel.cloneOrCreateNew(_inAcc);
       _audioCodecsList = Codec.getCodecsList(_account.aCodecs, audio:true);
       _videoCodecsList = Codec.getCodecsList(_account.vCodecs, audio:false);
+      _instIdController.text = _account.instanceId ?? "";
+      _tlsCaCertController.text = _account.tlsCaCertPath ?? "";
     }
   }
 
@@ -59,7 +64,7 @@ class AccountPageState extends State<AccountPage> {
               onPressed: () {  setState(() { _advancedMode = !_advancedMode; }); },
               child: Wrap(spacing:5, children: [
                 Icon(_advancedMode ? Icons.density_medium : Icons.density_small),
-                Text(_advancedMode ? 'Simple mode' : 'Advanced mode')
+                Text(_advancedMode ? 'Simple' : 'Advanced')
               ])
           ))
         ]
@@ -154,7 +159,7 @@ class AccountPageState extends State<AccountPage> {
     return  TextFormField(
       decoration: const InputDecoration(labelText: 'Sip server/domain'),
        validator: (value) { return (value == null || value.isEmpty) ? 'Please enter domain' : null; },
-       onChanged: (String? value) { setState(() { if((value!=null) && value.isNotEmpty) _account.sipServer = value; }); },
+       onChanged: (String? value) { if((value!=null) && value.isNotEmpty) _account.sipServer = value; },
        initialValue: _account.sipServer,
        enabled: isAddMode(),
     );
@@ -164,7 +169,7 @@ class AccountPageState extends State<AccountPage> {
     return TextFormField(
         decoration: const InputDecoration(labelText: 'Sip extension'),
         validator: (value) { return (value == null || value.isEmpty) ? 'Please enter user name.' : null; },
-        onChanged: (String? value) { setState(() { if((value!=null) && value.isNotEmpty) _account.sipExtension = value; }); },
+        onChanged: (String? value) { if((value!=null) && value.isNotEmpty) _account.sipExtension = value; },
         initialValue: _account.sipExtension,
         enabled: isAddMode(),
       );
@@ -182,7 +187,7 @@ class AccountPageState extends State<AccountPage> {
           )
         ),
         validator: (value) { return (value == null || value.isEmpty) ? 'Please enter password.' : null; },
-        onChanged: (String? value) { setState(() { if((value!=null) && value.isNotEmpty) _account.sipPassword = value; }); },
+        onChanged: (String? value) { if((value!=null) && value.isNotEmpty) _account.sipPassword = value; },
         initialValue: _account.sipPassword,
       );
   }
@@ -193,9 +198,8 @@ class AccountPageState extends State<AccountPage> {
         keyboardType: TextInputType.number,
         inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly],
         decoration: const InputDecoration(labelText: 'Expire time (seconds)'),
-        onChanged: (String? val) { setState(() { if((val!=null) && val.isNotEmpty) _account.expireTime = int.parse(val);  }); },
+        onChanged: (String? val) { if((val!=null) && val.isNotEmpty) _account.expireTime = int.parse(val); },
         initialValue: _account.expireTime?.toString(),
-        enabled: isAddMode(),
       );
   }
 
@@ -205,25 +209,25 @@ class AccountPageState extends State<AccountPage> {
 
       TextFormField(
         decoration: const InputDecoration(labelText: 'STUN server'),
-        onChanged: (String? value) { setState(() { _account.stunServer = value; }); },
+        onChanged: (String? value) { _account.stunServer = value; },
         initialValue: _account.stunServer,
       ),
 
       TextFormField(
         decoration: const InputDecoration(labelText: 'TURN server'),
-        onChanged: (String? value) { setState(() { _account.turnServer = value; }); },
+        onChanged: (String? value) { _account.turnServer = value; },
         initialValue: _account.turnServer,
       ),
 
       TextFormField(
         decoration: const InputDecoration(labelText: 'TURN user name'),
-        onChanged: (String? value) { setState(() { _account.turnUser = value; }); },
+        onChanged: (String? value) { _account.turnUser = value; },
         initialValue: _account.turnUser,
       ),
 
       TextFormField(
         decoration: const InputDecoration(labelText: 'TURN password'),
-        onChanged: (String? value) { setState(() { _account.turnPassword = value; }); },
+        onChanged: (String? value) { _account.turnPassword = value; },
         initialValue: _account.turnPassword,
       ),
       _buildIceEnabled(),
@@ -255,6 +259,7 @@ class AccountPageState extends State<AccountPage> {
   List<Widget> _buildTransportCtrlList() {
     return [
       _buildTransportsDropDown(),
+      _buildTlsCert(),
       TextFormField(
         obscureText: false,
         keyboardType: TextInputType.number,
@@ -269,7 +274,7 @@ class AccountPageState extends State<AccountPage> {
         keyboardType: TextInputType.number,
         inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly],
         decoration: _buildDecoration('Keep alive time (seconds)'),
-        onChanged: (String? val) { setState(() { if((val!=null) && val.isNotEmpty) _account.keepAliveTime = int.parse(val);  }); },
+        onChanged: (String? val) { if((val!=null) && val.isNotEmpty) _account.keepAliveTime = int.parse(val); },
         initialValue: _account.keepAliveTime?.toString()
       ),
       _buildRewriteContactIp()
@@ -300,26 +305,70 @@ class AccountPageState extends State<AccountPage> {
     )];
   }
 
+  Widget _buildInstanceId() {
+    return TextFormField(
+      readOnly: true,
+      controller: _instIdController,
+      decoration: InputDecoration(labelText: 'Sip InstanceId',
+        suffixIcon: Wrap(children: [
+          IconButton(icon: Icon(Icons.gesture, color: Theme.of(context).primaryColor),
+            onPressed: () async {
+              String? instId = await SiprixVoipSdk().genAccInstId();
+              if(instId!=null) _instIdController.text = instId;
+              _account.instanceId = instId??"";
+            },
+          ),
+          IconButton(icon: Icon(Icons.clear, color: Theme.of(context).primaryColor),
+            onPressed: () async { _instIdController.text = ""; _account.instanceId = "";},
+          )
+        ])
+      ),
+    );
+  }
+
+  Widget _buildTlsCert() {
+    final bool isEnabled = isAddMode()&&(_account.transport==SipTransport.tls);
+    return TextFormField(
+      enabled: isEnabled,
+      readOnly: true,
+      controller: _tlsCaCertController,
+      decoration: InputDecoration(labelText: 'CA Cert path (enables verify received cert)',
+        suffixIcon: Wrap(children: [
+          IconButton(icon: Icon(Icons.gesture, color: isEnabled ? Theme.of(context).primaryColor: Colors.grey),
+            onPressed: () async {
+              _tlsCaCertController.text = MyApp.getCaCertPath();
+              _account.tlsCaCertPath = MyApp.getCaCertPath();
+            },
+          ),
+          IconButton(icon: Icon(Icons.clear, color: isEnabled ? Theme.of(context).primaryColor : Colors.grey),
+            onPressed: () async { _tlsCaCertController.text = ""; _account.tlsCaCertPath = "";},
+          )
+        ])
+      ),
+    );
+  }
+
   List<Widget> _buildOtherCtrlList() {
     return [
       TextFormField(
-        decoration: _buildDecoration('AuthId (auth username)'),
-        onChanged: (String? value) { setState(() { _account.sipAuthId = value; }); },
-        initialValue: _account.sipAuthId,
-      ),
-      TextFormField(
         decoration: _buildDecoration('Sip proxy server'),
-        onChanged: (String? value) { setState(() { _account.sipProxy = value; }); },
+        onChanged: (String? value) { _account.sipProxy = value; },
         initialValue: _account.sipProxy,
       ),
       TextFormField(
+        decoration: _buildDecoration('AuthId (auth username)'),
+        onChanged: (String? value) { _account.sipAuthId = value; },
+        initialValue: _account.sipAuthId,
+      ),
+      _buildInstanceId(),
+      TextFormField(
         decoration: _buildDecoration('Display name'),
-        onChanged: (String? value) { setState(() { _account.displName = value; }); },
+        onChanged: (String? value) { _account.displName = value; },
         initialValue: _account.displName,
       ),
       TextFormField(
         decoration: _buildDecoration('User agent'),
-        onChanged: (String? value) { setState(() { _account.userAgent = value; }); },
+        onChanged: (String? value) { _account.userAgent = value; },
         initialValue: _account.userAgent,
       ),
       _buildUpgradeToVideModeDropDown()
