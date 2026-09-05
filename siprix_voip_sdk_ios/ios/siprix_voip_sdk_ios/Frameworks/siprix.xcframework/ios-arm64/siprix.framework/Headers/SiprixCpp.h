@@ -485,6 +485,7 @@ EXPORT void     Ini_SetVideoCallEnabled(IniData* ini, bool enabled);
 EXPORT void     Ini_SetTranspForceIPv4(IniData* ini, bool enabled);
 EXPORT void     Ini_SetAes128Sha32Enabled(IniData* ini, bool enabled);
 EXPORT void     Ini_SetVUmeterEnabled(IniData* ini, bool enabled);
+EXPORT void     Ini_SetUpdRegOnResume(IniData* ini, bool enabled);
 
 ////////////////////////////////////////////////////////////////////////////
 //Set fields of Dest's data
