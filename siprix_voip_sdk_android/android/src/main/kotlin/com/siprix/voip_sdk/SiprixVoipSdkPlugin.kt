@@ -65,6 +65,7 @@ const val kMethodModuleUnInitialize   = "Module_UnInitialize"
 const val kMethodModuleHomeFolder     = "Module_HomeFolder"
 const val kMethodModuleVersionCode    = "Module_VersionCode"
 const val kMethodModuleVersion        = "Module_Version"
+const val kMethodModuleUploadLog      = "Module_UploadLogFile"
 
 const val kMethodAccountAdd           = "Account_Add"
 const val kMethodAccountUpdate        = "Account_Update"
@@ -142,12 +143,14 @@ const val kOnCallVideoUpgradeRequested= "OnCallVideoUpgradeRequested"
 const val kOnCallSwitched     = "OnCallSwitched"
 const val kOnCallsSyncState   = "OnCallsSyncState"
 const val kOnCallHeld         = "OnCallHeld"
+const val kOnCallUpdated      = "OnCallUpdated";
 
 const val kOnMessageSentState = "OnMessageSentState"
 const val kOnMessageIncoming  = "OnMessageIncoming"
 
 const val kOnSipNotify        = "OnSipNotify"
 const val kOnVuMeterLevel     = "OnVuMeterLevel"
+const val kOnLogUploadState   = "OnLogUploadState"
 
 const val kArgVideoTextureId  = "videoTextureId"
 
@@ -359,6 +362,12 @@ class EventListener: ISiprixModelListener {
     _channel?.invokeMethod(kOnCallHeld, argsMap)
   }
 
+  override fun onCallUpdated(callId: Int) {
+    val argsMap = HashMap<String, Any?> ()
+    argsMap[kArgCallId] = callId
+    _channel?.invokeMethod(kOnCallUpdated, argsMap)
+  }
+
   override fun onCallSwitched(callId: Int) {
     val argsMap = HashMap<String, Any?> ()
     argsMap[kArgCallId] = callId
@@ -371,7 +380,7 @@ class EventListener: ISiprixModelListener {
     argsMap[kSuccess] = success
     argsMap[kResponse] = response
     _channel?.invokeMethod(kOnMessageSentState, argsMap)
-}
+  }
 
   override fun onMessageIncoming(messageId: Int, accId: Int, hdrFrom: String?, body: String?) {
     val argsMap = HashMap<String, Any?> ()
@@ -395,6 +404,13 @@ class EventListener: ISiprixModelListener {
     argsMap[kMicLevel] = micLevel
     argsMap[kSpkLevel] = spkLevel
     _channel?.invokeMethod(kOnVuMeterLevel, argsMap)
+  }
+
+  override fun onLogUploadState(success: Boolean, response: String?) {
+    val argsMap = HashMap<String, Any?> ()
+    argsMap[kSuccess] = success
+    argsMap[kResponse] = response
+    _channel?.invokeMethod(kOnLogUploadState, argsMap)
   }
 }
 
@@ -786,6 +802,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
       kMethodModuleHomeFolder   ->  handleModuleHomeFolder(args, result)
       kMethodModuleVersionCode  ->  handleModuleVersionCode(args, result)
       kMethodModuleVersion      ->  handleModuleVersion(args, result)
+      kMethodModuleUploadLog    ->  handleModuleUploadLog(args, result)
 
       kMethodAccountAdd         ->  handleAccountAdd(args, result)
       kMethodAccountUpdate      ->  handleAccountUpdate(args, result)
@@ -850,6 +867,8 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
 
   private fun handleModuleInitialize(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    _eventListener.setTriggerIncomingCall(args["triggerOnIncomingCallByNotifOnly"] as? Boolean)
+
     if (_core.isInitialized) {
       startAndBindNotifService(args["serviceClassName"] as? String)
 
@@ -892,8 +911,6 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     sendResult(err, result)
     Log.i(TAG, "handleModuleInitialize err:${err}")
 
-    _eventListener.setTriggerIncomingCall(args["triggerOnIncomingCallByNotifOnly"] as? Boolean)
-
     //Bind and start service
     startAndBindNotifService(args["serviceClassName"] as? String)
   }
@@ -916,6 +933,16 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
   private fun handleModuleVersion(args : HashMap<String, Any?>, result: MethodChannel.Result) {
     val version: String = _core.version
     result.success(version)
+  }
+
+  private fun handleModuleUploadLog(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    val description :String? = args["description"] as? String
+    if(description != null) {
+      val err = _core.uploadLogFile(description)
+      sendResult(err, result)
+    }else{
+      sendBadArguments(result)
+    }    
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////
@@ -952,6 +979,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     (args["instanceId"] as? String)?.let { accData.setInstanceId(it) }
     (args["ringTonePath"] as? String)?.let { accData.setRingToneFile(it) }
     (args["keepAliveTime"] as? Int)?.let { accData.setKeepAliveTime(it) }
+    (args["retryTime"] as? Int)?.let { accData.setRetryTime(it) }
 
     (args["rewriteContactIp"] as? Boolean)?.let { accData.setRewriteContactIp(it) }
     (args["verifyIncomingCall"] as? Boolean)?.let { accData.setVerifyIncomingCall(it) }
@@ -1485,7 +1513,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
       val dvc = _core.dvcGetAudioDevice(dvcIndex)
       argsMap[kArgDvcName] = dvc.name
       argsMap[kArgDvcGuid] = dvc.ordinal.toString()
-      argsMap[kArgDvcIsSel] = dvc==_core!!.dvcGetSelAudioDevice()
+      argsMap[kArgDvcIsSel] = dvc==_core.dvcGetSelAudioDevice()
       result.success(argsMap)
     }else{
       sendBadArguments(result)
