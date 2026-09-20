@@ -20,6 +20,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kMethodModuleHomeFolder    = 'Module_HomeFolder';
   static const String kMethodModuleVersionCode   = 'Module_VersionCode';
   static const String kMethodModuleVersion       = 'Module_Version';
+  static const String kMethodModuleUploadLog     = 'Module_UploadLogFile';
 
   static const String kMethodAccountAdd          = 'Account_Add';
   static const String kMethodAccountUpdate       = 'Account_Update';
@@ -103,6 +104,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kOnCallVideoUpgraded= 'OnCallVideoUpgraded';
   static const String kOnCallVideoUpgradeRequested= 'OnCallVideoUpgradeRequested';
   static const String kOnCallSwitched     = 'OnCallSwitched';
+  static const String kOnCallUpdated      = 'OnCallUpdated';
   static const String kOnCallHeld         = 'OnCallHeld';
   static const String kOnCallKitMuted     = 'OnCallKitMuted';
   static const String kOnCallsSyncState   = 'OnCallsSyncState';
@@ -112,6 +114,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
 
   static const String kOnSipNotify        = 'OnSipNotify';
   static const String kOnVuMeterLevel     = 'OnVuMeterLevel';
+  static const String kOnLogUploadState   = 'OnLogUploadState';
 
   static const String kArgVideoTextureId = 'videoTextureId';
   static const String kArgForeground = 'foreground';
@@ -122,6 +125,7 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kArgDvcIndex   = 'dvcIndex';
   static const String kArgDvcName    = 'dvcName';
   static const String kArgDvcGuid    = 'dvcGuid';
+  static const String kArgDvcIsSel   = 'dvcIsSel';
   static const String kArgCallId     = 'callId';
   static const String kArgFromCallId = 'fromCallId';
   static const String kArgToCallId   = 'toCallId';
@@ -197,6 +201,11 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
 
   Future<int?> versionCode() async {
     return _methodChannel.invokeMethod<int>(kMethodModuleVersionCode, {});
+  }
+
+  Future<String?> uploadLogFile(String description) async {
+    return _methodChannel.invokeMethod<String>(kMethodModuleUploadLog, 
+      {'description':description} );
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////

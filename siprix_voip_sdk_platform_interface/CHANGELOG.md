@@ -1,3 +1,8 @@
+## 1.0.13
+- Added new method 'uploadLogFile' 
+- Added new events 'onCallUpdated', 'onLogUploadState'
+  //2026.09.20
+
 ## 1.0.12
 - Added new method 'syncCallsState' 
 - Added new events 'onCallKitMuted', 'onCallsSyncState'
