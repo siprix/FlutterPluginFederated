@@ -179,6 +179,7 @@ EXPORT
 @property(nonatomic, retain) NSNumber * _Nullable rtcpMuxEnabled;
 @property(nonatomic, retain) NSNumber * _Nullable iceEnabled;
 @property(nonatomic, retain) NSNumber * _Nullable keepAliveTime;
+@property(nonatomic, retain) NSNumber * _Nullable retryTime;
 @property(nonatomic, retain) NSNumber * _Nullable rewriteContactIp;
 @property(nonatomic, retain) NSNumber * _Nullable verifyIncomingCall;
 @property(nonatomic, retain) NSNumber * _Nullable forceSipProxy;
@@ -336,6 +337,8 @@ EXPORT
 - (void)onCallHeld:(NSInteger)callId
           holdState:(HoldState)holdState;
 
+- (void)onCallUpdated:(NSInteger)callId;
+
 - (void)onMessageSentState:(NSInteger)messageId success:(BOOL)success
           response:(NSString * _Nonnull)response;
 - (void)onMessageIncoming:(NSInteger)messageId accId:(NSInteger)accId
@@ -346,6 +349,7 @@ EXPORT
           hdrEvent:(NSString * _Nonnull)hdrFrom
           body:(NSString * _Nonnull)body;
 - (void)onVuMeterLevel:(NSInteger)micLevel spkLevel:(NSInteger)spkLevel;
+- (void)onLogUploadState:(BOOL)started response:(NSString* _Nonnull)response;
 
 @end
 
@@ -439,6 +443,7 @@ EXPORT
 - (int)messageSend:(SiprixMsgData * _Nonnull)msgData;
 
 - (NSString* _Nonnull)getErrorText:(int)errCode;
+- (int)uploadLogFile:(NSString * _Nonnull)description;
 - (void)dealloc;
 @end
 
