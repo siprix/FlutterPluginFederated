@@ -41,6 +41,7 @@ class SiprixVoipSdkPlugin : public flutter::Plugin, public Siprix::ISiprixEventH
   void handleModuleHomeFolder(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleModuleVersionCode(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleModuleVersion(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
+  void handleModuleUploadLog(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   
   void handleAccountAdd(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleAccountUpdate(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
@@ -127,6 +128,7 @@ protected:
   void OnCallVideoUpgraded(Siprix::CallId callId, bool withVideo) override;
   void OnCallVideoUpgradeRequested(Siprix::CallId callId)override;
   void OnCallHeld(Siprix::CallId callId, Siprix::HoldState state) override;
+  void OnCallUpdated(Siprix::CallId callId) override;
   void OnCallSwitched(Siprix::CallId callId) override;
 
   void OnMessageSentState(Siprix::MessageId messageId, bool success, const char* response);
@@ -134,6 +136,7 @@ protected:
 
   void OnSipNotify(Siprix::AccountId accId, const char* hdrEvent, const char* body);
   void OnVuMeterLevel(int micLevel, int spkLevel);
+  void OnLogUploadState(bool success, const char* logId);
 
 protected:
    MethodChannelPtr channel_;

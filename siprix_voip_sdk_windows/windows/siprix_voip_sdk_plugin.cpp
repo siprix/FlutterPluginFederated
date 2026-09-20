@@ -29,6 +29,7 @@ const char kMethodModuleUnInitialize[]  = "Module_UnInitialize";
 const char kMethodModuleHomeFolder[]    = "Module_HomeFolder";
 const char kMethodModuleVersionCode[]   = "Module_VersionCode";
 const char kMethodModuleVersion[]       = "Module_Version";
+const char kMethodModuleUploadLog[]     = "Module_UploadLogFile";
                                         
 const char kMethodAccountAdd[]          = "Account_Add";
 const char kMethodAccountUpdate[]       = "Account_Update";
@@ -101,6 +102,7 @@ const char kOnCallRedirected[]   = "OnCallRedirected";
 const char kOnCallVideoUpgraded[]= "OnCallVideoUpgraded";
 const char kOnCallVideoUpgradeRequested[]= "OnCallVideoUpgradeRequested";
 const char kOnCallSwitched[]     = "OnCallSwitched";
+const char kOnCallUpdated[]      = "OnCallUpdated";
 const char kOnCallHeld[]         = "OnCallHeld";
 
 const char kOnMessageSentState[] = "OnMessageSentState";
@@ -108,6 +110,7 @@ const char kOnMessageIncoming[]  = "OnMessageIncoming";
 
 const char kOnSipNotify[]        = "OnSipNotify";
 const char kOnVuMeterLevel[]     = "OnVuMeterLevel";
+const char kOnLogUploadState[]   = "OnLogUploadState";
 
 const char kArgVideoTextureId[]  = "videoTextureId";
 
@@ -194,6 +197,7 @@ void SiprixVoipSdkPlugin::buildHandlersTable()
      handlers_[kMethodModuleHomeFolder]     = std::bind(&SiprixVoipSdkPlugin::handleModuleHomeFolder,   this, std::placeholders::_1, std::placeholders::_2);     
      handlers_[kMethodModuleVersionCode]    = std::bind(&SiprixVoipSdkPlugin::handleModuleVersionCode,  this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodModuleVersion]        = std::bind(&SiprixVoipSdkPlugin::handleModuleVersion,      this, std::placeholders::_1, std::placeholders::_2);
+     handlers_[kMethodModuleUploadLog]      = std::bind(&SiprixVoipSdkPlugin::handleModuleUploadLog,    this, std::placeholders::_1, std::placeholders::_2);
                                      
      handlers_[kMethodAccountAdd]           = std::bind(&SiprixVoipSdkPlugin::handleAccountAdd,         this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodAccountUpdate]        = std::bind(&SiprixVoipSdkPlugin::handleAccountUpdate,      this, std::placeholders::_1, std::placeholders::_2);
@@ -434,6 +438,20 @@ void SiprixVoipSdkPlugin::handleModuleVersion(const flutter::EncodableMap& argsM
     result->Success(flutter::EncodableValue(version));
 }
 
+void SiprixVoipSdkPlugin::handleModuleUploadLog(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
+{
+  bool bFound;
+  std::string description = parseValue<std::string>("description", argsMap, bFound);
+  if (!bFound) { sendBadArgResult(result); return; }
+
+  const Siprix::ErrorCode err = Siprix::Module_UploadLogFile(module_, description.c_str());
+  if(err == Siprix::EOK){
+    result->Success(flutter::EncodableValue("Upload initiated"));
+  }else{
+    result->Error(std::to_string(err), std::string(Siprix::GetErrorText(err)));
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //Siprix Account methods implementation
 
@@ -475,6 +493,7 @@ Siprix::AccData* SiprixVoipSdkPlugin::parseAccountData(const flutter::EncodableM
       if(valName->compare("transport") == 0)     Siprix::Acc_SetTranspProtocol(accData, static_cast<Siprix::SipTransport>(*intVal)); else
       if(valName->compare("port")      == 0)     Siprix::Acc_SetTranspPort(accData,     static_cast<uint16_t>(*intVal));else
       if(valName->compare("keepAliveTime") == 0) Siprix::Acc_SetKeepAliveTime(accData,  static_cast<uint32_t>(*intVal));else
+      if(valName->compare("retryTime") == 0)     Siprix::Acc_SetRegRetryTime(accData,  static_cast<uint32_t>(*intVal));else
       if(valName->compare("upgradeToVideo") == 0) Siprix::Acc_SetUpgradeToVideoMode(accData, static_cast<Siprix::UpgradeToVideoMode>(*intVal));
       continue;
     }
@@ -1377,6 +1396,14 @@ void SiprixVoipSdkPlugin::OnCallSwitched(Siprix::CallId callId)
         std::make_unique<flutter::EncodableValue>(std::move(argsMap)));
 }
 
+void SiprixVoipSdkPlugin::OnCallUpdated(Siprix::CallId callId)
+{
+    flutter::EncodableMap argsMap;
+    argsMap[flutter::EncodableValue(kArgCallId)] = flutter::EncodableValue(static_cast<int32_t>(callId));
+    channel_->InvokeMethod(kOnCallUpdated,
+        std::make_unique<flutter::EncodableValue>(std::move(argsMap)));
+}
+
 void SiprixVoipSdkPlugin::OnCallHeld(Siprix::CallId callId, Siprix::HoldState state)
 {
     flutter::EncodableMap argsMap;
@@ -1431,6 +1458,14 @@ void SiprixVoipSdkPlugin::OnVuMeterLevel(int micLevel, int spkLevel)
         std::make_unique<flutter::EncodableValue>(std::move(argsMap)));
 }
 
+void SiprixVoipSdkPlugin::OnLogUploadState(bool success, const char* response)
+{
+    flutter::EncodableMap argsMap;
+    argsMap[flutter::EncodableValue(kSuccess)] = flutter::EncodableValue(success);
+    argsMap[flutter::EncodableValue(kArgName)] = flutter::EncodableValue(response);
+    channel_->InvokeMethod(kOnLogUploadState,
+        std::make_unique<flutter::EncodableValue>(std::move(argsMap)));
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //FlutterVideoRenderer
