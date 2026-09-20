@@ -609,14 +609,8 @@ class CallModel extends ChangeNotifier implements ISiprixData {
 }//CallModel
 
 
-
-/// Callback function which is raised by model when it need to resolve contact name of the new callreceived
+typedef CallIdCallback = void Function(int callId);
 typedef ResolveContactNameCallback = String Function(String phoneNumber);
-/// Callback function which is raised by model when call switched
-typedef CallSwitchedCallCallback = void Function(int callId);
-/// Callback function which is raised by model when upgrade to video requeste received
-typedef CallVideoUpgradeRequestedCallback = void Function(int callId);
-/// Callback function which is raised by model when new incoming call received
 typedef NewIncomingCallCallback = void Function();
 
 //--------------------------------------------------------------------------
@@ -649,6 +643,7 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
       videoUpgradeRequested : onVideoUpgradeRequested,
       dtmfReceived : onDtmfReceived,
       switched : onSwitched,
+      updated : onUpdated,
       muted : onMuted,
       held : onHeld
     );
@@ -657,11 +652,13 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
   /// Callback function which is raised by model when it need to resolve contact name of the new call
   ResolveContactNameCallback? onResolveContactName;
   /// Callback function which is raised by model when call switched
-  CallSwitchedCallCallback? onSwitchedCall;
+  CallIdCallback? onSwitchedCall;
   /// Callback function which is raised by model when new incoming call received
   NewIncomingCallCallback? onNewIncomingCall;
   /// Callback function which is raised by model when video upgrade request received
-  CallVideoUpgradeRequestedCallback? onVideoUpgradeRequestReceived;
+  CallIdCallback? onVideoUpgradeRequestReceived;
+  /// Callback function which is raised by model when re-invite received
+  CallIdCallback? onUpdatedCall;
 
   /// Returns call by its index in list
   CallModel operator [](int i) => _callItems[i]; // get
@@ -676,10 +673,10 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
   int get switchedCallId => _switchedCallId;
   /// Returns switched call instance (or null when there are no calls)
   CallModel? switchedCall() {
-    return _findCall(_switchedCallId);
+    return findCall(_switchedCallId);
   }
 
-  CallModel? _findCall(int callId) {
+  @protected CallModel? findCall(int callId) {
     int index = _callItems.indexWhere((c) => c.myCallId==callId);
     return (index == -1) ? null : _callItems[index];
   }
@@ -766,7 +763,7 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
   /// Handle 1xx response event raised by library and route it to matched call instance
   void onProceeding(int callId, String response) {
     _logs?.print('onProceeding callId:$callId response:$response');
-    _findCall(callId)?.onProceeding(response);
+    findCall(callId)?.onProceeding(response);
   }
 
 
@@ -780,7 +777,7 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
   void onIncomingSip(int callId, int accId, bool withVideo, String hdrFrom, String hdrTo) {
     _logs?.print('onIncoming callId:$callId accId:$accId from:$hdrFrom to:$hdrTo withVideo:$withVideo');
 
-    if(_findCall(callId) != null) return;//Call already exists, skip
+    if(findCall(callId) != null) return;//Call already exists, skip
 
     String accUri = _accountsModel.getUri(accId);
     bool hasSecureMedia = _accountsModel.hasSecureMedia(accId);
@@ -803,7 +800,7 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
 
   /// Handle case when call answered by tapping notification button (Android only)
   void onAcceptNotif(int callId, bool withVideo) {
-    _findCall(callId)?.accept(withVideo);
+    findCall(callId)?.accept(withVideo);
   }
 
   /// Handles 2xx responses raised by library and route it to matched call instance
@@ -811,7 +808,7 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
     _logs?.print('onConnected callId:$callId from:$from to:$to withVideo:$withVideo');
     _cdrs?.setConnected(callId, from, to, withVideo);
 
-    _findCall(callId)?.onConnected(from, to, withVideo);
+    findCall(callId)?.onConnected(from, to, withVideo);
     notifyListeners();
   }
 
@@ -819,7 +816,7 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
   void onTerminated(int callId, int statusCode) async {
     _logs?.print('onTerminated callId:$callId statusCode:$statusCode');
 
-    CallModel? call = _findCall(callId);
+    CallModel? call = findCall(callId);
     if(call == null) return;
 
     String reason = await SiprixVoipSdk().getSipHeader(callId, "Reason") ?? "";
@@ -840,7 +837,7 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
   void onTransferred(int callId, int statusCode) {
     _logs?.print('onTransferred callId:$callId statusCode:$statusCode');
 
-    _findCall(callId)?.onTransferred(statusCode);
+    findCall(callId)?.onTransferred(statusCode);
   }
 
   /// Handle redirect response event raised by library and route it to matched call instance
@@ -848,7 +845,7 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
     _logs?.print('onRedirected origCallId:$origCallId relatedCallId:$relatedCallId to:$referTo');
 
     //Find 'origCallId'
-    CallModel? origCall = _findCall(origCallId);
+    CallModel? origCall = findCall(origCallId);
     if(origCall == null) return;
 
     //Clone 'origCallId' and add to collection of calls as related one
@@ -861,7 +858,7 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
   void onVideoUpgraded(int callId, bool withVideo) {
     _logs?.print('onVideoUpgraded callId:$callId withVideo:$withVideo');
 
-    CallModel? call = _findCall(callId);
+    CallModel? call = findCall(callId);
     if(call == null) return;
 
     bool isUpgradeModeRecvOnly = _accountsModel.isUpgradeToVideoModeRecvOnly(call.accUri);
@@ -872,7 +869,7 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
   void onVideoUpgradeRequested(int callId) {
     _logs?.print('onVideoUpgradeRequested callId:$callId');
 
-    _findCall(callId)?.onVideoUpgradeRequested();
+    findCall(callId)?.onVideoUpgradeRequested();
     onVideoUpgradeRequestReceived?.call(callId);
   }
 
@@ -880,14 +877,14 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
   void onDtmfReceived(int callId, int tone) {
     _logs?.print('onDtmfReceived callId:$callId tone:$tone');
 
-    _findCall(callId)?.onDtmfReceived(tone);
+    findCall(callId)?.onDtmfReceived(tone);
   }
 
   /// Handle hold event raised by library and route it to matched call instance
   void onHeld(int callId, HoldState s) {
     _logs?.print('onHeld callId:$callId $s');
 
-    _findCall(callId)?.onHeld(s);
+    findCall(callId)?.onHeld(s);
     notifyListeners();
   }
 
@@ -895,7 +892,7 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
   void onMuted(int callId, bool mute) {
     _logs?.print('onMuted callId:$callId $mute');
 
-    _findCall(callId)?.onMuted(mute);
+    findCall(callId)?.onMuted(mute);
     notifyListeners();
   }
 
@@ -908,6 +905,12 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
       notifyListeners();
       onSwitchedCall?.call(_switchedCallId);
     }
+  }
+
+  /// Handle received re-Invite event raised by library
+  void onUpdated(int callId) {
+    _logs?.print('onUpdated callId:$callId');
+    onUpdatedCall?.call(callId);
   }
 
   /// Handle call switched event raised by library

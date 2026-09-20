@@ -110,6 +110,20 @@ class AppCallsModel extends CallsModel {
     }
   }
 
+  /*@override
+  void onUpdated(int callId) async{
+    _logs?.print('onUpdated callId:$callId');
+    CallModel? call = findCall(callId);
+    if(call == null) return;
+
+    String? fromHdr = await call.getSipHeader("From");
+    if(fromHdr == null) return;
+
+    String newDisplName = CallsModel.parseDisplayName(fromHdr);
+    if((newDisplName.isNotEmpty)&&(newDisplName != call.displName))
+      call.updateDisplName(newDisplName);
+  }*/
+
   void _startPushNotifTimer() {
     if(_pushNotifTimer != null) return;
 

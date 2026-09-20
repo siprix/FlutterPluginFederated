@@ -277,7 +277,8 @@ class AccountPageState extends State<AccountPage> {
         onChanged: (String? val) { if((val!=null) && val.isNotEmpty) _account.keepAliveTime = int.parse(val); },
         initialValue: _account.keepAliveTime?.toString()
       ),
-      _buildRewriteContactIp()
+      _buildRewriteContactIp(),
+      _buildPrefferIpv6()
     ];
   }
 
@@ -409,6 +410,16 @@ class AccountPageState extends State<AccountPage> {
       title: const Text('Rewrite Contact IP address'),
       onChanged: (bool? val) {  setState(() { _account.rewriteContactIp = val;  }); },
       value: _account.rewriteContactIp,
+      tristate:true,
+    );
+  }
+
+  Widget _buildPrefferIpv6() {
+    return CheckboxListTile(
+      contentPadding: const EdgeInsetsDirectional.all(0),
+      title: const Text('Preffer IPv6'),
+      onChanged: (bool? val) {  setState(() { _account.preferIPv6 = val;  }); },
+      value: _account.preferIPv6,
       tristate:true,
     );
   }

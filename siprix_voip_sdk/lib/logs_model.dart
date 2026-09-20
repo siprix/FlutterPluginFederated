@@ -26,6 +26,8 @@ enum LogLevel {
 }
 
 
+typedef LogUploadedCallback = void Function(bool success, String message);
+
 /// Contains log string which can be displayed on UI. App can replace it with the own class or don't use
 class LogsModel extends ChangeNotifier implements ILogsModel {
   String _logStr = "";
@@ -33,11 +35,16 @@ class LogsModel extends ChangeNotifier implements ILogsModel {
 
   /// Cummulative log string
   String get logStr => _logStr;
+  ///Callback triggered when received event 'onLogUploadStatus' from library
+  LogUploadedCallback? onLogUploaded;
 
-  /// Constructor (set event handler)
   LogsModel(this._uiLog) {
     SiprixVoipSdk().trialListener = TrialModeListener(
-      notified : onTrialModeNotified
+      notified : _onTrialModeNotified
+    );
+
+    SiprixVoipSdk().logUploadListener = LogUploadListener(
+      uploaded: _onLogFileUploaded
     );
   }
 
@@ -46,8 +53,7 @@ class LogsModel extends ChangeNotifier implements ILogsModel {
     debugPrint(str);
 
     if(_uiLog) {
-      DateTime now = DateTime.now();
-      _logStr += DateFormat('HH:mm:ss ').format(now);
+      _logStr += DateFormat('HH:mm:ss ').format(DateTime.now());
       _logStr += str;
       _logStr += '\n';
       notifyListeners();
@@ -55,7 +61,12 @@ class LogsModel extends ChangeNotifier implements ILogsModel {
   }
 
   /// Handle trial mode notification raised by library when license not set or wrong
-  void onTrialModeNotified() {
+  void _onTrialModeNotified() {
     print("--- SIPRIX SDK is working in TRIAL mode ---");
+  }
+
+  /// Handle notification raised by library when got log upload status
+  void _onLogFileUploaded(bool success, String message) {
+    onLogUploaded?.call(success, message);
   }
 }

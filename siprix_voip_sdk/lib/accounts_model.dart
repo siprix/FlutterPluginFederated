@@ -389,6 +389,8 @@ class AccountModel implements ISiprixData {
 
   /// Timeout in seconds which library uses for sending short packets (prevents closing ports between device and server, by default 30)
   int?    keepAliveTime;
+  /// Delay in seconds before send REGISTER again, when it failed, by default 120
+  int?    retryTime;
   /// Enable rewrite IP address of Contact header with address got from received SIP response's 'Via/received=...'
   bool?   rewriteContactIp;
   /// Enables verify SDP of the incoming call. When enabled and received call with SDP which can't be answered library silently rejects this call
@@ -464,6 +466,7 @@ class AccountModel implements ISiprixData {
     if(instanceId      !=null) ret['instanceId']      = instanceId;
     if(ringTonePath    !=null) ret['ringTonePath']    = ringTonePath;
     if(keepAliveTime   !=null) ret['keepAliveTime']   = keepAliveTime;
+    if(retryTime       !=null) ret['retryTime']       = retryTime;
     if(rewriteContactIp!=null) ret['rewriteContactIp']= rewriteContactIp;
     if(forceSipProxy   !=null) ret['forceSipProxy']   = forceSipProxy;
     if(verifyIncomingCall!=null) ret['verifyIncomingCall']= verifyIncomingCall;
@@ -505,6 +508,7 @@ class AccountModel implements ISiprixData {
       if((key == 'instanceId')&&(value is String))    { acc.instanceId = value;     } else
       if((key == 'ringTonePath')&&(value is String))  { acc.ringTonePath = value;   } else
       if((key == 'keepAliveTime')&&(value is int))    { acc.keepAliveTime = value;  } else
+      if((key == 'retryTime')&&(value is int))        { acc.retryTime = value;      } else
       if((key == 'rewriteContactIp')&&(value is bool)) { acc.rewriteContactIp = value; } else
       if((key == 'verifyIncomingCall')&&(value is bool)) { acc.verifyIncomingCall = value; } else
       if((key == 'forceSipProxy')&&(value is bool))   { acc.forceSipProxy = value; } else
@@ -678,7 +682,7 @@ class AccountsModel extends ChangeNotifier implements IAccountsModel {
   Future<void> updateAccount(AccountModel acc) async {
      try {
       int index = _accounts.indexWhere((a) => a.myAccId==acc.myAccId);
-      if(index == -1) return Future.error("Account with specified id not found");
+      if(index == -1) throw ("Specified id not found");
 
       await SiprixVoipSdk().updateAccount(acc);
 

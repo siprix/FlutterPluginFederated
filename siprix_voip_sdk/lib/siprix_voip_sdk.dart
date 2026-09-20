@@ -249,6 +249,18 @@ class CallRedirectedArg {
   }
 }
 
+/// Helper class for handling 'onCallUpdated' event raised by library
+class CallUpdatedArg {
+  int callId=0;
+  bool fromMap(Map<dynamic, dynamic> argsMap) {
+    int argsCounter=0;
+    argsMap.forEach((key, value) {
+      if((key == SiprixVoipSdkPlatform.kArgCallId)&&(value is int)) { callId = value;               argsCounter+=1; } 
+    });
+    return (argsCounter==1);
+  }
+}
+
 /// Helper class for handling 'onCallHeld' event raised by library
 class CallHeldArg {
   int callId=0;
@@ -371,6 +383,19 @@ class VuMeterArg {
   }
 }
 
+/// Helper class for handling 'onVuMeterLevel' event raised by library
+class LogUploadArg {
+  String name="";
+  bool success=false;
+  bool fromMap(Map<dynamic, dynamic> argsMap) {
+    int argsCounter=0;
+    argsMap.forEach((key, value) {
+      if((key == SiprixVoipSdkPlatform.kSuccess)&&(value is bool)) { success = value; argsCounter+=1; } else
+      if((key == SiprixVoipSdkPlatform.kArgName)&&(value is String)) { name = value; argsCounter+=1; }
+    });
+    return (argsCounter==2);
+  }
+}
 
 /// Helper class for managing audio/video devices
 class MediaDevice {
@@ -379,14 +404,13 @@ class MediaDevice {
   String  guid="";
   bool isSelected=false;
   final int index;
-  static const String _kArgDvcIsSel = "dvcIsSel";
 
   bool fromMap(Map<dynamic, dynamic> argsMap) {
     int argsCounter=0;
     argsMap.forEach((key, value) {
       if((key == SiprixVoipSdkPlatform.kArgDvcName)&&(value is String)) { name = value; argsCounter+=1; }
       if((key == SiprixVoipSdkPlatform.kArgDvcGuid)&&(value is String)) { guid = value; argsCounter+=1; }
-      if((key == _kArgDvcIsSel)&&(value is bool)) { isSelected = value; }
+      if((key == SiprixVoipSdkPlatform.kArgDvcIsSel)&&(value is bool))  { isSelected = value; }
     });
     return (argsCounter==2);
   }
@@ -418,7 +442,7 @@ class NetStateListener {
 /// Call state listener, usign by 'CallsModel'
 class CallStateListener {
   CallStateListener({this.proceeding, this.incoming, this.incomingPush, this.acceptNotif,
-    this.connected, this.terminated, this.dtmfReceived,
+    this.connected, this.terminated, this.dtmfReceived, this.updated,
     this.transferred, this.redirected, this.videoUpgraded, this.videoUpgradeRequested,
     this.held, this.muted, this.syncState, this.switched, this.playerStateChanged});
 
@@ -454,6 +478,8 @@ class CallStateListener {
   void Function(Map<String, dynamic> argsMap)? syncState;
   ///Triggered by library when new call gives audio focus
   void Function(int callId)? switched;
+  ///Triggered by library when received re-Invite request from remote side
+  void Function(int callId)? updated;
 }
 
 /// Messages state listener, usign by 'MessagesModel'
@@ -489,6 +515,12 @@ class DevicesStateListener {
 class TrialModeListener {
   TrialModeListener({required this.notified});
   void Function() notified;
+}
+
+/// LogUpload Listener listener, handles OnLogUpload events
+class LogUploadListener {
+  LogUploadListener({required this.uploaded});
+  void Function(bool sucess, String message) uploaded;
 }
 
 /// Inteface of the log model, allows others models to display debug output
@@ -624,6 +656,8 @@ class SiprixVoipSdk {
   SipNotifyListener? sipNotifyListener;
   ///VuMeter listenerer
   VuMeterListener? vuMeterListener;
+  ///LogUpload listenerer
+  LogUploadListener? logUploadListener;
 
   /// Initialize siprix module
   Future<void> initialize(InitData iniData, [ILogsModel? logsModel]) async {
@@ -663,6 +697,12 @@ class SiprixVoipSdk {
   /// Version code of the library (similar to Android API level)
   Future<int?> versionCode() async {
     return _platform.versionCode();
+  }
+
+  /// Initiate upload log file for review by developers. 'description' - use-case explanation
+  /// To check the status and get assigned uploadId handle 'onLogUploaded' event
+  Future<String?> uploadLogFile(String description) async {
+    return _platform.uploadLogFile(description);
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////
@@ -1007,6 +1047,7 @@ class SiprixVoipSdk {
       case SiprixVoipSdkPlatform.kOnCallVideoUpgraded: _onCallVideoUpgraded(argsMap); break;
       case SiprixVoipSdkPlatform.kOnCallVideoUpgradeRequested: _onCallVideoUpgradeRequested(argsMap); break;
       case SiprixVoipSdkPlatform.kOnCallSwitched     : _onCallSwitched(argsMap);     break;
+      case SiprixVoipSdkPlatform.kOnCallUpdated      : _onCallUpdated(argsMap);      break;
       case SiprixVoipSdkPlatform.kOnCallHeld         : _onCallHeld(argsMap);         break;
       case SiprixVoipSdkPlatform.kOnCallKitMuted     : _onCallKitMuted(argsMap);     break;
       case SiprixVoipSdkPlatform.kOnCallsSyncState   : _onCallsSyncState(argsMap);   break;
@@ -1016,6 +1057,7 @@ class SiprixVoipSdk {
 
       case SiprixVoipSdkPlatform.kOnSipNotify        : _onSipNotify(argsMap);        break;
       case SiprixVoipSdkPlatform.kOnVuMeterLevel     : _onVuMeterLevel(argsMap);     break;
+      case SiprixVoipSdkPlatform.kOnLogUploadState   : _onLogUploadState(argsMap);   break;
     }
   }
 
@@ -1117,6 +1159,13 @@ class SiprixVoipSdk {
     }
   }
 
+  void _onCallUpdated(Map<dynamic, dynamic> argsMap) {
+    CallUpdatedArg arg = CallUpdatedArg();
+    if(arg.fromMap(argsMap)) {
+      callListener?.updated?.call(arg.callId);
+    }
+  }
+
   void _onCallHeld(Map<dynamic, dynamic> argsMap) {
     CallHeldArg arg = CallHeldArg();
     if(arg.fromMap(argsMap)) {
@@ -1183,6 +1232,13 @@ class SiprixVoipSdk {
     VuMeterArg arg = VuMeterArg();
     if(arg.fromMap(argsMap)) {
       vuMeterListener?.vu.call(arg.micLevel, arg.spkLevel);
+    }
+  }
+
+  void _onLogUploadState(Map<dynamic, dynamic> argsMap) {
+    LogUploadArg arg = LogUploadArg();
+    if(arg.fromMap(argsMap)) {
+      logUploadListener?.uploaded.call(arg.success, arg.name);
     }
   }
 
