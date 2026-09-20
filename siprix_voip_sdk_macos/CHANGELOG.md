@@ -1,3 +1,9 @@
+## 1.1.1
+ - Added new event 'onCallUpdated', triggered when received reINVITE or UPDATE request
+ - Addew new account property 'retryTime' 
+ - Modified 'retryAfter' impl for updating subscriptions (prevents forever loop when connection can't be established)
+   //2026.09.12
+
 ## 1.1.0
  - Updated handling transport errors
  - Modified triggering registration events (now triggered after each dialog with server)

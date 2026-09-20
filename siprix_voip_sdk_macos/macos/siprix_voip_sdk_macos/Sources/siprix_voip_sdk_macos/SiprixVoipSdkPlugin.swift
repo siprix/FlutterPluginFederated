@@ -15,6 +15,7 @@ private let kMethodModuleUnInitialize   = "Module_UnInitialize"
 private let kMethodModuleHomeFolder     = "Module_HomeFolder"
 private let kMethodModuleVersionCode    = "Module_VersionCode"
 private let kMethodModuleVersion        = "Module_Version"
+private let kMethodModuleUploadLog      = "Module_UploadLogFile";
 
 private let kMethodAccountAdd           = "Account_Add"
 private let kMethodAccountUpdate        = "Account_Update"
@@ -86,12 +87,14 @@ private let kOnCallVideoUpgraded = "OnCallVideoUpgraded"
 private let kOnCallVideoUpgradeRequested = "OnCallVideoUpgradeRequested"
 private let kOnCallSwitched     = "OnCallSwitched"
 private let kOnCallHeld         = "OnCallHeld"
+private let kOnCallUpdated      = "OnCallUpdated"
 
 private let kOnMessageSentState = "OnMessageSentState"
 private let kOnMessageIncoming  = "OnMessageIncoming"
 
-private let kOnSipNotify        = "OnSipNotify";
-private let kOnVuMeterLevel     = "OnVuMeterLevel";
+private let kOnSipNotify        = "OnSipNotify"
+private let kOnVuMeterLevel     = "OnVuMeterLevel"
+private let kOnLogUploadState   = "OnLogUploadState"
 
 private let kArgVideoTextureId  = "videoTextureId"
 
@@ -302,6 +305,14 @@ class SiprixEventHandler : NSObject, SiprixEventDelegate {
         }
     }
 
+    public func onCallUpdated(_ callId: Int) {
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kArgCallId] = callId
+            self._channel.invokeMethod(kOnCallUpdated, arguments: argsMap)
+        }
+    }
+
     public func onMessageSentState(_ messageId:Int, success:Bool, response:String) {
         DispatchQueue.main.async {
             var argsMap = [String:Any]()
@@ -339,6 +350,15 @@ class SiprixEventHandler : NSObject, SiprixEventDelegate {
             argsMap[kMicLevel] = micLevel
             argsMap[kSpkLevel] = spkLevel
             self._channel.invokeMethod(kOnVuMeterLevel, arguments: argsMap)
+        }
+    }
+
+    public func onLogUploadState(_ success:Bool, response:String) {
+        DispatchQueue.main.async {
+            var argsMap = [String:Any]()
+            argsMap[kSuccess] = success
+            argsMap[kResponse] = response
+            self._channel.invokeMethod(kOnLogUploadState, arguments: argsMap)
         }
     }
 }
@@ -510,6 +530,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
                 case kMethodModuleHomeFolder   :  handleModuleHomeFolder(argsMap!, result:result)
                 case kMethodModuleVersionCode  :  handleModuleVersionCode(argsMap!, result:result)
                 case kMethodModuleVersion      :  handleModuleVersion(argsMap!, result:result)
+                case kMethodModuleUploadLog    :  handleModuleUploadLogFile(argsMap!, result:result)
                 
                 case kMethodAccountAdd         :  handleAccountAdd(argsMap!, result:result)
                 case kMethodAccountUpdate      :  handleAccountUpdate(argsMap!, result:result)
@@ -660,6 +681,17 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         result(version)
     }
 
+    func handleModuleUploadLogFile(_ args : ArgsMap, result: @escaping FlutterResult) {
+        let description = args["description"] as? String
+        
+        if(description != nil) {
+            let err = _siprixModule.uploadLogFile(description!)
+            sendResult(err, result:result)
+        }else{
+            sendBadArguments(result:result)
+        }
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////
     //Siprix Account methods implementation
 
@@ -729,6 +761,9 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
         if let keepAliveTime = args["keepAliveTime"] as? Int {
            accData.keepAliveTime = NSNumber(value:keepAliveTime) }
+
+        if let retryTime = args["retryTime"] as? Int {
+           accData.retryTime = NSNumber(value:retryTime) }
 
         if let rewriteContactIp = args["rewriteContactIp"] as? Bool {
            accData.rewriteContactIp = NSNumber(value: rewriteContactIp) }
