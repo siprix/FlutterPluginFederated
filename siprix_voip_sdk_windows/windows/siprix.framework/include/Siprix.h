@@ -389,6 +389,11 @@ EXPORT ErrorCode Dvc_GetVideoDevice(ISiprixModule* module, uint16_t index,
 
 EXPORT ErrorCode Dvc_SetPlayoutDevice(ISiprixModule* module, uint16_t index);
 EXPORT ErrorCode Dvc_SetRecordingDevice(ISiprixModule* module, uint16_t index);
+EXPORT ErrorCode Dvc_SetRingtoneDevice(ISiprixModule* module, uint16_t index);
+
+EXPORT ErrorCode Dvc_GetSelRingtoneDevice(ISiprixModule* module,  char* guid, uint32_t guidLength);
+EXPORT ErrorCode Dvc_GetSelPlayoutDevice(ISiprixModule* module,   char* guid, uint32_t guidLength);
+EXPORT ErrorCode Dvc_GetSelRecordingDevice(ISiprixModule* module, char* guid, uint32_t guidLength);
 EXPORT bool      Dvc_IsSelected(ISiprixModule* module, const char* guid);
 
 EXPORT ErrorCode Dvc_SetVideoDevice(ISiprixModule* module, uint16_t index);
@@ -459,7 +464,7 @@ EXPORT void     Acc_SetRegRetryTime(AccData* acc, uint32_t retryTimeSec);
 EXPORT void     Acc_SetKeepAliveTime(AccData* acc, uint32_t keepAliveTimeSec);
 EXPORT void     Acc_SetTranspProtocol(AccData* acc, SipTransport transp);
 EXPORT void     Acc_SetTranspPort(AccData* acc, uint16_t transpPort);
-EXPORT void     Acc_SetTranspTlsCaCert(AccData* acc, const char* pathToCaCertPem);
+EXPORT void     Acc_SetTranspTlsCaCert(AccData* acc, const char* pathToCaCertPemOrBlob);
 EXPORT void     Acc_SetTranspTlsClientCert(AccData* acc, const char* clientCertPem, 
                                            const char* clientKeyPem, const char* clientKeyPass);
 EXPORT void     Acc_SetTranspBindAddr(AccData* acc, const char* ipAddr);

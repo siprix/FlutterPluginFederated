@@ -74,6 +74,10 @@ const char kMethodDvcGetVideoNumber[]   = "Dvc_GetVideoDevices";
 const char kMethodDvcGetPlayout[]       = "Dvc_GetPlayoutDevice";
 const char kMethodDvcGetRecording[]     = "Dvc_GetRecordingDevice";
 const char kMethodDvcGetVideo[]         = "Dvc_GetVideoDevice";
+const char kMethodDvcGetSelPlayout[]    = "Dvc_GetSelPlayout";
+const char kMethodDvcGetSelRecording[]  = "Dvc_GetSelRecording";
+const char kMethodDvcGetSelRingtone[]   = "Dvc_GetSelRingtone";
+const char kMethodDvcSetRingtone[]      = "Dvc_SetRingtoneDevice";
 const char kMethodDvcSetPlayout[]       = "Dvc_SetPlayoutDevice";
 const char kMethodDvcSetRecording[]     = "Dvc_SetRecordingDevice";
 const char kMethodDvcSetVideo[]         = "Dvc_SetVideoDevice";
@@ -245,6 +249,10 @@ void SiprixVoipSdkPlugin::buildHandlersTable()
      handlers_[kMethodDvcGetVideo]          = std::bind(&SiprixVoipSdkPlugin::handleDvcGetVideo,         this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodDvcSetPlayout]        = std::bind(&SiprixVoipSdkPlugin::handleDvcSetPlayout,       this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodDvcSetRecording]      = std::bind(&SiprixVoipSdkPlugin::handleDvcSetRecording,     this, std::placeholders::_1, std::placeholders::_2);
+     handlers_[kMethodDvcSetRingtone]       = std::bind(&SiprixVoipSdkPlugin::handleDvcSetRingtone,      this, std::placeholders::_1, std::placeholders::_2);
+     handlers_[kMethodDvcGetSelPlayout]     = std::bind(&SiprixVoipSdkPlugin::handleDvcGetSelPlayout,    this, std::placeholders::_1, std::placeholders::_2);
+     handlers_[kMethodDvcGetSelRecording]   = std::bind(&SiprixVoipSdkPlugin::handleDvcGetSelRecording,  this, std::placeholders::_1, std::placeholders::_2);
+     handlers_[kMethodDvcGetSelRingtone]    = std::bind(&SiprixVoipSdkPlugin::handleDvcGetSelRingtone,   this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodDvcSetVideo]          = std::bind(&SiprixVoipSdkPlugin::handleDvcSetVideo,         this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodDvcSetVideoParams]    = std::bind(&SiprixVoipSdkPlugin::handleDvcSetVideoParams,   this, std::placeholders::_1, std::placeholders::_2);     
 
@@ -1090,6 +1098,38 @@ void SiprixVoipSdkPlugin::handleDvcSetPlayout(const flutter::EncodableMap& argsM
     sendResult(err, result);
 }
 
+void SiprixVoipSdkPlugin::handleDvcGetSelPlayout(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
+{
+    char guid[128] = "";
+    Siprix::Dvc_GetSelPlayoutDevice(module_, guid, sizeof(guid));
+    result->Success(flutter::EncodableValue(std::string(guid)));
+}
+
+void SiprixVoipSdkPlugin::handleDvcGetSelRecording(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
+{
+    char guid[128] = "";
+    Siprix::Dvc_GetSelRecordingDevice(module_, guid, sizeof(guid));
+    result->Success(flutter::EncodableValue(std::string(guid)));
+}
+
+void SiprixVoipSdkPlugin::handleDvcGetSelRingtone(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
+{
+    char guid[128] = "";
+    Siprix::Dvc_GetSelRingtoneDevice(module_, guid, sizeof(guid));
+    result->Success(flutter::EncodableValue(std::string(guid)));
+}
+
+
+void SiprixVoipSdkPlugin::handleDvcSetRingtone(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
+{
+    bool bFound;
+    const int32_t dvcIndex = parseValue<int32_t>(kArgDvcIndex, argsMap, bFound);
+    if (!bFound) { sendBadArgResult(result); return; }
+
+    const Siprix::ErrorCode err = Siprix::Dvc_SetRingtoneDevice(module_, static_cast<uint16_t>(dvcIndex));
+    sendResult(err, result);
+}
+
 void SiprixVoipSdkPlugin::handleDvcSetRecording(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
 {
     bool bFound;
@@ -1462,7 +1502,7 @@ void SiprixVoipSdkPlugin::OnLogUploadState(bool success, const char* response)
 {
     flutter::EncodableMap argsMap;
     argsMap[flutter::EncodableValue(kSuccess)] = flutter::EncodableValue(success);
-    argsMap[flutter::EncodableValue(kArgName)] = flutter::EncodableValue(response);
+    argsMap[flutter::EncodableValue(kResponse)] = flutter::EncodableValue(response);
     channel_->InvokeMethod(kOnLogUploadState,
         std::make_unique<flutter::EncodableValue>(std::move(argsMap)));
 }

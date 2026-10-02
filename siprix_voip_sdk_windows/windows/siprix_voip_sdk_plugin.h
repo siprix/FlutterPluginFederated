@@ -88,6 +88,10 @@ class SiprixVoipSdkPlugin : public flutter::Plugin, public Siprix::ISiprixEventH
   void handleDvcGetVideo(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleDvcSetPlayout(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleDvcSetRecording(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
+  void handleDvcSetRingtone(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
+  void handleDvcGetSelPlayout(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
+  void handleDvcGetSelRecording(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
+  void handleDvcGetSelRingtone(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleDvcSetVideo(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleDvcSetVideoParams(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
 
