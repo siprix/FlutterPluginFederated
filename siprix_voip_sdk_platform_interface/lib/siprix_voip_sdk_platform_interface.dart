@@ -74,6 +74,12 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kMethodDvcGetPlayout       = 'Dvc_GetPlayoutDevice';
   static const String kMethodDvcGetRecording     = 'Dvc_GetRecordingDevice';
   static const String kMethodDvcGetVideo         = 'Dvc_GetVideoDevice';
+
+  static const String kMethodDvcGetSelPlayout    = 'Dvc_GetSelPlayout';
+  static const String kMethodDvcGetSelRecording  = 'Dvc_GetSelRecording';
+  static const String kMethodDvcGetSelRingtone   = 'Dvc_GetSelRingtone';
+
+  static const String kMethodDvcSetRingtone      = 'Dvc_SetRingtoneDevice';
   static const String kMethodDvcSetPlayout       = 'Dvc_SetPlayoutDevice';
   static const String kMethodDvcSetRecording     = 'Dvc_SetRecordingDevice';
   static const String kMethodDvcSetVideo         = 'Dvc_SetVideoDevice';
@@ -414,19 +420,32 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
       {kArgDvcIndex:index});
   }
 
+  Future<String?> getSelPlayoutDevice() {
+    return _methodChannel.invokeMethod<String>(kMethodDvcGetSelPlayout, {});
+  }
+
+  Future<String?> getSelRecordingDevice() {
+    return _methodChannel.invokeMethod<String>(kMethodDvcGetSelRecording, {});
+  }
+
+  Future<String?> getSelRingtoneDevice() {
+    return _methodChannel.invokeMethod<String>(kMethodDvcGetSelRingtone, {});
+  }
+
   Future<void> setPlayoutDevice(int index) {
-    return _methodChannel.invokeMethod<void>(kMethodDvcSetPlayout,
-      {kArgDvcIndex:index} );
+    return _methodChannel.invokeMethod<void>(kMethodDvcSetPlayout,  {kArgDvcIndex:index} );
   }
 
   Future<void> setRecordingDevice(int index) {
-    return _methodChannel.invokeMethod<void>(kMethodDvcSetRecording,
-      {kArgDvcIndex:index} );
+    return _methodChannel.invokeMethod<void>(kMethodDvcSetRecording, {kArgDvcIndex:index} );
+  }
+
+  Future<void> setRingtoneDevice(int index) {
+    return _methodChannel.invokeMethod<void>(kMethodDvcSetRingtone, {kArgDvcIndex:index} );
   }
 
   Future<void> setVideoDevice(int index) {
-    return _methodChannel.invokeMethod<void>(kMethodDvcSetVideo,
-      {kArgDvcIndex:index} );
+    return _methodChannel.invokeMethod<void>(kMethodDvcSetVideo,  {kArgDvcIndex:index} );
   }
 
   Future<void> setVideoParams(ISiprixData videoData) {

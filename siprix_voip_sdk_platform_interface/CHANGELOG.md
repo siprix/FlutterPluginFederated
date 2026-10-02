@@ -1,3 +1,7 @@
+## 1.0.14
+- Added new method 'setRingtoneDevice'
+  //2026.09.30
+
 ## 1.0.13
 - Added new method 'uploadLogFile' 
 - Added new events 'onCallUpdated', 'onLogUploadState'
