@@ -6,7 +6,6 @@
    - search/put file in/to home folder if specified only name
    - trigger 'OnPlayerState' when call ended and file player has been running
    - properly handle unicode file names for Windows
- - Added ability to upload log files (method 'Module_UploadLogFile' and event 'OnLogUploadState')
    //2026.10.02
 
 ## 1.1.1

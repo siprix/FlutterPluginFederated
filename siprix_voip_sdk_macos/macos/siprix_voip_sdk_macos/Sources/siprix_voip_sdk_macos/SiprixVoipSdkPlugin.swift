@@ -60,6 +60,11 @@ private let kMethodDvcGetVideoNumber   = "Dvc_GetVideoDevices"
 private let kMethodDvcGetPlayout       = "Dvc_GetPlayoutDevice"
 private let kMethodDvcGetRecording     = "Dvc_GetRecordingDevice"
 private let kMethodDvcGetVideo         = "Dvc_GetVideoDevice"
+private let kMethodDvcGetSelPlayout    = "Dvc_GetSelPlayout"
+private let kMethodDvcGetSelRecording  = "Dvc_GetSelRecording"
+private let kMethodDvcGetSelRingtone   = "Dvc_GetSelRingtone"
+
+private let kMethodDvcSetRingtone      = "Dvc_SetRingtoneDevice"
 private let kMethodDvcSetPlayout       = "Dvc_SetPlayoutDevice"
 private let kMethodDvcSetRecording     = "Dvc_SetRecordingDevice"
 private let kMethodDvcSetVideo         = "Dvc_SetVideoDevice"
@@ -106,6 +111,7 @@ private let kArgDurationMs  = "durationMs"
 private let kArgDvcIndex = "dvcIndex"
 private let kArgDvcName  = "dvcName"
 private let kArgDvcGuid  = "dvcGuid"
+private let kArgDvcIsSel = "dvcIsSel"
 
 private let kArgCallId     = "callId"
 private let kArgFromCallId = "fromCallId"
@@ -575,11 +581,17 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
                 case kMethodDvcGetPlayout      :   handleDvcGetPlayout(argsMap!, result:result)
                 case kMethodDvcGetRecording    :   handleDvcGetRecording(argsMap!, result:result)
                 case kMethodDvcGetVideo        :   handleDvcGetVideo(argsMap!, result:result)
+
+                case kMethodDvcGetSelPlayout   :   handleDvcGetSelPlayout(argsMap!, result:result)
+                case kMethodDvcGetSelRecording :   handleDvcGetSelRecording(argsMap!, result:result)
+                case kMethodDvcGetSelRingtone  :   handleDvcGetSelRingtone(argsMap!, result:result)
+
+                case kMethodDvcSetRingtone     :   handleDvcSetRingtone(argsMap!, result:result)
                 case kMethodDvcSetPlayout      :   handleDvcSetPlayout(argsMap!, result:result)
                 case kMethodDvcSetRecording    :   handleDvcSetRecording(argsMap!, result:result)
                 case kMethodDvcSetVideo        :   handleDvcSetVideo(argsMap!, result:result)
                 case kMethodDvcSetVideoParams  :   handleDvcSetVideoParams(argsMap!, result:result)
-                
+
                 case kMethodVideoRendererCreate :  handleVideoRendererCreate(argsMap!, result:result)
                 case kMethodVideoRendererSetSrc :  handleVideoRendererSetSrc(argsMap!, result:result)
                 case kMethodVideoRendererDispose:  handleVideoRendererDispose(argsMap!, result:result)
@@ -1270,7 +1282,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         result(data.number)
     }
 
-    enum DvcType { case Playout; case Recording; case Video}
+    enum DvcType { case Playout; case Recording; case Video; case Ringtone;}
     func doGetDevice(_ dvcType:DvcType, args:ArgsMap, result:@escaping FlutterResult) {
         let dvcIndex = args[kArgDvcIndex] as? Int
 
@@ -1285,11 +1297,13 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
             case .Playout   :  err = _siprixModule.dvcGetPlayoutDevice(Int32(dvcIndex!), device:data);
             case .Recording :  err = _siprixModule.dvcGetRecordingDevice(Int32(dvcIndex!), device:data);
             case .Video     :  err = _siprixModule.dvcGetVideoDevice(Int32(dvcIndex!), device:data);
+            case .Ringtone  :  err = -1;
         }
         if(err == kErrorCodeEOK) {
             var argsMap = [String:Any]()
             argsMap[kArgDvcName] = data.name
             argsMap[kArgDvcGuid] = data.guid
+            argsMap[kArgDvcIsSel] = _siprixModule.dvcIsSelected(data.guid)
             result(argsMap)
         }else{
             result(FlutterError(code: String(err), message: _siprixModule.getErrorText(err), details: nil))
@@ -1308,6 +1322,17 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         doGetDevice(DvcType.Video, args:args, result:result)
     }
 
+    func handleDvcGetSelPlayout(_ args : ArgsMap, result: @escaping FlutterResult) {
+        result(_siprixModule.dvcGetSelPlayoutDevice())
+    }
+
+    func handleDvcGetSelRecording(_ args : ArgsMap, result: @escaping FlutterResult) {
+        result(_siprixModule.dvcGetSelRecordingDevice())
+    }
+
+    func handleDvcGetSelRingtone(_ args : ArgsMap, result: @escaping FlutterResult) {
+        result(_siprixModule.dvcGetSelRingtoneDevice())
+    }
 
     func doSetDevice(dvcType:DvcType, args : ArgsMap, result: @escaping FlutterResult) {
         let dvcIndex = args[kArgDvcIndex] as? Int
@@ -1320,6 +1345,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
         let err : Int32
         switch (dvcType) {
             case .Playout   : err = _siprixModule.dvcSetPlayoutDevice(Int32(dvcIndex!));
+            case .Ringtone  : err = _siprixModule.dvcSetRingtoneDevice(Int32(dvcIndex!));
             case .Recording : err = _siprixModule.dvcSetRecordingDevice(Int32(dvcIndex!));
             case .Video     : err = _siprixModule.dvcSetVideoDevice(Int32(dvcIndex!));
         }
@@ -1328,6 +1354,10 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
     func handleDvcSetPlayout(_ args : ArgsMap, result: @escaping FlutterResult) {
         doSetDevice(dvcType:.Playout, args:args, result:result)
+    }
+
+    func handleDvcSetRingtone(_ args : ArgsMap, result: @escaping FlutterResult) {
+        doSetDevice(dvcType:.Ringtone, args:args, result:result)
     }
 
     func handleDvcSetRecording(_ args : ArgsMap, result: @escaping FlutterResult) {
