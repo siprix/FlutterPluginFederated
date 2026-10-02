@@ -11,4 +11,4 @@ PRODUCT_NAME = siprix_voip_sdk_example
 PRODUCT_BUNDLE_IDENTIFIER = com.siprix.voip_sdk_example
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2025 siprix-voip.com. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 siprix-voip.com. All rights reserved.
