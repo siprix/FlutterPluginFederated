@@ -17,7 +17,7 @@ class _DevicesList {
   List<MediaDevice> get list => List.unmodifiable(_dvcs);
   int get selIndex   => _selIndex;
 
-  void _load(Future<int?> Function() getDevicesNumber, Future<MediaDevice?> Function(int) getDevice) async {
+  Future<void> _load(Future<int?> Function() getDevicesNumber, Future<MediaDevice?> Function(int) getDevice) async {
     try {
       _dvcs.clear();
       bool selDevFound=false;
@@ -41,7 +41,7 @@ class _DevicesList {
 
   Future<void> set(int? index, Future<void> Function(int) setDevice) async{
     if(index==null) return;
-    _logs?.print('set ${_listName}Device - $index');
+    _logs?.print('set ${_listName}Device: $index');
 
     try {
       await setDevice(index);
@@ -52,6 +52,11 @@ class _DevicesList {
       return Future.error((err.message==null) ? err.code : err.message!);
     }
   }
+
+  int getIndexOf(String guid) {
+    return _dvcs.indexWhere((d) => d.guid==guid);
+  }
+
 }//_DevicesList
 
 
@@ -65,6 +70,9 @@ class DevicesModel extends ChangeNotifier {
 
   final ILogsModel? _logs;
   bool _loaded = false;
+
+  String _selRingtoneDevGuid = "";
+  int _selRingtoneDevIndex = -1;
 
   /// Create instance and set event handler
   DevicesModel([this._logs])
@@ -83,48 +91,67 @@ class DevicesModel extends ChangeNotifier {
   /// List of audio camera devices
   List<MediaDevice> get video     => _video.list;
 
-  /// Index of selected speaker device
+  /// Index of the selected speaker device
   int get playoutIndex   => _playout.selIndex;
-  /// Index of selected microphone device
+  /// Index of the selected microphone device
   int get recordingIndex => _recording.selIndex;
-  /// Index of selected camera device
+  /// Index of the selected camera device
   int get videoIndex     => _video.selIndex;
+  /// Index of selected ringtone device
+  int get ringtoneIndex => _selRingtoneDevIndex;
 
   /// Returns true if android service works in foreground mode (Android only!)
   bool get foregroundModeEnabled => _foregroundModeEnabled;
 
   /// Load list of available devices
-  void load() {
+  void load() async {
     if(_loaded) return;
     _loaded = true;
 
-    _loadPlayoutDevices();
-    _loadRecordingDevices();
-    _loadVideoDevices();
+    await _loadPlayoutDevices();
+    await _loadRecordingDevices();
+    await _loadVideoDevices();
+    await _loadSelRingtoneDevGuid();
     _loadForegroundMode();
 
     notifyListeners();
   }
 
-  void _loadPlayoutDevices() async {
-    _playout._load(SiprixVoipSdk().getPlayoutDevices, SiprixVoipSdk().getPlayoutDevice);
+  Future<void> _loadPlayoutDevices() async {
+    await _playout._load(SiprixVoipSdk().getPlayoutDevices, SiprixVoipSdk().getPlayoutDevice);
   }
 
-  void _loadRecordingDevices() async {
-    _recording._load(SiprixVoipSdk().getRecordingDevices, SiprixVoipSdk().getRecordingDevice);
+  Future<void> _loadRecordingDevices() async {
+    await _recording._load(SiprixVoipSdk().getRecordingDevices, SiprixVoipSdk().getRecordingDevice);
   }
 
-  void _loadVideoDevices() async {
-    _video._load(SiprixVoipSdk().getVideoDevices, SiprixVoipSdk().getVideoDevice);
+  Future<void> _loadVideoDevices() async {
+    await _video._load(SiprixVoipSdk().getVideoDevices, SiprixVoipSdk().getVideoDevice);
   }
 
   /// Handle event raised by library (notifies that list of audio devices has changed)
-  void onAudioDevicesChanged() {
+  void onAudioDevicesChanged() async {
     _logs?.print('onAudioDevicesChanged');
-    _loadPlayoutDevices();
-    _loadRecordingDevices();
+    await _loadPlayoutDevices();
+    await _loadRecordingDevices();
+    await _loadSelRingtoneDevGuid();
 
     notifyListeners();
+  }
+
+  /// Set current speaker device by its index
+  Future<void> setRingtoneDevice(int? index) async {
+    if(!(Platform.isWindows || Platform.isMacOS || Platform.isLinux)||
+      (index==null)) return;
+    _logs?.print('setRingtoneDevice: $index');
+
+    try {
+      await SiprixVoipSdk().setRingtoneDevice(index);
+      _loadSelRingtoneDevGuid();
+    } on PlatformException catch (err) {
+      _logs?.print('Can\'t set RingtoneDevice. Err: ${err.code} ${err.message}');
+      return Future.error((err.message==null) ? err.code : err.message!);
+    }
   }
 
   /// Set current speaker device by its index
@@ -134,7 +161,7 @@ class DevicesModel extends ChangeNotifier {
 
   /// Set current speaker as system's default device (Windows only)
   Future<void> setPlayoutDeviceSysDef() async{
-    if(Platform.isWindows)
+    if(Platform.isWindows || Platform.isMacOS)
       return _playout.set(-1, SiprixVoipSdk().setPlayoutDevice);
   }
 
@@ -145,7 +172,7 @@ class DevicesModel extends ChangeNotifier {
 
 /// Set current microphone device as system's default device (Windows only)
   Future<void> setRecordingDeviceSysDef() async{
-    if(Platform.isWindows)
+    if(Platform.isWindows || Platform.isMacOS)
       return _recording.set(-1, SiprixVoipSdk().setRecordingDevice);
   }
 
@@ -156,35 +183,48 @@ class DevicesModel extends ChangeNotifier {
 
   /// Set foreground mode of the CallNotifService service (Android only)
   Future<void> setForegroundMode(bool enabled) async{
-    if(Platform.isAndroid) {
-      if(_foregroundModeEnabled==enabled) return;
-      _logs?.print('set foreground mode - $enabled');
+    if(!Platform.isAndroid ||
+      (_foregroundModeEnabled==enabled)) return;
+    _logs?.print('set foreground mode - $enabled');
 
-      try {
-        await SiprixVoipSdk().setForegroundMode(enabled);
+    try {
+      await SiprixVoipSdk().setForegroundMode(enabled);
 
-        _foregroundModeEnabled = enabled;
+      _foregroundModeEnabled = enabled;
 
-        notifyListeners();
+      notifyListeners();
 
-      } on PlatformException catch (err) {
-        _logs?.print('Can\'t setForegroundMode. Err: ${err.code} ${err.message}');
-        return Future.error((err.message==null) ? err.code : err.message!);
-      }
+    } on PlatformException catch (err) {
+      _logs?.print('Can\'t setForegroundMode. Err: ${err.code} ${err.message}');
+      return Future.error((err.message==null) ? err.code : err.message!);
+    }
+  }
+
+  Future<void> _loadSelRingtoneDevGuid() async {
+    if(!(Platform.isWindows || Platform.isMacOS || Platform.isLinux)) return;
+
+    try {
+      String? guid = await SiprixVoipSdk().getSelRingtoneDevice();
+      if(guid==null) return;
+
+      _selRingtoneDevGuid = guid;
+      _selRingtoneDevIndex = _playout.getIndexOf(_selRingtoneDevGuid);
+    } on PlatformException catch (err) {
+      _logs?.print('Can\'t load selected ringtone device. Err: ${err.code} ${err.message}');
     }
   }
 
   /// Retrives mode of the CallNotifService service (Android only)
   void _loadForegroundMode() async {
-    if(Platform.isAndroid) {
-      try {
-        bool? mode = await SiprixVoipSdk().isForegroundMode();
-        if(mode != null) {
-          _foregroundModeEnabled = mode;
-        }
-      } on PlatformException catch (err) {
-        _logs?.print('Can\'t load foreground mode. Err: ${err.code} ${err.message}');
+    if(!Platform.isAndroid) return;
+
+    try {
+      bool? mode = await SiprixVoipSdk().isForegroundMode();
+      if(mode != null) {
+        _foregroundModeEnabled = mode;
       }
+    } on PlatformException catch (err) {
+      _logs?.print('Can\'t load foreground mode. Err: ${err.code} ${err.message}');
     }
   }
 

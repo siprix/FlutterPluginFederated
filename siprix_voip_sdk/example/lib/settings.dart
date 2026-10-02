@@ -52,6 +52,7 @@ class _SettingsPageState extends State<SettingsPage> {
     }else{
       return [
       _buildPlayoutDevicesDropDown(devices),
+      _buildRingtoneDevicesDropDown(devices),
       _buildRecordingDevicesDropDown(devices),
       _buildVideoDevicesDropDown(devices),
       ];
@@ -70,9 +71,8 @@ class _SettingsPageState extends State<SettingsPage> {
         decoration: InputDecoration(
           border: const UnderlineInputBorder(),
           labelText: labelText,
-          contentPadding: const EdgeInsets.all(0),
         ),
-        value: (selIndex < 0) ? null : selIndex,
+        initialValue: (selIndex < 0) ? null : selIndex,
         onChanged: onChanged,
         items: dvcList.map((element) => mediaDeviceItem(element)).toList()
     ));
@@ -82,12 +82,21 @@ class _SettingsPageState extends State<SettingsPage> {
     return _buildMediaDevicesDropDown('Playout device:', devices.playout, devices.playoutIndex, onSetPlayoutDevice);
   }
 
+  Widget _buildRingtoneDevicesDropDown(DevicesModel devices) {
+    return _buildMediaDevicesDropDown('Ringtone device:', devices.playout, devices.ringtoneIndex, onSetRingtoneDevice);
+  }
+
   Widget _buildRecordingDevicesDropDown(DevicesModel devices) {
     return _buildMediaDevicesDropDown('Recording device:', devices.recording, devices.recordingIndex, onSetRecordingDevice);
   }
 
   Widget _buildVideoDevicesDropDown(DevicesModel devices) {
     return _buildMediaDevicesDropDown('Video device:', devices.video, devices.videoIndex, onSetVideoDevice);
+  }
+
+  void onSetRingtoneDevice(int? index) {
+    context.read<DevicesModel>().setRingtoneDevice(index)
+      .catchError(showSnackBar);
   }
 
   void onSetPlayoutDevice(int? index) {

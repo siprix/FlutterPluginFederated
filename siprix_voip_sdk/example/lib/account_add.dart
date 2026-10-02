@@ -139,8 +139,9 @@ class AccountPageState extends State<AccountPage> {
         collapsedBackgroundColor: Theme.of(context).secondaryHeaderColor,
         initiallyExpanded: isExpanded,
         children: [
-          Container(padding: const EdgeInsets.fromLTRB(15,0,15,15), color: Colors.white,
-            child: Column(children: panelControls)
+           Material(color: Colors.white, child:
+            Padding(padding: const EdgeInsets.fromLTRB(15,0,15,15), child:
+              Column(children: panelControls))
           )
         ]
       );
@@ -296,7 +297,7 @@ class AccountPageState extends State<AccountPage> {
               trailing: const Icon(Icons.drag_handle)
             ),
         ],
-        onReorder: (int oldIndex, int newIndex) {
+        onReorderItem: (int oldIndex, int newIndex) {
           setState(() {
             if (oldIndex < newIndex) { newIndex -= 1; }
             final Codec item = items.removeAt(oldIndex);

@@ -26,7 +26,7 @@ enum LogLevel {
 }
 
 
-typedef LogUploadedCallback = void Function(bool success, String message);
+typedef LogUploadedCallback = void Function(bool success, String response);
 
 /// Contains log string which can be displayed on UI. App can replace it with the own class or don't use
 class LogsModel extends ChangeNotifier implements ILogsModel {
@@ -66,7 +66,7 @@ class LogsModel extends ChangeNotifier implements ILogsModel {
   }
 
   /// Handle notification raised by library when got log upload status
-  void _onLogFileUploaded(bool success, String message) {
-    onLogUploaded?.call(success, message);
+  void _onLogFileUploaded(bool success, String response) {
+    onLogUploaded?.call(success, response);
   }
 }

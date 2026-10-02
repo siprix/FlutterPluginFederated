@@ -385,13 +385,13 @@ class VuMeterArg {
 
 /// Helper class for handling 'onVuMeterLevel' event raised by library
 class LogUploadArg {
-  String name="";
+  String response="";
   bool success=false;
   bool fromMap(Map<dynamic, dynamic> argsMap) {
     int argsCounter=0;
     argsMap.forEach((key, value) {
       if((key == SiprixVoipSdkPlatform.kSuccess)&&(value is bool)) { success = value; argsCounter+=1; } else
-      if((key == SiprixVoipSdkPlatform.kArgName)&&(value is String)) { name = value; argsCounter+=1; }
+      if((key == SiprixVoipSdkPlatform.kResponse)&&(value is String)) { response = value; argsCounter+=1; }
     });
     return (argsCounter==2);
   }
@@ -520,7 +520,7 @@ class TrialModeListener {
 /// LogUpload Listener listener, handles OnLogUpload events
 class LogUploadListener {
   LogUploadListener({required this.uploaded});
-  void Function(bool sucess, String message) uploaded;
+  void Function(bool sucess, String response) uploaded;
 }
 
 /// Inteface of the log model, allows others models to display debug output
@@ -933,6 +933,26 @@ class SiprixVoipSdk {
     return _platform.setRecordingDevice(index);
   }
 
+  /// Set ringtone device by its index (use playout devices list)
+  Future<void> setRingtoneDevice(int index) {
+    return _platform.setRingtoneDevice(index);
+  }
+
+  /// Get guid of the selected ringtone device
+  Future<String?> getSelRingtoneDevice() {
+    return _platform.getSelRingtoneDevice();
+  }
+
+  /// Get guid of the selected playout device
+  Future<String?> getSelPlayoutDevice() {
+    return _platform.getSelPlayoutDevice();
+  }
+
+  /// Get guid of the selected recording device
+  Future<String?> getSelRecordingDevice() {
+    return _platform.getSelRecordingDevice();
+  }
+
   /// Set camera device by its index
   Future<void> setVideoDevice(int index) {
     return _platform.setVideoDevice(index);
@@ -1238,7 +1258,7 @@ class SiprixVoipSdk {
   void _onLogUploadState(Map<dynamic, dynamic> argsMap) {
     LogUploadArg arg = LogUploadArg();
     if(arg.fromMap(argsMap)) {
-      logUploadListener?.uploaded.call(arg.success, arg.name);
+      logUploadListener?.uploaded.call(arg.success, arg.response);
     }
   }
 

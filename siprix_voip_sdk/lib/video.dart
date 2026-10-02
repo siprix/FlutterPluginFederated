@@ -111,15 +111,23 @@ class SiprixVideoRenderer extends ValueNotifier<RTCVideoValue> {
     }
   }
 
+  Future<void> _disposeTexture() async {
+    if (_textureId == kInvalidTextureId) return;
+
+    try {
+      await SiprixVoipSdk().videoRendererDispose(_textureId);
+      _logs?.print('Disposed texture: $_textureId');
+    } on PlatformException catch (err) {
+      _logs?.print('Failed on dispose texture: $_textureId Err: ${err.code} ${err.message}');
+    }
+    _textureId = kInvalidTextureId;
+  }
+
   @override
   Future<void> dispose() async {
     await _eventSubscription?.cancel();
     _eventSubscription = null;
-    if (_textureId != kInvalidTextureId) {
-      await SiprixVoipSdk().videoRendererDispose(_textureId);
-      _logs?.print('Disposed texture: $_textureId');
-      _textureId = 0;
-    }
+    await _disposeTexture();
     return super.dispose();
   }
 
