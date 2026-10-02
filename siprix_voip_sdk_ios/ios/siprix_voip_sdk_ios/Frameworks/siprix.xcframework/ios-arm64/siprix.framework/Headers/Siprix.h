@@ -434,6 +434,11 @@ EXPORT
 - (int)dvcSetPlayoutDevice:(int)index;
 - (int)dvcSetRecordingDevice:(int)index;
 - (int)dvcSetVideoDevice:(int)index;
+- (int)dvcSetRingtoneDevice:(int)index;
+- (NSString* _Nonnull)dvcGetSelRingtoneDevice;
+- (NSString* _Nonnull)dvcGetSelPlayoutDevice;
+- (NSString* _Nonnull)dvcGetSelRecordingDevice;
+- (BOOL)dvcIsSelected:(NSString * _Nonnull)guid;
 #endif//(TARGET_OS_OSX)
 - (int)dvcSetVideoParams:(SiprixVideoData* _Nonnull)vdoData;
 
