@@ -114,6 +114,10 @@ const val kMethodDvcGetVideoNumber   = "Dvc_GetVideoDevices"
 const val kMethodDvcGetPlayout       = "Dvc_GetPlayoutDevice"
 const val kMethodDvcGetRecording     = "Dvc_GetRecordingDevice"
 const val kMethodDvcGetVideo         = "Dvc_GetVideoDevice"
+const val kMethodDvcGetSelPlayout    = "Dvc_GetSelPlayout"
+const val kMethodDvcGetSelRecording  = "Dvc_GetSelRecording"
+const val kMethodDvcGetSelRingtone   = "Dvc_GetSelRingtone"
+const val kMethodDvcSetRingtone      = "Dvc_SetRingtoneDevice"
 const val kMethodDvcSetPlayout       = "Dvc_SetPlayoutDevice"
 const val kMethodDvcSetRecording     = "Dvc_SetRecordingDevice"
 const val kMethodDvcSetVideo         = "Dvc_SetVideoDevice"
@@ -143,7 +147,7 @@ const val kOnCallVideoUpgradeRequested= "OnCallVideoUpgradeRequested"
 const val kOnCallSwitched     = "OnCallSwitched"
 const val kOnCallsSyncState   = "OnCallsSyncState"
 const val kOnCallHeld         = "OnCallHeld"
-const val kOnCallUpdated      = "OnCallUpdated";
+const val kOnCallUpdated      = "OnCallUpdated"
 
 const val kOnMessageSentState = "OnMessageSentState"
 const val kOnMessageIncoming  = "OnMessageIncoming"
@@ -480,7 +484,7 @@ class SurfaceTextureRenderer
   // VideoSink interface.
   override fun onFrame(frame: com.siprix.webrtc.VideoFrame) {
     if(surface == null) {
-      producer?.setSize(frame.getRotatedWidth(),frame.getRotatedHeight())
+      producer?.setSize(frame.rotatedWidth,frame.rotatedHeight)
       surface = producer?.getSurface()
       createEglSurface(surface)
     }
@@ -562,12 +566,16 @@ class FlutterRendererAdapter(texturesRegistry: TextureRegistry,
   }
 
   fun dispose() {
-    surfaceTextureRenderer.surfaceDestroyed()
-    surfaceTextureRenderer.release()
-    eventChannel.setStreamHandler(null)
+    try{
+      surfaceTextureRenderer.surfaceDestroyed()
+      surfaceTextureRenderer.release()
+      eventChannel.setStreamHandler(null)
 
-    eventSink = null
-    producer.release()
+      eventSink = null
+      producer.release()
+    }catch (ex: Exception) {
+      Log.w(SiprixVoipSdkPlugin.TAG, "FlutterRendererAdapter::dispose error: ${ex.message}")
+    }
   }
 
   override fun onListen(o: Any?, sink: EventSink?) {
@@ -643,7 +651,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
   companion object {
     private var permissionRequestCode = 1
-    private const val TAG = "SiprixVoipSdkPlugin"
+    const val TAG = "SiprixVoipSdkPlugin"
   }
 
   private lateinit var _appContext : Context
@@ -851,6 +859,10 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
       kMethodDvcGetPlayout      ->   handleDvcGetPlayout(args, result)
       kMethodDvcGetRecording    ->   handleDvcGetRecording(args, result)
       kMethodDvcGetVideo        ->   handleDvcGetVideo(args, result)
+      kMethodDvcGetSelPlayout   ->   handleDvcGetSelPlayout(args, result)
+      kMethodDvcGetSelRecording ->   handleGetSelRecording(args, result)
+      kMethodDvcGetSelRingtone  ->   handleGetSelRingtone(args, result)
+      kMethodDvcSetRingtone     ->   handleSetRingtone(args, result)
       kMethodDvcSetPlayout      ->   handleDvcSetPlayout(args, result)
       kMethodDvcSetRecording    ->   handleDvcSetRecording(args, result)
       kMethodDvcSetVideo        ->   handleDvcSetVideo(args, result)
@@ -971,7 +983,7 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
     (args["tlsClientCertPath"] as? String)?.let {
       accData.setTranspTlsClientCert(it,
         (args["tlsClientKeyPath"] as? String)?: "",
-        (args["tlsClientKeyPassword"] as? String) ?: "");
+        (args["tlsClientKeyPassword"] as? String) ?: "")
     }
 
     (args["rtcpMuxEnabled"] as? Boolean)?.let { accData.setRtcpMuxEnabled(it) }
@@ -1526,6 +1538,22 @@ class SiprixVoipSdkPlugin: FlutterPlugin,
 
   private fun handleDvcGetVideo(args : HashMap<String, Any?>, result: MethodChannel.Result) {
     result.success("")//TODO add impl
+  }
+
+  private fun handleDvcGetSelPlayout(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    result.success("NotSupported")
+  }
+
+  private fun handleGetSelRecording(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    result.success("NotSupported")
+  }
+
+  private fun handleGetSelRingtone(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    result.success("NotSupported")
+  }
+
+  private fun handleSetRingtone(args : HashMap<String, Any?>, result: MethodChannel.Result) {
+    result.error( "-", "NotSupported", null)
   }
 
   private fun handleDvcSetPlayout(args : HashMap<String, Any?>, result: MethodChannel.Result) {

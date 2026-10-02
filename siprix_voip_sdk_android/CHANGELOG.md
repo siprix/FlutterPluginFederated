@@ -1,3 +1,13 @@
+## 1.1.3
+ - Added ability to set TLS CA cert as string. 
+   App can hardcode PEM file content and set it as argument of 'Acc_SetTranspTlsCaCert(, cert)', which is easier than manage file resource.
+ - Updated play/record files impl
+   - search/put file in/to home folder if specified only name
+   - trigger 'OnPlayerState' when call ended and file player has been running
+   - properly handle unicode file names for Windows
+ - Added ability to upload log files (method 'Module_UploadLogFile' and event 'OnLogUploadState')
+   //2026.10.02
+
 ## 1.1.1
  - Added new event 'onCallUpdated', triggered when received reINVITE or UPDATE request
  - Addew new account property 'retryTime' 
