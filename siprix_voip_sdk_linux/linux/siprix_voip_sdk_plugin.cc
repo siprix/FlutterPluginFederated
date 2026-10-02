@@ -78,6 +78,11 @@ const char kMethodDvcGetVideoNumber[]   = "Dvc_GetVideoDevices";
 const char kMethodDvcGetPlayout[]       = "Dvc_GetPlayoutDevice";
 const char kMethodDvcGetRecording[]     = "Dvc_GetRecordingDevice";
 const char kMethodDvcGetVideo[]         = "Dvc_GetVideoDevice";
+const char kMethodDvcGetSelPlayout[]    = "Dvc_GetSelPlayout";
+const char kMethodDvcGetSelRecording[]  = "Dvc_GetSelRecording";
+const char kMethodDvcGetSelRingtone[]   = "Dvc_GetSelRingtone";
+
+const char kMethodDvcSetRingtone[]      = "Dvc_SetRingtoneDevice";
 const char kMethodDvcSetPlayout[]       = "Dvc_SetPlayoutDevice";
 const char kMethodDvcSetRecording[]     = "Dvc_SetRecordingDevice";
 const char kMethodDvcSetVideo[]         = "Dvc_SetVideoDevice";
@@ -127,6 +132,7 @@ const char kArgDurationMs[] = "durationMs";
 const char kArgDvcIndex[] = "dvcIndex";
 const char kArgDvcName[]  = "dvcName";
 const char kArgDvcGuid[]  = "dvcGuid";
+const char kArgDvcIsSel[] = "dvcIsSel";
 
 const char kArgCallId[]= "callId";
 const char kArgFromCallId[] = "fromCallId";
@@ -1252,6 +1258,7 @@ FlMethodResponse* doGetDevice(F getDeviceF, FlValue* args, SiprixVoipSdkPlugin* 
         g_autoptr(FlValue) res = fl_value_new_map();
         fl_value_set_string_take(res, kArgDvcName, fl_value_new_string(name));
         fl_value_set_string_take(res, kArgDvcGuid, fl_value_new_string(guid));
+        fl_value_set_string_take(res, kArgDvcIsSel, fl_value_new_bool(Siprix::Dvc_IsSelected(self->module_, guid)));
         return FL_METHOD_RESPONSE(fl_method_success_response_new(res));
     }
     else {
@@ -1292,6 +1299,41 @@ FlMethodResponse* handleDvcSetRecording(FlValue* args, SiprixVoipSdkPlugin* self
     const int32_t dvcIndex = fl_value_get_int(val);
 
     const Siprix::ErrorCode err = Siprix::Dvc_SetRecordingDevice(self->module_, static_cast<uint16_t>(dvcIndex));
+    return sendResult(err);
+}
+
+FlMethodResponse* handleDvcGetSelPlayout(FlValue* args, SiprixVoipSdkPlugin* self)
+{
+    char guid[128] = "";
+    Siprix::Dvc_GetSelPlayoutDevice(self->module_, guid, sizeof(guid));
+    g_autoptr(FlValue) res = fl_value_new_string(guid);
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(res));
+}
+
+FlMethodResponse* handleDvcGetSelRecording(FlValue* args, SiprixVoipSdkPlugin* self)
+{
+    char guid[128] = "";
+    Siprix::Dvc_GetSelRecordingDevice(self->module_, guid, sizeof(guid));
+    g_autoptr(FlValue) res = fl_value_new_string(guid);
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(res));
+}
+
+FlMethodResponse* handleDvcGetSelRingtone(FlValue* args, SiprixVoipSdkPlugin* self)
+{
+    char guid[128] = "";
+    Siprix::Dvc_GetSelRingtoneDevice(self->module_, guid, sizeof(guid));
+    g_autoptr(FlValue) res = fl_value_new_string(guid);
+    return FL_METHOD_RESPONSE(fl_method_success_response_new(res));
+}
+
+
+FlMethodResponse* handleDvcSetRingtone(FlValue* args, SiprixVoipSdkPlugin* self)
+{
+    FlValue* val = fl_value_lookup_string(args, kArgDvcIndex);
+    if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_INT) return badArgsResponse();
+    const int32_t dvcIndex = fl_value_get_int(val);
+
+    const Siprix::ErrorCode err = Siprix::Dvc_SetRingtoneDevice(self->module_, static_cast<uint16_t>(dvcIndex));
     return sendResult(err);
 }
 
@@ -1461,6 +1503,11 @@ static void siprix_voip_sdk_plugin_handle_method_call(
     if(strcmp(method, kMethodDvcGetVideo)        == 0)   response = handleDvcGetVideo(args, self); else
     if(strcmp(method, kMethodDvcSetPlayout)      == 0)   response = handleDvcSetPlayout(args, self); else
     if(strcmp(method, kMethodDvcSetRecording)    == 0)   response = handleDvcSetRecording(args, self); else
+    if(strcmp(method, kMethodDvcSetRingtone)     == 0)   response = handleDvcSetRingtone(args, self); else
+    if(strcmp(method, kMethodDvcGetSelPlayout)   == 0)   response = handleDvcGetSelPlayout(args, self); else
+    if(strcmp(method, kMethodDvcGetSelRecording) == 0)   response = handleDvcGetSelRecording(args, self); else
+    if(strcmp(method, kMethodDvcGetSelRingtone)  == 0)   response = handleDvcGetSelRingtone(args, self); else
+
     if(strcmp(method, kMethodDvcSetVideo)        == 0)   response = handleDvcSetVideo(args, self); else
     if(strcmp(method, kMethodDvcSetVideoParams)  == 0)   response = handleDvcSetVideoParams(args, self); else
 
