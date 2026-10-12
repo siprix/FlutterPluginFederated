@@ -1,3 +1,7 @@
+## 1.0.15
+- Added new method 'overrideRingtone'
+  //2026.10.12
+
 ## 1.0.14
 - Added new method 'setRingtoneDevice'
   //2026.09.30

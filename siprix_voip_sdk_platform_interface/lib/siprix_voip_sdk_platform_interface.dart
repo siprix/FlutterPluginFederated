@@ -47,6 +47,8 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
   static const String kMethodCallTransferBlind   = 'Call_TransferBlind';
   static const String kMethodCallTransferAttended= 'Call_TransferAttended';
   static const String kMethodCallStopRingtone    = 'Call_StopRingtone';
+  static const String kMethodCallOverrideRingtone= 'Call_OverrideRingtone';
+
   static const String kMethodCallUpgradeToVideo  = 'Call_UpgradeToVideo';
   static const String kMethodCallAcceptVideoUpgrade = 'Call_AcceptVideoUpgrade';
   static const String kMethodCallBye             = 'Call_Bye';
@@ -349,6 +351,11 @@ abstract class SiprixVoipSdkPlatform extends PlatformInterface {
 
   Future<void> stopRingtone() {
     return _methodChannel.invokeMethod<void>(kMethodCallStopRingtone, {});
+  }
+
+  Future<void> overrideRingtone(int callId, String ringtoneFile) {
+    return _methodChannel.invokeMethod<void>(kMethodCallOverrideRingtone, 
+      {kArgCallId:callId, 'ringtoneFile':ringtoneFile});
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////
