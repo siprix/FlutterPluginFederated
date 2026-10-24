@@ -1,3 +1,8 @@
+## 1.1.4
+ - Updated internal mixer impl (could cause sound artifacts when SDK hosts conference call)
+ - Added ability to send DTMF in the early-media state.
+   //2026.10.24
+
 ## 1.1.3
  - Added ability to set TLS CA cert as string. 
    App can hardcode PEM file content and set it as argument of 'Acc_SetTranspTlsCaCert(, cert)', which is easier than manage file resource.
