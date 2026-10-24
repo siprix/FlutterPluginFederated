@@ -44,6 +44,7 @@ private let kMethodCallTransferAttended = "Call_TransferAttended"
 private let kMethodCallUpgradeToVideo   = "Call_UpgradeToVideo"
 private let kMethodCallAcceptVideoUpgrade = "Call_AcceptVideoUpgrade"
 private let kMethodCallStopRingtone     = "Call_StopRingtone"
+private let kMethodCallOverrideRingtone = "Call_OverrideRingtone"
 private let kMethodCallBye              = "Call_Bye"
 
 private let kMethodMixerSwitchToCall   = "Mixer_SwitchToCall"
@@ -564,6 +565,7 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
                 case kMethodCallTransferAttended : handleCallTransferAttended(argsMap!, result:result)
                 case kMethodCallUpgradeToVideo:   handleCallUpgradeToVideo(argsMap!, result:result)
                 case kMethodCallAcceptVideoUpgrade: handleCallAcceptVideoUpgrade(argsMap!, result:result)
+                case kMethodCallOverrideRingtone  : handleCallOverrideRingtone(argsMap!, result:result)
                 case kMethodCallStopRingtone  :   handleCallStopRingtone(argsMap!, result:result)
                 case kMethodCallBye           :   handleCallBye(argsMap!, result:result)
 
@@ -648,6 +650,9 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
         if let useDnsSrv = args["useDnsSrv"] as? Bool {
            iniData.useDnsSrv = NSNumber(value: useDnsSrv) }
+
+        if let useExternalRinger = args["useExternalRinger"] as? Bool {
+           iniData.useExternalRinger = NSNumber(value: useExternalRinger) }
 
         if let dnsServers = args["dnsServers"] as? String {
            iniData.dnsServers = [dnsServers] }
@@ -1160,6 +1165,18 @@ public class SiprixVoipSdkPlugin: NSObject, FlutterPlugin {
 
         if(callId != nil) {
             let err = _siprixModule.callBye(Int32(callId!))
+            sendResult(err, result:result)
+        }else{
+            sendBadArguments(result:result)
+        }
+    }
+
+    func handleCallOverrideRingtone(_ args : ArgsMap, result: @escaping FlutterResult) {
+        let callId = args[kArgCallId] as? Int
+        let ringtoneFile = args["ringtoneFile"] as? String
+
+        if((callId != nil)&&(ringtoneFile != nil)) {
+            let err = _siprixModule.callOverrideRingtone(Int32(callId!), ringtoneFile:ringtoneFile!)
             sendResult(err, result:result)
         }else{
             sendBadArguments(result:result)
