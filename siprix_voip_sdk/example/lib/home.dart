@@ -167,7 +167,7 @@ class _LogUploadDialogState extends State<LogUploadDialog> {
     context.read<LogsModel>().onLogUploaded = (bool success, String response) {
       _responseDescription = response;
       _responseSuccess = success;
-      debugPrint("onLogUploaded: ${success ? "success" : "failed"} ${response}");
+      debugPrint("onLogUploaded: ${success ? "success" : "failed"} $response");
       setState(() { _isSubmitting = false; });
     };
   }
@@ -214,7 +214,7 @@ class _LogUploadDialogState extends State<LogUploadDialog> {
           enabled: !_isSubmitting && (_responseSuccess==null),
           keyboardType: TextInputType.multiline,
           decoration: const InputDecoration(
-            contentPadding: const EdgeInsets.all(4),
+            contentPadding: EdgeInsets.all(4),
             hintText: '...',
             border: OutlineInputBorder(),
           ),
@@ -262,8 +262,9 @@ class _LogUploadDialogState extends State<LogUploadDialog> {
   }
 
   void _onCopyResult() async {
-    if(_responseDescription != null)
+    if(_responseDescription != null) {
       await Clipboard.setData(ClipboardData(text: _responseDescription!));
+    }
   }
 
   void _submit() async {

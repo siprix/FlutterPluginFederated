@@ -37,10 +37,10 @@ class AccountPageState extends State<AccountPage> {
     super.didChangeDependencies();
     if(!_isInitialized) {
       _isInitialized = true;
-      AccountModel? _inAcc = ModalRoute.of(context)!.settings.arguments as AccountModel?;
+      AccountModel? inAcc = ModalRoute.of(context)!.settings.arguments as AccountModel?;
 
       //Clone account if exist (allows to drop copy when user canceled changes) or create new one
-      _account = AccountModel.cloneOrCreateNew(_inAcc);
+      _account = AccountModel.cloneOrCreateNew(inAcc);
       _audioCodecsList = Codec.getCodecsList(_account.aCodecs, audio:true);
       _videoCodecsList = Codec.getCodecsList(_account.vCodecs, audio:false);
       _instIdController.text = _account.instanceId ?? "";
@@ -469,7 +469,9 @@ class AccountPageState extends State<AccountPage> {
     final form = _formKey.currentState;
     if (form == null || !form.validate() ||
        !Codec.validateSel(_videoCodecsList) ||
-       !Codec.validateSel(_audioCodecsList)) return;
+       !Codec.validateSel(_audioCodecsList)) {
+      return; 
+    }
 
     _account.aCodecs = Codec.getSelectedCodecsIds(_audioCodecsList);
     _account.vCodecs = Codec.getSelectedCodecsIds(_videoCodecsList);

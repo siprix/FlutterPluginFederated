@@ -1,3 +1,24 @@
+## 1.1.4
+ - Updated internal mixer impl (could cause sound artifacts when SDK hosts conference call)
+ - Windows, MacOS, Linux: Added new method 'Call_OverrideRingtone' (ability to play different ringtone for the selected call)
+ - Added ability to send DTMF in the early-media state.
+ - iOS: Updated audio session implementation (addressed handling audio interruptions and missed didActivate)
+ - iOS, MacOS: renamed 'RTC***' objc classes to 'siprixRTC***'
+    which prevents conflicts with flutter_webrtc, livekit_client and other libraries.
+ - iOS, MacOS: Updated xcframeworks signature, using Apple Distribution cert
+   //2026.10.24
+
+## 1.1.4-dev2
+ - iOS: Fixes related to handling audio interruptions
+ - iOS: Updated xcframeworks signature, using Apple Distribution cert
+ - MacOS: Fixed compile error in the plugin's source code
+   //2026.10.18
+
+## 1.1.4-dev
+ - Windows, MacOS, Linux: Added new method 'Call_OverrideRingtone' (ability to play different ringtone for selected call)
+ - Flutter: Added new property 'ini.useExternalRinger' (enables/disabled ability to receive event 'onRingerState')
+   //2026.10.12
+
 ## 1.1.3
  - Windows, MacOS, Linux: Added ability to set RingtoneDevice (methods 'Dvc_SetRingtoneDevice'/'Dvc_GetSelRingtoneDevice')
  - MacOS: unify audio devices handling with Windows (ability to detect sys default/configuration changes, etc)

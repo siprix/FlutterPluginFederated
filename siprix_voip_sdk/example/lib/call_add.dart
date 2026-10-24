@@ -45,18 +45,18 @@ class _CallAddPageState extends State<CallAddPage> {
 
   Widget _buildBody(AccountsModel accounts) {
     return
-      Column(crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(color: Theme.of(context).dialogBackgroundColor, padding: const EdgeInsets.fromLTRB(10,0,10,5), 
-            child: Column(children: [
-              _buildAccountsMenu(accounts),
-              const SizedBox(height: 5),
-              Form(key: _formKey, child:_buildPhoneNumberField()),
-            ])),
-          Expanded(child: buildCdrsList()),
-          if(_errText.isNotEmpty)
-            Text(_errText, style: const TextStyle(color: Colors.red))
-        ]);
+      Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Padding(padding: const EdgeInsets.fromLTRB(10,0,10,5), child:
+          Column(children: [
+            _buildAccountsMenu(accounts),
+            const SizedBox(height: 5),
+            Form(key: _formKey, child:_buildPhoneNumberField()),
+          ])
+        ),
+        Expanded(child: buildCdrsList()),
+        if(_errText.isNotEmpty)
+        Text(_errText, style: const TextStyle(color: Colors.red))
+      ]);
   }
 
   Widget _buildAccountsMenu(AccountsModel accounts) {
@@ -66,7 +66,7 @@ class _CallAddPageState extends State<CallAddPage> {
           isExpanded: true,
           decoration: const InputDecoration(border: UnderlineInputBorder(),
           labelText: 'Select account', ),
-          value: accounts.selAccountId,
+          initialValue: accounts.selAccountId,
           onChanged: (int? accId) {  accounts.setSelectedAccountById(accId!); },
           items: List.generate(accounts.length, (index)
                   => DropdownMenuItem<int>(value: accounts[index].myAccId, child: Text(accounts[index].uri))

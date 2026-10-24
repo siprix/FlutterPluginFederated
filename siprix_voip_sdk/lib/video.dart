@@ -159,7 +159,7 @@ class SiprixVideoRenderer extends ValueNotifier<RTCVideoValue> {
 
 /// SiprixVideoView - widget which displays specified renderer
 class SiprixVideoView extends StatelessWidget {
-  const SiprixVideoView(this._renderer, {Key? key,}) : super(key: key);
+  const SiprixVideoView(this._renderer, {super.key,});
   final SiprixVideoRenderer _renderer;
 
   @override

@@ -53,7 +53,7 @@ class _SubscrListPageState extends State<SubscrListPage> {
                 selectedTileColor: Theme.of(context).secondaryHeaderColor,
                 leading: _getSubscrIcon(blfSubscr.state, blfSubscr.blfState),
                 title: Text('${blfSubscr.label} (${blfSubscr.toExt})', style: Theme.of(context).textTheme.titleSmall),
-                subtitle: Text('${blfSubscr.blfState.name}',//subscr.response
+                subtitle: Text(blfSubscr.blfState.name,//subscr.response
                   style: const TextStyle(fontSize: 12.0, fontStyle: FontStyle.italic, color: Colors.grey)),
                 trailing: _subscrListTileMenu(index),
                 onTap: () { onTapSubscrListTile(index); },

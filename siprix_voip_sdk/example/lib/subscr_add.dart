@@ -64,7 +64,7 @@ class _SubscrAddPageState extends State<SubscrAddPage> {
   Widget _buildAccountsMenu(AccountsModel accounts) {
     return ButtonTheme(child: DropdownButtonFormField<int>(
       decoration: const InputDecoration(labelText: 'Select account:'),
-      value: _subscr.fromAccId,
+      initialValue: _subscr.fromAccId,
       onChanged: (int? accId) { setState(() { if(accId!=null)  _subscr.fromAccId = accId; }); },
       items: List.generate(accounts.length, (index) => accMenuItem(accounts[index], index)),
     ));

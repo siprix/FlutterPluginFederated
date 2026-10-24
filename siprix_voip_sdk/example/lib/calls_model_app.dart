@@ -52,7 +52,7 @@ class AppCallsModel extends CallsModel {
     String genericHandle =  apsPayload?["callerNumber"] ?? "genericHandle";
     String localizedCallerName = apsPayload?["callerName"] ?? "callerName";
     bool withVideo = apsPayload?["withVideo"] ?? false;
-    int? sipCallId = null;
+    int? sipCallId;
 
     int index = _callMatchers.indexWhere((c) => c.push_Hint == pushHint);
     if(index!=-1) {

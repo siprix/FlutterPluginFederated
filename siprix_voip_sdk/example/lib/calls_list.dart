@@ -35,8 +35,8 @@ class _CallsListPageState extends State<CallsListPage> {
     if(calls.isEmpty) {
       _callDurationTimer?.cancel();
       _callDurationTimer = null;
-    } else if(_callDurationTimer == null) {
-      _callDurationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    } else {
+      _callDurationTimer ??= Timer.periodic(const Duration(seconds: 1), (timer) {
         calls.calcDuration();
       });
     }
@@ -92,6 +92,7 @@ class _CallsListPageState extends State<CallsListPage> {
 
     return
       ListTile(
+        dense:true,
         selected: isSwitched,
         selectedColor: Colors.black,
         selectedTileColor: Theme.of(context).secondaryHeaderColor,
@@ -100,12 +101,79 @@ class _CallsListPageState extends State<CallsListPage> {
           style: TextStyle(fontWeight: (isSwitched ? FontWeight.bold : FontWeight.normal)),
           overflow: TextOverflow.ellipsis),
         subtitle: Text(call.state.name),
-        trailing: isSwitched ? null : IconButton(icon: const Icon(Icons.swap_calls_rounded),
-          onPressed: () { calls.switchToCall(call.myCallId); }),
-        dense: true,
+        trailing: isSwitched ? null :
+          Row(mainAxisSize: MainAxisSize.min, children:[
+            Offstage(
+              offstage: !call.hasSecureMedia,
+              child: const Icon(Icons.lock),
+            ),
+
+            Offstage(
+              offstage: (call.state == CallState.connected)||(call.state == CallState.held),
+              child: const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 3)),
+            ),
+
+            Offstage(
+              offstage: (call.state != CallState.connected),
+              child: Text(call.durationStr),
+            ),
+
+            PopupMenuButton<CallAction>(
+                enabled: !isSwitched,
+                onSelected: (CallAction action) { _handleCallAction(action, index); },
+                itemBuilder: (BuildContext context)  { return _callMenuBuilder(context, call); }
+            ),
+          ]),
       );
   }
 
+  List<PopupMenuEntry<CallAction>> _callMenuBuilder(BuildContext context, CallModel call) {
+    List<PopupMenuEntry<CallAction>> actions=[];
+
+    if(call.state == CallState.ringing) {
+      actions.add(const PopupMenuItem<CallAction>(value: CallAction.accept,
+                  child: Wrap(spacing:5, children:[Icon(Icons.call, color: Colors.green,), Text("Accept"),])));
+
+      actions.add(const PopupMenuItem<CallAction>(value: CallAction.reject,
+                  child: Wrap(spacing:5, children:[Icon(Icons.call_end, color: Colors.red,), Text("Reject"),])));
+    }
+    else {
+      actions.add(const PopupMenuItem<CallAction>(value: CallAction.switchTo,
+                  child: Wrap(spacing:5, children:[Icon(Icons.swap_calls_rounded), Text("SwitchTo"),])));
+
+      if(call.state == CallState.connected) {
+        actions.add(const PopupMenuItem<CallAction>(value: CallAction.hold,
+                    child: Wrap(spacing:5, children:[Icon(Icons.pause), Text("Hold")])));
+      }
+
+      if(call.isLocalHold) {
+        actions.add(const PopupMenuItem<CallAction>(value: CallAction.hold,
+                    child: Wrap(spacing:5, children:[Icon(Icons.play_arrow), Text("UnHold")])));
+      }
+
+      actions.add(const PopupMenuItem<CallAction>(value: CallAction.hangup,
+                  child: Wrap(spacing:5, children:[Icon(Icons.call_end, color: Colors.red,), Text("Hangup"),])));
+    }
+
+    return actions;
+  }
+
+  void _handleCallAction(CallAction action, int index) {
+    final calls = context.read<AppCallsModel>();
+    CallModel call = calls[index];
+    switch(action) {
+      case CallAction.switchTo:  calls.switchToCall(call.myCallId).catchError(showSnackBar); break;
+      case CallAction.accept:    call.accept().catchError(showSnackBar); break;
+      case CallAction.reject:    call.reject().catchError(showSnackBar); break;
+      case CallAction.hangup:    call.bye().catchError(showSnackBar); break;
+      case CallAction.hold:      call.hold().catchError(showSnackBar); break;
+      default: showSnackBar("Unhandled action $action");
+    }
+  }
+
+  void showSnackBar(dynamic err) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+  }
 }//CallsPage
 
 
@@ -402,9 +470,8 @@ class _SwitchedCallWidgetState extends State<SwitchedCallWidget> {
     }
     else {
       //write 'asset/music.mp3' to temp folder
-      String pathToFile = await MyApp.writeAssetAndGetFilePath("music.mp3");
-        widget.myCall.playFile(pathToFile)
-          .catchError(showSnackBar);
+      widget.myCall.playFile(MyApp.getMusicPath())
+        .catchError(showSnackBar);
     }
   }
 

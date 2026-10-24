@@ -10,7 +10,7 @@ class AppBlfSubscrModel extends SubscriptionModel {
   AppBlfSubscrModel(String ext, int accId) :
     super(toExt:ext, fromAccId:accId, mimeSubType:"dialog-info+xml", eventType:"dialog");
 
-  AppBlfSubscrModel.fromJson(Map<String, dynamic> jsonMap) : super.fromJson(jsonMap);
+  AppBlfSubscrModel.fromJson(super.jsonMap) : super.fromJson();
 
   BLFState _blfState = BLFState.unknown;
 

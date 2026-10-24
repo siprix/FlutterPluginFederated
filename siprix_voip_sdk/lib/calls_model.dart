@@ -244,22 +244,24 @@ class CallModel extends ChangeNotifier implements ISiprixData {
   /// Creates instance of CallModel with values read from json
   static CallModel? fromJson(Map<dynamic, dynamic> jsonMap, ILogsModel? logs) {
     //Read required attributes
-    int? _myCallId; String? _accUri, _remoteExt;
-    bool? _isIncoming, _hasSecureMedia, _hasVideo;
+    int? myCallId_; String? accUri_, remoteExt_;
+    bool? isIncoming_, hasSecureMedia_, hasVideo_;
     jsonMap.forEach((key, value) {
-      if((key == 'myCallId')&&(value is int))        { _myCallId = value;    } else
-      if((key == 'accUri')&&(value is String))       { _accUri = value; } else
-      if((key == 'remoteExt')&&(value is String))    { _remoteExt = value; } else
-      if((key == 'isIncoming')&&(value is bool))     { _isIncoming = value;} else
-      if((key == 'hasSecureMedia')&&(value is bool)) { _hasSecureMedia = value;} else
-      if((key == 'hasVideo')&&(value is bool))       { _hasVideo = value;}
+      if((key == 'myCallId')&&(value is int))        { myCallId_   = value; } else
+      if((key == 'accUri')&&(value is String))       { accUri_     = value; } else
+      if((key == 'remoteExt')&&(value is String))    { remoteExt_  = value; } else
+      if((key == 'isIncoming')&&(value is bool))     { isIncoming_ = value; } else
+      if((key == 'hasSecureMedia')&&(value is bool)) { hasSecureMedia_ = value;} else
+      if((key == 'hasVideo')&&(value is bool))       { hasVideo_   = value; }
     });
     //Check if present
-    if((_myCallId==null)||(_accUri==null)||(_remoteExt==null)||
-       (_isIncoming==null)||(_hasSecureMedia==null)||(_hasVideo==null)) return null;
+    if((myCallId_==null)||(accUri_==null)||(remoteExt_==null)||
+       (isIncoming_==null)||(hasSecureMedia_==null)||(hasVideo_==null)) {
+        return null;
+    }
 
     //Create new inst
-    CallModel call = CallModel(_myCallId!, _accUri!, _remoteExt!, _isIncoming!, _hasSecureMedia!, _hasVideo!, logs);
+    CallModel call = CallModel(myCallId_!, accUri_!, remoteExt_!, isIncoming_!, hasSecureMedia_!, hasVideo_!, logs);
 
     //Read the rest values
     jsonMap.forEach((key, value) {
@@ -916,8 +918,9 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
   /// Handle call switched event raised by library
   void onPlayerStateChanged(int playerId, PlayerState state) {
     _logs?.print('onPlayerStateChanged playerId:$playerId $state');
-    for(final call in _callItems)
+    for(final call in _callItems) {
       if(call.onPlayerStateChanged(playerId, state)) break;
+    }
   }
 
   /// Serialize list of accounts+calls to json
@@ -926,7 +929,9 @@ class CallsModel extends ChangeNotifier with IterableMixin<CallModel> implements
     Map<String, dynamic> ret = {};
     if(_callItems.isNotEmpty) {
       List<Map<String, dynamic>> callsList=[];
-      for(final call in _callItems) callsList.add(call.toJson());
+      for(final call in _callItems) {
+        callsList.add(call.toJson());
+      }
       ret['callsList'] = callsList;
       ret['switchedCallId'] = _switchedCallId;
     }

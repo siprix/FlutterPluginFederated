@@ -121,7 +121,7 @@ class _MessagesListPagePageState extends State<MessagesListPage> {
             border: UnderlineInputBorder(),
             labelText: 'Source account'
           ),
-          value: accounts.selAccountId,
+          initialValue: accounts.selAccountId,
           onChanged: (int? accId) {
             accounts.setSelectedAccountById(accId!);
           },

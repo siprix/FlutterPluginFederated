@@ -113,18 +113,22 @@ class MyApp extends StatefulWidget {
   const MyApp({super.key});
   static String _ringtonePath="";
   static String _caCertPath="";
+  static String _musicPath="";
 
   @override
   State<MyApp> createState() => _MyAppState();
 
   /// Returns ringtone's path saved on device
   static String getRingtonePath() => _ringtonePath;
+  /// Returns music file's path saved on device
+  static String getMusicPath() => _musicPath;
   /// Returns CA cert file path saved on device
   static String getCaCertPath() => _caCertPath;
 
-  /// Write ringtone file from asset to device
+  /// Write files from asset to device
   void writeRingtoneAsset() async {
     _ringtonePath = await writeAssetAndGetFilePath("ringtone.mp3");
+    _musicPath = await MyApp.writeAssetAndGetFilePath("music.mp3");
     _caCertPath = await writeAssetAndGetFilePath("isrgrootx1.pem");
   }
 
@@ -164,8 +168,9 @@ class _MyAppState extends State<MyApp> {
     widget.writeRingtoneAsset();//after initialize Siprix as uses its 'homeFolder'
     _readSavedState();
 
-    if(Platform.isAndroid)
+    if(Platform.isAndroid) {
       _listener = AppLifecycleListener(onInactive: _onAndroidAppInactive);
+    }
   }
 
   @override

@@ -1,4 +1,4 @@
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: constant_identifier_names, non_constant_identifier_names
 
 import 'package:siprix_voip_sdk_platform_interface/siprix_voip_sdk_platform_interface.dart';
 import 'package:flutter/services.dart';
@@ -843,6 +843,11 @@ class SiprixVoipSdk {
   /// Stop playing (mute) ringtone.
   Future<void> stopRingtone() async {
     return _platform.stopRingtone();
+  }
+
+  /// Override ringtone file for this particular call.
+  Future<void> overrideRingtone(int callId, String ringtoneFile) async {
+    return _platform.overrideRingtone(callId, ringtoneFile);
   }
 
   //-//////////////////////////////////////////////////////////////////////////////////////

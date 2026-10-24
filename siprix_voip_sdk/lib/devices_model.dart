@@ -141,8 +141,9 @@ class DevicesModel extends ChangeNotifier {
 
   /// Set current speaker device by its index
   Future<void> setRingtoneDevice(int? index) async {
-    if(!(Platform.isWindows || Platform.isMacOS || Platform.isLinux)||
-      (index==null)) return;
+    bool isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+    if(!isDesktop || (index==null)) return;
+
     _logs?.print('setRingtoneDevice: $index');
 
     try {
@@ -161,8 +162,9 @@ class DevicesModel extends ChangeNotifier {
 
   /// Set current speaker as system's default device (Windows only)
   Future<void> setPlayoutDeviceSysDef() async{
-    if(Platform.isWindows || Platform.isMacOS)
+    if(Platform.isWindows || Platform.isMacOS) {
       return _playout.set(-1, SiprixVoipSdk().setPlayoutDevice);
+    }
   }
 
   /// Set current microphone device by its index
@@ -172,8 +174,9 @@ class DevicesModel extends ChangeNotifier {
 
 /// Set current microphone device as system's default device (Windows only)
   Future<void> setRecordingDeviceSysDef() async{
-    if(Platform.isWindows || Platform.isMacOS)
+    if(Platform.isWindows || Platform.isMacOS) {
       return _recording.set(-1, SiprixVoipSdk().setRecordingDevice);
+    }
   }
 
   /// Set current camera device by its index
@@ -183,8 +186,7 @@ class DevicesModel extends ChangeNotifier {
 
   /// Set foreground mode of the CallNotifService service (Android only)
   Future<void> setForegroundMode(bool enabled) async{
-    if(!Platform.isAndroid ||
-      (_foregroundModeEnabled==enabled)) return;
+    if(!Platform.isAndroid || (_foregroundModeEnabled == enabled)) return;
     _logs?.print('set foreground mode - $enabled');
 
     try {
