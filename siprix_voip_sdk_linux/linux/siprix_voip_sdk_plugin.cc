@@ -62,6 +62,7 @@ const char kMethodCallTransferAttended[]= "Call_TransferAttended";
 const char kMethodCallUpgradeToVideo[]  = "Call_UpgradeToVideo";
 const char kMethodCallAcceptVideoUpgrade[] = "Call_AcceptVideoUpgrade";
 const char kMethodCallStopRingtone[]    = "Call_StopRingtone";
+const char kMethodCallOverrideRingtone[]= "Call_OverrideRingtone";
 const char kMethodCallBye[]             = "Call_Bye";
 
 const char kMethodMixerSwitchToCall[]   = "Mixer_SwitchToCall";
@@ -417,6 +418,10 @@ static FlMethodResponse* handleModuleInitialize(FlValue* args, SiprixVoipSdkPlug
     val = fl_value_lookup_string(args, "useDnsSrv");
     if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_BOOL)
       Siprix::Ini_SetUseDnsSrv(iniData, fl_value_get_bool(val));
+
+    val = fl_value_lookup_string(args, "useExternalRinger");
+    if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_BOOL)
+      Siprix::Ini_SetUseExternalRinger(iniData, fl_value_get_bool(val));
 
     val = fl_value_lookup_string(args, "dnsServers");
     if (val != nullptr && fl_value_get_type(val) == FL_VALUE_TYPE_STRING)
@@ -1085,6 +1090,20 @@ FlMethodResponse* handleCallAcceptVideoUpgrade(FlValue* args, SiprixVoipSdkPlugi
     return sendResult(err);
 }
 
+FlMethodResponse* handleCallOverrideRingtone(FlValue* args, SiprixVoipSdkPlugin* self)
+{
+    FlValue* val = fl_value_lookup_string(args, kArgCallId);
+    if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_INT) return badArgsResponse();
+    const Siprix::CallId callId = fl_value_get_int(val);
+
+    val = fl_value_lookup_string(args, "ringtoneFile");
+    if (val == nullptr || fl_value_get_type(val) != FL_VALUE_TYPE_STRING) return badArgsResponse();
+    const gchar* ringtoneFile = fl_value_get_string(val);
+
+    const Siprix::ErrorCode err = Siprix::Call_OverrideRingtone(self->module_, callId, ringtoneFile);
+    return sendResult(err);
+}
+
 FlMethodResponse* handleCallStopRingtone(FlValue* args, SiprixVoipSdkPlugin* self)
 {
     const Siprix::ErrorCode err = Siprix::Call_StopRingtone(self->module_);
@@ -1485,6 +1504,7 @@ static void siprix_voip_sdk_plugin_handle_method_call(
     if(strcmp(method, kMethodCallUpgradeToVideo) == 0)   response = handleCallUpgradeToVideo(args, self); else
     if(strcmp(method, kMethodCallAcceptVideoUpgrade) == 0)   response = handleCallAcceptVideoUpgrade(args, self); else
     if(strcmp(method, kMethodCallStopRingtone) == 0)     response = handleCallStopRingtone(args, self); else
+    if(strcmp(method, kMethodCallOverrideRingtone) == 0) response = handleCallOverrideRingtone(args, self); else
     if(strcmp(method, kMethodCallBye) == 0)              response = handleCallBye(args, self);    else
 
     if(strcmp(method, kMethodMixerSwitchToCall) == 0)    response = handleMixerSwitchToCall(args, self); else
