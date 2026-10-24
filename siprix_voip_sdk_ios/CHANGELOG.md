@@ -1,3 +1,13 @@
+## 1.1.4
+ - Updated internal mixer impl (could cause sound artifacts when SDK hosts conference call)
+ - Windows, MacOS, Linux: Added new method 'Call_OverrideRingtone' (ability to play different ringtone for the selected call)
+ - Added ability to send DTMF in the early-media state.
+ - iOS: Updated audio session implementation (addressed handling audio interruptions and missed didActivate)
+ - iOS, MacOS: renamed 'RTC***' objc classes to 'siprixRTC***'
+    which prevents conflicts with flutter_webrtc, livekit_client and other libraries.
+ - iOS, MacOS: Updated xcframeworks signature, using Apple Distribution cert
+   //2026.10.24
+
 ## 1.1.3
  - Added ability to set TLS CA cert as string. 
    App can hardcode PEM file content and set it as argument of 'Acc_SetTranspTlsCaCert(, cert)', which is easier than manage file resource.

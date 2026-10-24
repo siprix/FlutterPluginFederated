@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'siprix_voip_sdk_ios'
-  s.version          = '1.1.3'
+  s.version          = '1.1.4'
   s.summary          = 'Siprix VoIP SDK plugin for embedding voice and video communication.'
   s.description      = <<-DESC
 Siprix VoIP SDK plugin for embedding voice and video communication (based on SIP/RTP protocols) into Flutter applications.
@@ -27,4 +27,8 @@ Siprix VoIP SDK plugin for embedding voice and video communication (based on SIP
   s.vendored_frameworks = 'siprix_voip_sdk_ios/Frameworks/siprix.xcframework', 'siprix_voip_sdk_ios/Frameworks/siprixMedia.xcframework'  # including native framework
   s.frameworks = 'siprix', 'siprixMedia'
   s.library = 'c++'
+  s.prepare_command = <<-CMD
+   [ -d siprix_voip_sdk_ios/Frameworks/siprix.xcframework ] || unzip siprix_voip_sdk_ios/Frameworks/siprix.xcframework.zip -d siprix_voip_sdk_ios/Frameworks/
+   [ -d siprix_voip_sdk_ios/Frameworks/siprixMedia.xcframework ] || unzip siprix_voip_sdk_ios/Frameworks/siprixMedia.xcframework.zip -d siprix_voip_sdk_ios/Frameworks/
+  CMD
 end

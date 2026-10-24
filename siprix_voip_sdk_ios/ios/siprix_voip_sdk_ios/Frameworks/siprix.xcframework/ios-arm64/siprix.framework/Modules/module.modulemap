@@ -1,6 +1,0 @@
-framework module siprix {
-  umbrella header "Siprix.h"
-  export *
-
-  module * { export * }
-}
