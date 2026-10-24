@@ -58,6 +58,7 @@ const char kMethodCallTransferAttended[]= "Call_TransferAttended";
 const char kMethodCallUpgradeToVideo[]  = "Call_UpgradeToVideo";
 const char kMethodCallAcceptVideoUpgrade[] = "Call_AcceptVideoUpgrade";
 const char kMethodCallStopRingtone[]    = "Call_StopRingtone";
+const char kMethodCallOverrideRingtone[]= "Call_OverrideRingtone";
 const char kMethodCallBye[]             = "Call_Bye";
 
 const char kMethodMixerSwitchToCall[]   = "Mixer_SwitchToCall";
@@ -231,6 +232,7 @@ void SiprixVoipSdkPlugin::buildHandlersTable()
      handlers_[kMethodCallUpgradeToVideo]   = std::bind(&SiprixVoipSdkPlugin::handleCallUpgradeToVideo, this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallAcceptVideoUpgrade] = std::bind(&SiprixVoipSdkPlugin::handleCallAcceptVideoUpgrade, this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallStopRingtone]     = std::bind(&SiprixVoipSdkPlugin::handleCallStopRingtone,   this, std::placeholders::_1, std::placeholders::_2);
+     handlers_[kMethodCallOverrideRingtone] = std::bind(&SiprixVoipSdkPlugin::handleCallOverrideRingtone, this, std::placeholders::_1, std::placeholders::_2);
      handlers_[kMethodCallBye]              = std::bind(&SiprixVoipSdkPlugin::handleCallBye,            this, std::placeholders::_1, std::placeholders::_2);
      
      handlers_[kMethodMixerSwitchToCall]    = std::bind(&SiprixVoipSdkPlugin::handleMixerSwitchToCall,   this, std::placeholders::_1, std::placeholders::_2);
@@ -396,6 +398,7 @@ void SiprixVoipSdkPlugin::handleModuleInitialize(const flutter::EncodableMap& ar
           if(valName->compare("singleCallMode") == 0)    Siprix::Ini_SetSingleCallMode(iniData, *boolVal); else
           if(valName->compare("shareUdpTransport") == 0) Siprix::Ini_SetShareUdpTransport(iniData, *boolVal); else
           if(valName->compare("unregOnDestroy") == 0)    Siprix::Ini_SetUnregOnDestroy(iniData, *boolVal); else
+          if(valName->compare("useExternalRinger") == 0) Siprix::Ini_SetUseExternalRinger(iniData, *boolVal); else
           if(valName->compare("useDnsSrv") == 0)         Siprix::Ini_SetUseDnsSrv(iniData, *boolVal); else
           if(valName->compare("recordStereo") == 0)      Siprix::Ini_SetRecordStereo(iniData, *boolVal); else
           if(valName->compare("enableVideoCall") == 0)   Siprix::Ini_SetVideoCallEnabled(iniData, *boolVal); else
@@ -896,6 +899,17 @@ void SiprixVoipSdkPlugin::handleCallUpgradeToVideo(const flutter::EncodableMap& 
 void SiprixVoipSdkPlugin::handleCallStopRingtone(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
 {
     const Siprix::ErrorCode err = Siprix::Call_StopRingtone(module_);
+    sendResult(err, result);
+}
+
+void SiprixVoipSdkPlugin::handleCallOverrideRingtone(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result)
+{
+    bool bFound1, bFound2;
+    Siprix::CallId callId = parseValue<int32_t>(kArgCallId, argsMap, bFound1);
+    std::string ringtoneFile = parseValue<std::string>("ringtoneFile", argsMap, bFound2);
+    if (!bFound1 || !bFound2) { sendBadArgResult(result); return; }
+
+    const Siprix::ErrorCode err = Siprix::Call_OverrideRingtone(module_, callId, ringtoneFile.c_str());
     sendResult(err, result);
 }
 

@@ -359,6 +359,7 @@ EXPORT ErrorCode Call_GetStats(ISiprixModule* module, CallId callId, char* stats
 EXPORT ErrorCode Call_PlayTone(ISiprixModule* module, CallId callId, const char* tone, 
                                 uint16_t durationMs, PlayerId* playerId);
 EXPORT ErrorCode Call_StopRingtone(ISiprixModule* module);
+EXPORT ErrorCode Call_OverrideRingtone(ISiprixModule* module, CallId callId, const char* ringtonePath);
 
 ////////////////////////////////////////////////////////////////////////////
 //Mixer

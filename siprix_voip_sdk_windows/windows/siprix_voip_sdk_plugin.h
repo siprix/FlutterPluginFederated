@@ -70,6 +70,7 @@ class SiprixVoipSdkPlugin : public flutter::Plugin, public Siprix::ISiprixEventH
   void handleCallUpgradeToVideo(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallAcceptVideoUpgrade(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallStopRingtone(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
+  void handleCallOverrideRingtone(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
   void handleCallBye(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
 
   void handleMixerSwitchToCall(const flutter::EncodableMap& argsMap, MethodResultEncValPtr& result);
